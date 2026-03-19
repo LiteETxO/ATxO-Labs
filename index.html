@@ -1,101 +1,58 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ATXO — More Qualified Demos for Seed–A SaaS</title>
-  <meta name="description" content="We add 3–5 qualified meetings/month for Seed–A SaaS by fixing inputs: better lists + tailored copy + fast iteration." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ATXO – Pay‑per‑demo for Seed–A SaaS</title>
+<meta name="description" content="Pay only for qualified demos. 3–5 more demos/month for Seed–A SaaS with signals, better lists, tailored copy, and fast loops." />
+<style>
+:root { --bg:#0b0d12; --card:#10141c; --text:#e6ebf5; --muted:#9aa5b1; --brand:#66e0ff; --accent:#5b8cff; --ok:#20d57a; --border:#1b2230; }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1120px;margin:0 auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;padding:6px 0 12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.5px}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 16px rgba(102,224,255,.6)}
+nav a{color:var(--muted);margin-left:18px;font-size:14px}
+nav a.cta{color:var(--text);background:linear-gradient(90deg,var(--brand),var(--accent));padding:10px 14px;border-radius:10px;font-weight:600;box-shadow:0 8px 24px rgba(91,140,255,.25)}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;padding:28px 0 16px}
+.h1{font-size:40px;line-height:1.1;margin:6px 0 12px;letter-spacing:-.3px}
+.sub{color:var(--muted);font-size:18px;line-height:1.55}
+.cta-row{display:flex;gap:12px;align-items:center;margin:18px 0 8px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;font-weight:600;border:1px solid var(--border);background:#151b26;color:var(--text)}
+.btn.primary{background:linear-gradient(90deg,var(--brand),var(--accent));color:#0b0d12;border:none;box-shadow:0 8px 24px rgba(91,140,255,.25)}
+.badge-row{display:flex;gap:12px;color:var(--muted);font-size:13px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+.pillars h3{margin:8px 0;font-size:16px}
+.pillars p{color:var(--muted);font-size:14px;line-height:1.5}
+.how{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px;align-items:center}
+.how ol{margin:0;padding-left:18px}
+.how li{margin:10px 0;color:var(--muted)}
+.pricing{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:28px}
+.pricing .box{background:#0f1723;border:1px solid var(--border);border-radius:12px;padding:16px}
+.pricing ul{margin:8px 0 0;padding-left:18px;color:var(--muted)}
+.cta-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:32px 0 24px;padding:18px;border:1px solid var(--border);border-radius:14px;background:#0f1723}
+.small{font-size:12px;color:var(--muted)}
+@media(max-width:920px){.hero,.how,.pricing{grid-template-columns:1fr}.pillars{grid-template-columns:1fr}nav{display:none}.h1{font-size:32px}}
+</style>
 </head>
 <body>
-  <header class="nav">
-    <div class="container">
-      <div class="brand">ATXO</div>
-      <nav>
-        <a href="#how">How it works</a>
-        <a href="#pricing">Pricing</a>
-        <a class="cta" href="#book">Book a call</a>
-      </nav>
-    </div>
-  </header>
+<div class="wrap">
+<header>
+<div class="logo"><div class="logo-dot"></div><div>ATXO</div></div>
+<nav>
+<a href="#how">How it works</a>
+<a href="#pricing">Pricing</a>
+<a href="#why">Why us</a>
+<a class="cta" href="https://wa.me/16172308368?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look</a>
+</nav>
+</header>
 
-  <main>
-    <section class="hero">
-      <div class="container">
-        <h1>More qualified demos for Seed–A SaaS — without adding headcount</h1>
-        <p class="sub">We add 3–5 qualified meetings/month by fixing inputs: better lists + tailored copy + fast iteration.</p>
-        <div class="actions">
-          <a class="btn" href="#book">Book a 10‑minute look</a>
-        </div>
-      </div>
-    </section>
-
-    <section id="how" class="how">
-      <div class="container grid-3">
-        <div class="card">
-          <h3>Better lists</h3>
-          <p>Firmographics + tech + hiring signals to match your ICP precisely.</p>
-        </div>
-        <div class="card">
-          <h3>Tailored copy</h3>
-          <p>Messaging that sounds like you, tested weekly for lift.</p>
-        </div>
-        <div class="card">
-          <h3>Fast loops</h3>
-          <p>Short cycles to double‑down on what gets replies and demos.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="pricing" class="pricing">
-      <div class="container">
-        <h2>Simple pilot to start</h2>
-        <div class="price-card">
-          <div>
-            <h3>Pilot</h3>
-            <p class="price">$299/mo</p>
-            <ul>
-              <li>50 leads/month (ICP‑matched)</li>
-              <li>3‑step sequence + weekly tweaks</li>
-              <li>Cancel anytime</li>
-            </ul>
-          </div>
-          <a class="btn secondary" href="#book">Book a 10‑minute look</a>
-        </div>
-      </div>
-    </section>
-
-    <section id="about" class="about">
-      <div class="container">
-        <h2>Why ATXO</h2>
-        <p>We’re builders. We focus on inputs that move the needle for early‑stage SaaS: list quality and sharp copy. Simple, measurable, and fast to start.</p>
-      </div>
-    </section>
-
-    <section id="book" class="book">
-      <div class="container">
-        <h2>Book a 10‑minute look</h2>
-        <p>Pick a time that works. We’ll share the 1‑pager and two angles we’d test first for your ICP.</p>
-        <div class="calendly">
-          <!-- Replace with real Calendly link when ready -->
-          <a class="btn" href="#" aria-disabled="true">Calendly link coming soon</a>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <div>© <span id="year"></span> ATXO</div>
-      <div class="fineprint">Pilot first. Cancel anytime.</div>
-    </div>
-  </footer>
-
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
-</body>
-</html>
+<section class="hero">
+<div>
+<div class="h1">Pay only for qualified demos. No extra headcount.</div>
+<div class="sub">3–5 more demos/month for Seed–A SaaS. Signals, better lists, tailored copy, and fast loops that book real meetings.</div>
+<div class="cta-row">
