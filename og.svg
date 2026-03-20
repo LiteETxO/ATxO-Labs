@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#7c4dff"/>
+      <stop offset="1" stop-color="#4fd1c5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0b0d12"/>
+  <circle cx="120" cy="120" r="10" fill="url(#g)"/>
+  <text x="150" y="140" fill="#e7edf3" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="700">ATXO</text>
+  <text x="150" y="220" fill="#e7edf3" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="68" font-weight="800">Pay‑per‑demo for Seed–A SaaS</text>
+  <text x="150" y="300" fill="#9bb0c5" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="34">Pay only for qualified demos. No extra headcount.</text>
+  <text x="150" y="350" fill="#9bb0c5" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="28">Signals • Better lists • Tailored copy • Fast loops</text>
+  <rect x="150" y="420" rx="14" ry="14" width="420" height="68" fill="url(#g)"/>
+  <text x="170" y="468" fill="#07151a" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="28" font-weight="700">Book a 10‑minute look →</text>
+</svg>
