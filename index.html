@@ -1,139 +1,115 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ATXO – Pay‑per‑demo for Seed–A SaaS</title>
-<meta name="description" content="Pay only for qualified demos. 3–5 more demos/month for Seed–A SaaS with signals, better lists, tailored copy, and fast loops." />
-<style>
-:root { --bg:#0b0d12; --card:#10141c; --text:#e6ebf5; --muted:#9aa5b1; --brand:#66e0ff; --accent:#5b8cff; --ok:#20d57a; --border:#1b2230; }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline}
-.wrap{max-width:1120px;margin:0 auto;padding:24px}
-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0 12px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.5px}
-.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 16px rgba(102,224,255,.6)}
-nav a{color:var(--muted);margin-left:18px;font-size:14px}
-nav a.cta{color:var(--text);background:linear-gradient(90deg,var(--brand),var(--accent));padding:10px 14px;border-radius:10px;font-weight:600;box-shadow:0 8px 24px rgba(91,140,255,.25)}
-.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;padding:28px 0 16px}
-.h1{font-size:40px;line-height:1.1;margin:6px 0 12px;letter-spacing:-.3px}
-.sub{color:var(--muted);font-size:18px;line-height:1.55}
-.cta-row{display:flex;gap:12px;align-items:center;margin:18px 0 8px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;font-weight:600;border:1px solid var(--border);background:#151b26;color:var(--text)}
-.btn.primary{background:linear-gradient(90deg,var(--brand),var(--accent));color:#0b0d12;border:none;box-shadow:0 8px 24px rgba(91,140,255,.25)}
-.badge-row{display:flex;gap:12px;color:var(--muted);font-size:13px;margin-top:8px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
-.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
-.pillars h3{margin:8px 0;font-size:16px}
-.pillars p{color:var(--muted);font-size:14px;line-height:1.5}
-.how{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px;align-items:center}
-.how ol{margin:0;padding-left:18px}
-.how li{margin:10px 0;color:var(--muted)}
-.pricing{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:28px}
-.pricing .box{background:#0f1723;border:1px solid var(--border);border-radius:12px;padding:16px}
-.pricing ul{margin:8px 0 0;padding-left:18px;color:var(--muted)}
-.cta-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:32px 0 24px;padding:18px;border:1px solid var(--border);border-radius:14px;background:#0f1723}
-.small{font-size:12px;color:var(--muted)}
-@media(max-width:920px){.hero,.how,.pricing{grid-template-columns:1fr}.pillars{grid-template-columns:1fr}nav{display:none}.h1{font-size:32px}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ATXO — Pay‑per‑demo for Seed–A SaaS</title>
+  <meta name="description" content="Pay only for qualified demos. 3–5 more demos/month for Seed–A SaaS with signals, better lists, tailored copy, and fast loops." />
+  <meta property="og:title" content="ATXO — Pay‑per‑demo for Seed–A SaaS" />
+  <meta property="og:description" content="Signals, better lists, tailored copy, and fast loops that book real meetings." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://atxo.me/" />
+  <meta property="og:image" content="https://atxo.me/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="preload" as="style" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script defer data-domain="atxo.me" src="https://plausible.io/js/script.js"></script>
 </head>
 <body>
-<div class="wrap">
-<header>
-<div class="logo"><div class="logo-dot"></div><div>ATXO</div></div>
-<nav>
-<a href="#how">How it works</a>
-<a href="#pricing">Pricing</a>
-<a href="#why">Why us</a>
-<a class="cta" href="https://wa.me/16172308368?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look</a>
-</nav>
-</header>
+  <div class="container">
+    <header class="header">
+      <div class="brand"><div class="brand-dot"></div><div>ATXO</div></div>
+      <nav class="nav">
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a class="cta" href="https://wa.me/251947060080?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look</a>
+      </nav>
+    </header>
 
-<section class="hero">
-<div>
-<div class="h1">Pay only for qualified demos. No extra headcount.</div>
-<div class="sub">3–5 more demos/month for Seed–A SaaS. Signals, better lists, tailored copy, and fast loops that book real meetings.</div>
-<div class="cta-row">
-<a class="btn primary" href="https://wa.me/16172308368?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look →</a>
-<a class="btn" href="#how">See how it works</a>
-</div>
-<div class="badge-row">
-<div>Only pay for demos you accept</div>
-<div>Cancel anytime</div>
-<div>14‑day money‑back</div>
-</div>
-</div>
-<div class="card">
-<img src="./how-it-works.svg" alt="How it works diagram" style="width:100%; display:block; border-radius:10px; border:1px solid var(--border); background:#0f1723;" />
-</div>
-</section>
+    <section class="hero">
+      <div>
+        <div class="h1">Pay only for qualified demos. No extra headcount.</div>
+        <div class="sub">3–5 more demos/month for Seed–A SaaS. Signals, better lists, tailored copy, and fast loops that book real meetings.</div>
+        <div class="cta-row">
+          <a class="btn primary" href="https://wa.me/251947060080?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look</a>
+          <a class="btn" href="#how">See how it works</a>
+        </div>
+        <div class="badge-row">
+          <div>Only pay for accepted demos</div>
+          <div>Cancel anytime</div>
+          <div>14‑day money‑back</div>
+        </div>
+      </div>
+      <div class="card">
+        <img src="./how-it-works.svg" alt="How it works diagram" style="width:100%;display:block;border-radius:10px;border:1px solid var(--border);background:#0f1723" />
+      </div>
+    </section>
 
-<section class="pillars" id="why">
-<div class="card">
-<h3>Better Lists</h3>
-<p>Signals‑driven ICP matching (firmographics, tech stack, hiring, intent). Low‑fit and duplicates excluded to protect domain reputation.</p>
-</div>
-<div class="card">
-<h3>Tailored Copy</h3>
-<p>Voice‑matched messaging, rewritten weekly from live replies. Variants on pain, trigger, and offer until it reliably books.</p>
-</div>
-<div class="card">
-<h3>Fast Loops</h3>
-<p>2–3 test batches per week. Keep what books, kill what doesn’t. Share learnings and double‑down next week.</p>
-</div>
-</section>
+    <section class="pillars" id="why">
+      <div class="card">
+        <h3>Better Lists</h3>
+        <p>Signals‑driven ICP matching (firmographics, tech stack, hiring, intent). Low‑fit and duplicates excluded to protect domain reputation.</p>
+      </div>
+      <div class="card">
+        <h3>Tailored Copy</h3>
+        <p>Voice‑matched messaging, rewritten weekly from live replies. Variants on pain, trigger, and offer until it reliably books.</p>
+      </div>
+      <div class="card">
+        <h3>Fast Loops</h3>
+        <p>2–3 test batches per week. Keep what books, kill what doesn’t. Share learnings and double‑down next week.</p>
+      </div>
+    </section>
 
-<section class="how" id="how">
-<div class="card">
-<h3>How it works</h3>
-<ol>
-<li><strong>Signals →</strong> Firmographics + tech/hiring signals for your ICP.</li>
-<li><strong>Lists →</strong> De‑dupe, validate, warm up, prioritize by fit.</li>
-<li><strong>Copy →</strong> 3–5 variants mapped to pains/triggers.</li>
-<li><strong>Loop →</strong> Small batches, measure, iterate weekly.</li>
-<li><strong>Bookings →</strong> Only qualified demos count for billing.</li>
-</ol>
-</div>
-<div class="card">
-<img src="./how-it-works.svg" alt="How it works diagram" style="width:100%; display:block; border-radius:10px; border:1px solid var(--border); background:#0f1723;" />
-</div>
-</section>
+    <section class="how" id="how">
+      <div class="card">
+        <h3>How it works</h3>
+        <ol>
+          <li><strong>Signals</strong> → Firmographics + tech/hiring signals for your ICP.</li>
+          <li><strong>Lists</strong> → De‑dupe, validate, warm up, prioritize by fit.</li>
+          <li><strong>Copy</strong> → 3–5 variants mapped to pains/triggers.</li>
+          <li><strong>Loop</strong> → Small batches, measure, iterate weekly.</li>
+          <li><strong>Bookings</strong> → Only qualified demos count for billing.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <img src="./how-it-works.svg" alt="How it works diagram" style="width:100%;display:block;border-radius:10px;border:1px solid var(--border);background:#0f1723" />
+      </div>
+    </section>
 
-<section class="pricing" id="pricing">
-<div class="box">
-<h3>Pay‑per‑demo</h3>
-<ul>
-<li>Pay only for demos you accept</li>
-<li>Caps + fairness clause to protect both sides</li>
-<li>Includes signals, lists, copy loops, and routing</li>
-</ul>
-</div>
-<div class="box">
-<h3>Add‑ons</h3>
-<ul>
-<li>Extra domains</li>
-<li>Multilingual campaigns</li>
-<li>SDR enablement</li>
-</ul>
-</div>
-</section>
+    <section class="pricing" id="pricing">
+      <div class="box">
+        <h3>Pay‑per‑demo</h3>
+        <ul>
+          <li>Pay only for demos you accept</li>
+          <li>Caps + fairness clause to protect both sides</li>
+          <li>Includes signals, lists, copy loops, and routing</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Add‑ons</h3>
+        <ul>
+          <li>Extra domains</li>
+          <li>Multilingual campaigns</li>
+          <li>SDR enablement</li>
+        </ul>
+      </div>
+    </section>
 
-<div class="cta-footer">
-<div>
-<div style="font-weight:600;">Prefer predictable costs?</div>
-<div class="small">Switch to a fixed‑price pilot anytime.</div>
-</div>
-<div>
-<a class="btn primary" href="https://wa.me/16172308368?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look →</a>
-</div>
-</div>
+    <section class="faq">
+      <div class="q"><strong>Quality?</strong> We protect domain reputation, exclude low‑fit, and iterate from live replies until we book predictably.</div>
+      <div class="q"><strong>Time?</strong> You give us ICP and channels; we handle signals, lists, copy, campaigns, and routing.</div>
+    </section>
 
-<footer class="small" style="opacity:.8;">
-<div>©️ <span id="year"></span> ATXO. Privacy‑first. Unsubscribe links are respected.</div>
-</footer>
-</div>
-<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+    <div class="footer">
+      <div>Prefer predictable costs? <span class="small">Switch to a fixed‑price pilot anytime.</span></div>
+      <div><a class="btn primary" href="https://wa.me/251947060080?text=ATXO%20booking%20request%20(10‑min%20look)" target="_blank" rel="noopener">Book a 10‑minute look</a></div>
+    </div>
+
+    <footer class="small" style="opacity:.85;">
+      © <span id="y"></span> ATXO. <a href="/privacy.html" class="small">Privacy</a> · <a href="/terms.html" class="small">Terms</a>
+    </footer>
+  </div>
+  <script>document.getElementById('y').textContent=new Date().getFullYear()</script>
 </body>
 </html>
