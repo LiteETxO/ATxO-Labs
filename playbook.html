@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The AI Outreach Playbook — ATXO</title>
+<meta name="description" content="The exact system we use to source, enrich, score, and email 50+ Series A SaaS founders per day. Real templates, SMTP setup, and deliverability rules — $47." />
+<meta property="og:title" content="The AI Outreach Playbook — ATXO" />
+<meta property="og:description" content="Source, enrich, score, and email 50+ qualified leads per day. The exact system, templates, and toolchain — $47." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://atxo.me/playbook" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #08090d;
+  --card: #0e1118;
+  --text: #e8ecf4;
+  --muted: #8e99a8;
+  --brand: #4fd1c5;
+  --accent: #6c63ff;
+  --border: #1a1f2b;
+  --glow: rgba(79, 209, 197, .12);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font: 16px/1.65 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+a { color: var(--brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+/* Header */
+header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: .4px; }
+.logo-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--brand), var(--accent)); box-shadow: 0 0 20px rgba(79,209,197,.5); }
+nav { display: flex; align-items: center; gap: 20px; }
+nav a { color: var(--muted); font-size: 14px; font-weight: 500; }
+nav a:hover { color: var(--text); text-decoration: none; }
+nav .btn-nav { color: var(--bg); background: linear-gradient(135deg, var(--brand), var(--accent)); padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 20px rgba(79,209,197,.25); transition: transform .15s, box-shadow .15s; }
+nav .btn-nav:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(79,209,197,.35); text-decoration: none; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 12px; font-weight: 600; font-size: 15px; border: 1px solid var(--border); background: var(--card); color: var(--text); transition: all .15s; cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--muted); text-decoration: none; }
+.btn.primary { background: linear-gradient(135deg, var(--brand), var(--accent)); color: var(--bg); border: none; box-shadow: 0 4px 24px rgba(79,209,197,.3); font-size: 16px; padding: 16px 28px; }
+.btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(79,209,197,.4); }
+
+/* Hero */
+.hero { padding: 64px 0 48px; text-align: center; }
+.hero-badge { display: inline-block; background: rgba(79,209,197,.1); border: 1px solid rgba(79,209,197,.3); color: var(--brand); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; margin-bottom: 24px; letter-spacing: .3px; }
+.hero h1 { font-size: 44px; line-height: 1.1; letter-spacing: -.5px; margin: 0 0 20px; }
+.hero h1 span { background: linear-gradient(135deg, var(--brand), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p { color: var(--muted); font-size: 19px; line-height: 1.6; margin: 0 auto 32px; max-width: 640px; }
+.price-display { font-size: 52px; font-weight: 700; background: linear-gradient(135deg, var(--brand), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px; }
+.price-sub { color: var(--muted); font-size: 15px; margin-bottom: 28px; }
+.trust-pills { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+.trust-pills span { background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 20px; }
+.trust-pills span::before { content: '✓ '; color: var(--brand); }
+
+/* What's inside */
+.inside { margin: 64px 0; }
+.section-label { color: var(--brand); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; text-align: center; }
+h2 { font-size: 30px; margin: 0 0 12px; letter-spacing: -.2px; text-align: center; }
+.section-sub { color: var(--muted); font-size: 16px; margin-bottom: 36px; text-align: center; }
+
+.chapters { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chapter { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; display: flex; gap: 16px; align-items: flex-start; transition: border-color .2s; }
+.chapter:hover { border-color: rgba(79,209,197,.3); }
+.chapter-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; min-width: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--brand), var(--accent)); color: var(--bg); font-weight: 700; font-size: 13px; }
+.chapter h3 { font-size: 15px; margin: 0 0 6px; }
+.chapter p { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0; }
+
+/* Results */
+.results { margin: 64px 0; }
+.results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.result-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; }
+.result-num { font-size: 34px; font-weight: 700; background: linear-gradient(135deg, var(--brand), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.result-label { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+/* For whom */
+.for-whom { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px; margin: 64px 0; }
+.for-whom h2 { text-align: left; }
+.for-whom .section-label { text-align: left; }
+.fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+.fit-item { display: flex; gap: 12px; align-items: flex-start; }
+.fit-icon { font-size: 20px; margin-top: 2px; }
+.fit-item h4 { margin: 0 0 4px; font-size: 15px; }
+.fit-item p { color: var(--muted); font-size: 13px; margin: 0; line-height: 1.5; }
+.not-for { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+.not-for h4 { color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px; }
+.not-for ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.not-for li { background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 5px 12px; border-radius: 20px; }
+.not-for li::before { content: '✗ '; color: #e05c5c; }
+
+/* CTA section */
+.cta-section { background: linear-gradient(135deg, rgba(79,209,197,.08), rgba(108,99,255,.08)); border: 1px solid rgba(79,209,197,.2); border-radius: 16px; padding: 48px; text-align: center; margin: 64px 0; }
+.cta-section h2 { font-size: 28px; margin: 0 0 12px; }
+.cta-section p { color: var(--muted); font-size: 16px; margin: 0 0 28px; }
+
+/* FAQ */
+.faq { margin: 64px 0; }
+.faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.faq-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+.faq-item h4 { margin: 0 0 8px; font-size: 15px; }
+.faq-item p { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0; }
+
+/* Footer */
+footer { padding: 24px 0 32px; color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); }
+footer a { color: var(--muted); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 30px; }
+  .hero { padding: 40px 0 32px; }
+  .chapters, .results-grid, .fit-grid, .faq-grid { grid-template-columns: 1fr; }
+  nav a:not(.btn-nav) { display: none; }
+  footer { flex-direction: column; gap: 8px; text-align: center; }
+  .price-display { font-size: 40px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a href="/" class="logo" style="text-decoration:none; color: var(--text);">
+      <div class="logo-dot"></div>
+      <div>ATXO</div>
+    </a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/#pricing">Services</a>
+      <a class="btn-nav" href="https://selamite0.gumroad.com/l/cdthxo" target="_blank" rel="noopener">Get the playbook — $47 →</a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">📘 Digital Playbook · $47 one-time</div>
+    <h1>The <span>AI Outreach System</span><br/>that books Series A meetings</h1>
+    <p>The exact process we use to source, enrich, score, and email 50+ qualified SaaS founders per day — including real templates, full SMTP setup, and the deliverability rules we learned the hard way.</p>
+    <div class="price-display">$47</div>
+    <div class="price-sub">One-time · Instant PDF download · No subscription</div>
+    <a class="btn primary" href="https://selamite0.gumroad.com/l/cdthxo" target="_blank" rel="noopener">Get the playbook now →</a>
+    <div class="trust-pills">
+      <span>Instant download</span>
+      <span>Real templates included</span>
+      <span>No fluff — just the system</span>
+      <span>Built from 50+ sends/day</span>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="results">
+    <div class="section-label">What this produces</div>
+    <h2>Real numbers from the system</h2>
+    <p class="section-sub">These aren't projections. This is what the playbook produces when you run it.</p>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="result-num">50+</div>
+        <div class="result-label">Qualified leads sourced per day</div>
+      </div>
+      <div class="result-card">
+        <div class="result-num">A-grade</div>
+        <div class="result-label">67% of leads score high-intent</div>
+      </div>
+      <div class="result-card">
+        <div class="result-num">&lt;$0.10</div>
+        <div class="result-label">Cost per verified, enriched lead</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What's inside -->
+  <section class="inside">
+    <div class="section-label">What's inside</div>
+    <h2>The full playbook — nothing held back</h2>
+    <p class="section-sub">7 chapters. Every tool, every prompt, every setting we actually use.</p>
+
+    <div class="chapters">
+      <div class="chapter">
+        <div class="chapter-num">1</div>
+        <div>
+          <h3>ICP Definition & Lead Scoring</h3>
+          <p>How to define your ideal customer profile precisely enough that Apollo returns A-grade leads by default. Includes our scoring rubric (funding stage, headcount, tech stack signals).</p>
+        </div>
+      </div>
+      <div class="chapter">
+        <div class="chapter-num">2</div>
+        <div>
+          <h3>Apollo Setup & Search Filters</h3>
+          <p>The exact Apollo saved search config we use. Which filters matter, which kill quality, and how to get 50+ valid leads per pull without burning your export credits.</p>
+        </div>
+      </div>
+      <div class="chapter">
+        <div class="chapter-num">3</div>
+        <div>
+          <h3>Enrichment Pipeline</h3>
+          <p>How to layer Hunter.io, LinkedIn scraping, and GPT-4 to add funding context, recent news, and personalization triggers before you write a single email.</p>
+        </div>
+      </div>
+      <div class="chapter">
+        <div class="chapter-num">4</div>
+        <div>
+          <h3>Email Templates & Personalization</h3>
+          <p>5 battle-tested subject line formulas. The 3-line cold email structure that gets replies. How to use funding announcements, job postings, and product launches as triggers.</p>
+        </div>
+      </div>
+      <div class="chapter">
+        <div class="chapter-num">5</div>
+        <div>
+          <h3>SMTP Setup & Sending Infrastructure</h3>
+          <p>Custom domain + Zoho/Gmail SMTP step-by-step. SPF, DKIM, DMARC config. Daily send limits that don't get you blocked. How we structure multiple inboxes for volume.</p>
+        </div>
+      </div>
+      <div class="chapter">
+        <div class="chapter-num">6</div>
+        <div>
+          <h3>Deliverability Rules</h3>
+          <p>The hard lessons: what gets you flagged, what recovers reputation, why bulk retries destroy deliverability, and the 5/day warmup rule we follow religiously after getting burned.</p>
+      </div>
+      </div>
+      <div class="chapter">
+        <div class="chapter-num">7</div>
+        <div>
+          <h3>Follow-up Sequences & Tracking</h3>
+          <p>3-touch follow-up cadence with templates. How to track opens/replies without a paid tool. When to stop, when to recycle, and how to hand off hot leads.</p>
+        </div>
+      </div>
+      <div class="chapter" style="border-color: rgba(79,209,197,.3);">
+        <div class="chapter-num" style="background: linear-gradient(135deg, var(--accent), var(--brand));">+</div>
+        <div>
+          <h3>Bonus: Full CSV Template & Scoring Sheet</h3>
+          <p>The exact spreadsheet structure we use to track every lead from sourced → sent → replied → booked. Plug in your data and it scores automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Who it's for -->
+  <section class="for-whom">
+    <div class="section-label">Is this for you?</div>
+    <h2 style="text-align:left;">Built for founders doing outbound without an SDR team</h2>
+    <div class="fit-grid">
+      <div class="fit-item">
+        <div class="fit-icon">🎯</div>
+        <div>
+          <h4>Founders running outbound themselves</h4>
+          <p>You're doing your own sales and want a repeatable system, not another tool to learn.</p>
+        </div>
+      </div>
+      <div class="fit-item">
+        <div class="fit-icon">🤖</div>
+        <div>
+          <h4>Builders automating their sales motion</h4>
+          <p>You can run scripts and set up SMTP — you just need the playbook so you don't start from scratch.</p>
+        </div>
+      </div>
+      <div class="fit-item">
+        <div class="fit-icon">📈</div>
+        <div>
+          <h4>Early-stage sales reps</h4>
+          <p>You need to hit quota without a massive tools budget. This system runs on &lt;$50/month in tooling.</p>
+        </div>
+      </div>
+      <div class="fit-item">
+        <div class="fit-icon">🔁</div>
+        <div>
+          <h4>Agencies building outreach for clients</h4>
+          <p>License this as your internal SOP. Deliver consistent results across accounts without reinventing the wheel.</p>
+        </div>
+      </div>
+    </div>
+    <div class="not-for">
+      <h4>Not the right fit if:</h4>
+      <ul>
+        <li>You want a done-for-you service (see our sprints)</li>
+        <li>You're targeting B2C or SMB under 10 employees</li>
+        <li>You need LinkedIn automation (covered separately)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2>Stop guessing. Start sending.</h2>
+    <p>$47 gets you the exact system — templates, toolchain, deliverability rules, and the CSV tracker. No subscription, no upsell, no fluff.</p>
+    <a class="btn primary" href="https://selamite0.gumroad.com/l/cdthxo" target="_blank" rel="noopener">Get the playbook now — $47 →</a>
+    <div style="margin-top: 16px; color: var(--muted); font-size: 14px;">Instant PDF download via Gumroad · Secure checkout</div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="section-label">FAQ</div>
+    <h2>Common questions</h2>
+    <p class="section-sub"></p>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h4>What format is the playbook?</h4>
+        <p>PDF — delivered instantly via Gumroad after purchase. No account required.</p>
+      </div>
+      <div class="faq-item">
+        <h4>What tools do I need?</h4>
+        <p>Apollo.io (free tier works to start), a custom domain, and a Zoho or Google Workspace account for SMTP. Total tooling cost: under $50/month.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Is this B2B only?</h4>
+        <p>Yes — the ICP scoring, enrichment, and templates are built for B2B SaaS outreach. Won't translate cleanly to consumer or high-volume SMB lists.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Do you offer refunds?</h4>
+        <p>If the playbook doesn't deliver what it promises, email hello@atxo.me within 7 days. We'll make it right.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Can I use this for my clients?</h4>
+        <p>Yes. Single purchase covers one business or agency using it internally. No resale of the document itself.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Want us to run the system for you?</h4>
+        <p>That's what our <a href="/#pricing">automation sprints</a> are for. $250 diagnostic → 14-day build. We set up the full pipeline and hand it over.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>© <span id="yr"></span> ATXO. <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a></div>
+    <div>Questions? <a href="mailto:hello@atxo.me">hello@atxo.me</a></div>
+  </footer>
+</div>
+
+<script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+</body>
+</html>
