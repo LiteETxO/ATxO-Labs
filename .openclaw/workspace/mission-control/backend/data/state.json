@@ -1,0 +1,321 @@
+{
+  "timestamp": "2026-04-03T08:33:43.864564+00:00",
+  "strategic": {
+    "revenue": {
+      "targetMonthly": 100000,
+      "currentMonthly": 0,
+      "trend": "pipeline-active",
+      "notes": "Touch 1: 53/53 \u2705 | Touch 2: 9/9 \u2705 | Touch 3: staged (Apr 5 07:00 EAT) | 0 replies | Stripe $0 | Calendly still missing"
+    }
+  },
+  "tasks": [
+    {
+      "title": "Unblock Email Outreach",
+      "status": "complete",
+      "owner": "Selam",
+      "priority": "urgent",
+      "progress": 100
+    },
+    {
+      "title": "Permanent URL \u2014 mc.atxo.me",
+      "status": "complete",
+      "owner": "Selam",
+      "priority": "high",
+      "progress": 100
+    },
+    {
+      "title": "Activate Merry (Closer Agent)",
+      "status": "complete",
+      "owner": "Selam",
+      "priority": "high",
+      "progress": 100
+    },
+    {
+      "title": "Book First Discovery Call",
+      "status": "pending",
+      "owner": "Selam",
+      "priority": "high",
+      "progress": 0,
+      "notes": "Blocked \u2014 Calendly not set up (Day 14+)"
+    },
+    {
+      "title": "Close First Pilot",
+      "status": "pending",
+      "owner": "Selam",
+      "priority": "high",
+      "progress": 0
+    },
+    {
+      "title": "Send batch_20260326 (51/54 sent)",
+      "status": "in-progress",
+      "owner": "Bulcha",
+      "priority": "urgent",
+      "progress": 94
+    },
+    {
+      "title": "Outreach Send Log Maintenance",
+      "status": "active",
+      "owner": "Bulcha",
+      "priority": "high",
+      "progress": 94
+    },
+    {
+      "title": "Monitor Inbox \u2014 selam@atxo.me",
+      "status": "active",
+      "owner": "Merry",
+      "priority": "high",
+      "progress": 10
+    },
+    {
+      "title": "Book 2 Discovery Calls (0/2)",
+      "status": "pending",
+      "owner": "Merry",
+      "priority": "high",
+      "progress": 0
+    },
+    {
+      "title": "Close First Pilot Deal",
+      "status": "pending",
+      "owner": "Merry",
+      "priority": "high",
+      "progress": 0
+    }
+  ],
+  "pipeline": {
+    "totalLeadsContacted": 137,
+    "batches": {
+      "batch_20260326": {
+        "sent": 54,
+        "total": 54,
+        "replies": 0,
+        "status": "touch1_sent_april2"
+      },
+      "batch_20260329": {
+        "sent": 5,
+        "total": 51,
+        "blocked": 46,
+        "status": "smtp_blocked"
+      },
+      "batch_web3_leads": {
+        "staged": 24,
+        "sent": 0,
+        "status": "smtp_blocked"
+      },
+      "touch1_batch_20260326": {
+        "drafted": 53,
+        "sent": 53,
+        "failed": 0,
+        "status": "complete",
+        "fired_at": "2026-04-02 06:00 AM EAT",
+        "completed_at": "2026-04-02 07:27 AM EAT",
+        "route": "bulcha@atxo.me via smtppro.zoho.com:587"
+      },
+      "touch2_batch_20260326": {
+        "drafted": 10,
+        "sent": 0,
+        "status": "queued_april5",
+        "notes": "Personalized hooks per lead. followup_sequence.md ready."
+      }
+    },
+    "nextSendDate": "2026-04-02",
+    "nextAction": "Touch 2 follow-ups \u2014 OVERDUE \u2014 send via bulcha@atxo.me TODAY",
+    "batch_20260326": {
+      "total": 54,
+      "aGrade": 36,
+      "bGrade": 18,
+      "status": "sending",
+      "emailsSent": 51,
+      "replies": 0,
+      "callsBooked": 0,
+      "dealsClosed": 0
+    }
+  },
+  "inbox": {
+    "lastChecked": "2026-04-02T22:41:00Z",
+    "realLeadReplies": 0,
+    "status": "clean",
+    "notes": "01:41 EAT April 3. 0 real lead replies. 7 hard bounces cleaned. Still in 72h reply window for Touch 1."
+  },
+  "products": {
+    "coldEmailStarterKit": {
+      "name": "Cold Email Starter Kit",
+      "price": 27,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/14A28j5doggob6010n8IU0c"
+    },
+    "aiOutreachPlaybook": {
+      "name": "AI Outreach Playbook",
+      "price": 47,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/4gM7sD0X83tC5LGaAX8IU09"
+    },
+    "cryptoLeadList": {
+      "name": "Crypto/Web3 Lead List",
+      "price": 97,
+      "billing": "monthly",
+      "platform": "Stripe",
+      "status": "LIVE",
+      "leadsCount": 26,
+      "target": 50,
+      "url": "https://buy.stripe.com/aFabIT8pA0hqa1WfVh8IU0b"
+    },
+    "revenueRoadmap": {
+      "name": "90-Day Revenue Roadmap",
+      "price": 97,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/28E9AL7lwd4cca424r8IU0d"
+    },
+    "agentSecurityCore": {
+      "name": "Agent Security Playbook (PDF)",
+      "price": 97,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/14AfZ9gW6fck3Dy4cz8IU08"
+    },
+    "aiSalesRep": {
+      "name": "Your First AI Sales Rep",
+      "price": 197,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/4gM7sD0X83tC5LGaAX8IU09"
+    },
+    "agentSecurityToolkit": {
+      "name": "Agent Security Playbook (Toolkit)",
+      "price": 197,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/5kQ4gr9tE5BK1vq30n8IU07"
+    },
+    "foundersGrowthOS": {
+      "name": "Founder's Growth OS",
+      "price": 297,
+      "platform": "Stripe",
+      "status": "LIVE",
+      "url": "https://buy.stripe.com/5kQaEPaxI6FO1vq7oL8IU0e"
+    },
+    "aiAgentAudit": {
+      "name": "AI Agent Audit",
+      "price": 500,
+      "platform": "Stripe",
+      "status": "KILLED",
+      "notes": "Required discovery call \u2014 eliminated 2026-04-02"
+    }
+  },
+  "agentStatus": {
+    "Bulcha": "idle_11h_directive_issued_01:41EAT",
+    "Merry": "active_cycle15_cursor3_linkedin_tweet_ready",
+    "lastCheck": "2026-04-02T22:41:00Z"
+  },
+  "blockers_for_mikael": [
+    {
+      "priority": 1,
+      "issue": "Calendly booking link NOT SET UP",
+      "impact": "Touch 1 fired April 2. First replies could arrive 8-12 AM EAT. No booking flow = dead conversions.",
+      "fix": "Set up Calendly NOW: https://calendly.com \u2014 10 minutes",
+      "urgency": "CRITICAL \u2014 Touch 1 is live"
+    },
+    {
+      "priority": 2,
+      "issue": "selam@atxo.me SMTP blocked by Zoho \u2014 Day 5",
+      "impact": "70 sends queued (46 batch_20260329 + 24 web3). Touch 2 also at risk if not resolved.",
+      "fix": "https://mail.zoho.com/UnblockMe",
+      "urgency": "HIGH"
+    },
+    {
+      "priority": 3,
+      "issue": "Gumroad SSN required for AI Outreach Playbook ($47) payouts",
+      "impact": "$47 product live but all revenue blocked",
+      "fix": "Submit SSN to Gumroad at gumroad.com/settings/payments"
+    }
+  ],
+  "agentActivity": {
+    "Selam": {
+      "status": "active",
+      "currentFocus": "Mission check 01:41 EAT. Bulcha idle 11h \u2014 directive issued. Touch 2 2/9 pending. Touch 3 staging for April 5.",
+      "lastUpdate": "2026-04-02T22:41:00Z"
+    },
+    "Bulcha": {
+      "status": "idle_directive_issued",
+      "currentFocus": "DIRECTIVE issued 01:41 EAT: complete Touch 2 (2 remaining), stage Touch 3, clean bounce list.",
+      "lastUpdate": "2026-04-02T22:41:00Z",
+      "details": {
+        "touch2_sent": 7,
+        "touch2_total": 9,
+        "touch2_pending": [
+          "Khaled Bitar (Avtal)",
+          "Wiley Jones (Doss)"
+        ],
+        "touch3_status": "staging \u2014 target April 5 07:00 EAT",
+        "hard_bounces_logged": 7,
+        "security_wave6": "COMPLETE \u2014 5 VC contacts",
+        "smtp_issue": "bulcha@ app password may need refresh"
+      }
+    },
+    "Merry": {
+      "status": "on_watch",
+      "focus": "Inbox watch. Cursor 3 + LinkedIn combo tweet drafted and READY. 0 lead replies at 01:41 EAT.",
+      "lastUpdate": "2026-04-02T22:41:00Z"
+    }
+  },
+  "liveActivities": {
+    "agents": [
+      {
+        "name": "Selam",
+        "status": "active",
+        "currentTask": "Mission check 01:41 EAT. Directing pipeline. Touch 2 close-out. Touch 3 staging.",
+        "blockers": null,
+        "progress": 70
+      },
+      {
+        "name": "Bulcha",
+        "status": "idle_directive_issued",
+        "currentTask": "Directive: complete Touch 2 (2 sends), stage Touch 3, clean bounces, IMAP sweep.",
+        "blockers": "bulcha@ SMTP app password may need refresh",
+        "progress": 78
+      },
+      {
+        "name": "Merry",
+        "status": "active",
+        "currentTask": "Inbox watch. Cursor 3 + LinkedIn tweet ready to post. Touch 3 (9 leads) ready April 5.",
+        "blockers": "Calendly still not live \u2014 no booking conversion path",
+        "progress": 65
+      }
+    ],
+    "queue": [
+      {
+        "task": "Complete Touch 2 \u2014 2 sends remaining (Khaled Bitar, Wiley Jones)",
+        "assignee": "Bulcha",
+        "priority": "CRITICAL",
+        "due": "NOW"
+      },
+      {
+        "task": "Post Cursor 3 + LinkedIn combo tweet",
+        "assignee": "Mikael/Selam",
+        "priority": "HIGH",
+        "notes": "US evening window active. Both stories trending."
+      },
+      {
+        "task": "Calendly booking link setup",
+        "assignee": "Mikael",
+        "priority": "CRITICAL",
+        "notes": "Day 13+. Touch 1 live. No conversion path = dead leads."
+      },
+      {
+        "task": "Unblock selam@atxo.me SMTP",
+        "assignee": "Mikael",
+        "priority": "HIGH",
+        "fix": "https://mail.zoho.com/UnblockMe"
+      },
+      {
+        "task": "Stage Touch 3 (9 leads) for April 5",
+        "assignee": "Bulcha",
+        "priority": "HIGH",
+        "due": "April 5 07:00 EAT"
+      }
+    ],
+    "lastUpdated": "2026-04-02T22:41:00Z"
+  }
+}

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" fill="none">
+  <!-- Background - deep blue/purple -->
+  <rect width="280" height="280" fill="#dbeafe"/>
+
+  <!-- Clothing - sharp professional -->
+  <g transform="translate(0 170)">
+    <path d="M140 65.83c27.34 0 49.5-13.2 49.5-29.48 0-1.37-.16-2.7-.46-4.02A72.03 72.03 0 0 1 240 101.05V110H40v-8.95A72.03 72.03 0 0 1 91.53 32a18 18 0 0 0-.53 4.35c0 16.28 22.16 29.48 49.5 29.48Z" fill="#1e3a5f"/>
+    <!-- Blazer lapels -->
+    <path d="M120 32 L140 15 L160 32 L155 50 L140 35 L125 50 Z" fill="#ffffff" fill-opacity="0.15"/>
+  </g>
+
+  <!-- Neck -->
+  <path d="M116 168.61v8a56 56 0 0 0 24 5.39c8.59 0 16.73-1.93 24-5.39v-8a55.79 55.79 0 0 1-24 5.39 55.79 55.79 0 0 1-24-5.39Z" fill="#000" fill-opacity=".12"/>
+
+  <!-- Head - warm brown Ethiopian skin -->
+  <path d="M140 36a56 56 0 0 0-56 56v6.17A12 12 0 0 0 74 110v14a12 12 0 0 0 10.3 11.88 56.04 56.04 0 0 0 31.7 44.73v18.4h-4a72 72 0 0 0-72 72v9h200v-9a72 72 0 0 0-72-72h-4v-18.39a56.04 56.04 0 0 0 31.7-44.73A12 12 0 0 0 206 124v-14a12 12 0 0 0-10-11.83V92a56 56 0 0 0-56-56Z" fill="#7B4A2D"/>
+
+  <!-- Hair - sleek, professional updo/natural -->
+  <ellipse cx="140" cy="60" rx="60" ry="38" fill="#1a0800"/>
+  <ellipse cx="140" cy="42" rx="52" ry="22" fill="#1a0800"/>
+  <!-- Hair sides pulled back -->
+  <path d="M84 95 C76 108 74 125 78 148" stroke="#1a0800" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <path d="M196 95 C204 108 206 125 202 148" stroke="#1a0800" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Bun/updo at top -->
+  <ellipse cx="140" cy="36" rx="28" ry="16" fill="#1a0800"/>
+  <ellipse cx="140" cy="30" rx="18" ry="10" fill="#2d0f00"/>
+
+  <!-- Forehead -->
+  <path d="M96 92 Q140 84 184 92 L182 106 Q140 98 98 106 Z" fill="#7B4A2D"/>
+
+  <!-- Eyes - confident, focused -->
+  <ellipse cx="112" cy="112" rx="11" ry="8" fill="white"/>
+  <ellipse cx="168" cy="112" rx="11" ry="8" fill="white"/>
+  <circle cx="112" cy="112" r="6" fill="#1a0500"/>
+  <circle cx="168" cy="112" r="6" fill="#1a0500"/>
+  <circle cx="112" cy="112" r="3.5" fill="#0a0200"/>
+  <circle cx="168" cy="112" r="3.5" fill="#0a0200"/>
+  <circle cx="114" cy="110" r="1.5" fill="white"/>
+  <circle cx="170" cy="110" r="1.5" fill="white"/>
+
+  <!-- Eyebrows - strong, arched -->
+  <path d="M97 101 Q112 96 127 100" stroke="#1a0800" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <path d="M153 100 Q168 96 183 101" stroke="#1a0800" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Nose -->
+  <path d="M136 116 L132 132 Q140 136 148 132 L144 116" stroke="#5a2d0c" stroke-width="1.5" fill="none" stroke-opacity="0.4"/>
+
+  <!-- Confident slight smile -->
+  <path d="M124 146 Q140 154 156 146" stroke="#5a2d0c" stroke-width="2" fill="none" stroke-opacity="0.5"/>
+  <path d="M124 146 Q140 156 156 146" fill="#b06040" fill-opacity="0.7"/>
+  <path d="M124 146 Q140 148 156 146" fill="#d4805a" fill-opacity="0.6"/>
+
+  <!-- Small gold earrings -->
+  <circle cx="82" cy="128" r="4" fill="#f59e0b"/>
+  <circle cx="198" cy="128" r="4" fill="#f59e0b"/>
+</svg>
