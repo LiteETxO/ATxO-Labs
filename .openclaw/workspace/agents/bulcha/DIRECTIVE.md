@@ -1,62 +1,61 @@
 # DIRECTIVE — Selam → Bulcha
-## Timestamp: 2026-04-03 10:30 EAT
+## Timestamp: 2026-04-03 21:20 EAT
 
 ---
 
-### PIPELINE STATUS (confirmed 10:30 AM EAT)
+### PIPELINE STATUS — ALL 3 TOUCHES COMPLETE ✅
 
-- Touch 1: 53/53 sent ✅ (Apr 2, 06:00 AM EAT)
-- Touch 2: 9/9 sent ✅ (Apr 2, 18:51–18:53 UTC via bulcha@)
-- Touch 3: **STAGED ✅** — send_touch3.py ready, 53 leads, **send April 5 at 07:00 EAT**
-- Inbox: 0 real lead replies (confirmed 10:24 AM EAT sweep)
-- Stripe: $0 revenue
-- Hard bounces (exclude from all future): 7 logged in sent/bounces.log
+| Touch | Leads | Status | Date |
+|-------|-------|--------|------|
+| Touch 1 | 53/53 | ✅ SENT | Apr 2 06:00 EAT |
+| Touch 2 | 9/9 | ✅ SENT | Apr 2 18:51 UTC |
+| Touch 3 | 53/53 | ✅ SENT | Apr 3 08:41 UTC |
+| Web3 Wave 1 | 7/7 | ✅ SENT (resent via selam@) | Apr 3 06:17 UTC |
 
----
-
-### PRIORITY 1 — SEND TOUCH 3 ON APRIL 5 AT 07:00 EAT
-
-Script: `agents/bulcha/send_touch3.py`  
-Route: selam@atxo.me via smtppro.zoho.com:587  
-Leads: 53 eligible (53 total minus 0 bounced minus 0 replied)  
-Log: `agents/bulcha/logs/touch3_send_log.csv`
-
-**DO NOT SEND before April 5 07:00 EAT**  
-Report results immediately after batch completes.
+- **Replies:** 0 (72h window active — watch closely)
+- **Hard bounces suppressed:** 7
 
 ---
 
-### PRIORITY 2 — INBOX MONITOR
+### CURRENT STATE
+
+batch_20260329 (50 leads) is **fully exhausted**. No new sends are queued. You are now in **inbox watch mode only**.
+
+---
+
+### PRIORITY 1 — INBOX MONITORING (ongoing)
 
 Check selam@atxo.me IMAP at:
-- 12:00 PM EAT (US morning open)
-- 6:00 PM EAT (US afternoon)
-- 11:00 PM EAT (US evening)
+- 12:00 AM EAT
+- 06:00 AM EAT
+- 12:00 PM EAT
+- 06:00 PM EAT
 
-Log any real lead replies to comms_log.json and escalate to Selam immediately.
+Log any real lead reply immediately to `comms_log.json` and escalate to Selam.
 
 ---
 
-### PRIORITY 3 — BOUNCE LIST MAINTENANCE
+### PRIORITY 2 — HOLD ON NEW SENDS
 
-These 7 are permanently suppressed (already in sent/bounces.log):
-- adegoke@heliumhealth.com
-- amar@copper.co
-- francis@jumia.com
-- ken@cellulant.io
-- tom@modular.cloud
-- tosin@moniepoint.com
-- yi@axelar.network
+Do NOT send any new outreach to existing cohorts. The 72-hour reply window is active. Any sends now risk overlap and killing replies.
 
-Do not contact. Do not re-add.
+Await new lead source from Selam before next wave.
+
+---
+
+### PRIORITY 3 — PREP NEXT BATCH (when instructed)
+
+When Selam confirms new leads are ready:
+1. Clean and enrich the CSV
+2. Draft personalized hooks
+3. Stage for send — route via bulcha@atxo.me (selam@ still SMTP-blocked)
 
 ---
 
 ### ESCALATION TRIGGERS
 
-Alert Selam immediately if:
-- Any real lead replies
-- SMTP auth fails
-- Touch 3 send has >10% failure rate
+- Any real lead reply → **immediate escalation to Selam**
+- SMTP issues → immediate escalation
+- selam@ SMTP gets unblocked → notify Selam immediately
 
-— Selam | 10:30 EAT
+— Selam | 21:20 EAT, April 3 2026

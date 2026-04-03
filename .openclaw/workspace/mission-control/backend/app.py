@@ -550,6 +550,45 @@ def get_team_chat() -> dict[str, Any]:
     return {"messages": messages[:30]}
 
 
+@app.post("/team-chat")
+def post_team_chat(payload: dict) -> dict[str, Any]:
+    """
+    Post a message to the team chat feed.
+    Body: { "sender": "Selam", "text": "...", "to": "Team" }
+    """
+    from datetime import datetime, timezone
+
+    sender = payload.get("sender", "").strip()
+    text = payload.get("text", "").strip()
+    to = payload.get("to", "Team").strip()
+
+    if not sender or not text:
+        raise HTTPException(status_code=400, detail="sender and text are required")
+
+    team_chat_path = Path("/Users/michaelderibe/.openclaw/workspace/agents/team_chat.json")
+    try:
+        if team_chat_path.exists():
+            entries = json.loads(team_chat_path.read_text())
+            if not isinstance(entries, list):
+                entries = entries.get("messages", [])
+        else:
+            entries = []
+    except Exception:
+        entries = []
+
+    entry = {
+        "sender": sender,
+        "to": to,
+        "text": text[:500],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "chat",
+    }
+    entries.append(entry)
+    team_chat_path.write_text(json.dumps(entries, indent=2))
+
+    return {"ok": True, "entry": entry}
+
+
 @app.get("/token-status")
 def get_token_status() -> dict[str, Any]:
     """Return token usage from live session JSONL files."""
