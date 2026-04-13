@@ -749,6 +749,7 @@ const agentProfile = (name) => {
   if (name === 'Selam')  return { color: '#3b82f6', avatar: '/avatars/selam.svg',  initials: 'S', border: '#3b82f6' }
   if (name === 'Bulcha') return { color: '#f97316', avatar: '/avatars/bulcha.svg', initials: 'B', border: '#f97316' }
   if (name === 'Merry')  return { color: '#a855f7', avatar: '/avatars/merry.svg',  initials: 'M', border: '#a855f7' }
+  if (name === 'Tsega')  return { color: '#10b981', avatar: '/avatars/tsega.png', initials: 'T', border: '#10b981' }
   if (name === 'Mikael') return { color: '#facc15', avatar: '/avatars/mikael.jpg', initials: 'MK', border: '#facc15' }
   return { color: '#6b7280', avatar: null, initials: '?', border: '#6b7280' }
 }
@@ -764,10 +765,11 @@ const relTime = (ts) => {
 
 function AgentAvatar({ name, size = 36 }) {
   const p = agentProfile(name)
+  const [imgFailed, setImgFailed] = useState(false)
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', border: `2px solid ${p.border}`, flexShrink: 0, overflow: 'hidden', background: p.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 700, color: p.color }}>
-      {p.avatar
-        ? <img src={p.avatar} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none' }} />
+      {p.avatar && !imgFailed
+        ? <img src={p.avatar} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setImgFailed(true)} />
         : p.initials}
     </div>
   )
@@ -801,7 +803,7 @@ function TeamChat() {
         <span>💬</span> Team Chat
         <span style={{ marginLeft: 'auto', fontSize: 10, color: '#22c55e', fontWeight: 400 }}>● LIVE</span>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', maxHeight: 340, display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 4 }}>
+      <div style={{ flex: 1, overflowY: 'auto', maxHeight: 620, display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 4 }}>
         {loading ? (
           <div style={{ color: '#6b7280', fontSize: 12, padding: '12px 0' }}>Loading...</div>
         ) : messages.length === 0 ? (
@@ -852,7 +854,7 @@ function TokenVUMeter() {
     return () => { clearInterval(dataIv); clearInterval(tickIv) }
   }, [])
 
-  const agents = ['Selam', 'Bulcha', 'Merry']
+  const agents = ['Selam', 'Bulcha', 'Merry', 'Tsega']
   const agentData = agents.map(name => {
     const s = sessions.find(s => s.label === name) || {}
     const pct = s.contextPct || 0
@@ -914,10 +916,46 @@ function TokenVUMeter() {
   )
 }
 
+// ── Simple inline markdown renderer (no library) ────────────────────────────
+function MdText({ text, style = {} }) {
+  if (!text) return null
+  const lines = text.split('\n')
+  return (
+    <div style={{ lineHeight: 1.65, ...style }}>
+      {lines.map((line, i) => {
+        if (/^###\s/.test(line)) return <div key={i} style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.85em', marginTop: 8, marginBottom: 2, letterSpacing: '0.03em' }}>{line.slice(4)}</div>
+        if (/^##\s/.test(line)) return <div key={i} style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9em', marginTop: 10, marginBottom: 2 }}>{line.slice(3)}</div>
+        if (/^#\s/.test(line)) return <div key={i} style={{ fontWeight: 700, color: '#fff', fontSize: '0.95em', marginTop: 12, marginBottom: 4 }}>{line.slice(2)}</div>
+        if (/^\s*[-*]\s/.test(line)) return <div key={i} style={{ paddingLeft: 14, color: '#cbd5e1', marginTop: 2 }}><span style={{ color: '#60a5fa', marginRight: 6 }}>·</span><MdInline text={line.replace(/^\s*[-*]\s/, '')} /></div>
+        if (/^\|\s/.test(line) || /^[-|]+$/.test(line.trim())) return <div key={i} style={{ fontSize: '0.8em', color: '#64748b', fontFamily: 'monospace', marginTop: 1 }}>{line}</div>
+        if (line.trim() === '') return <div key={i} style={{ height: 5 }} />
+        return <div key={i} style={{ color: '#94a3b8', marginTop: 2 }}><MdInline text={line} /></div>
+      })}
+    </div>
+  )
+}
+
+function MdInline({ text }) {
+  // Render **bold** and `code` inline
+  const parts = []
+  const re = /(\*\*([^*]+)\*\*|`([^`]+)`)/g
+  let last = 0, m
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(<span key={last}>{text.slice(last, m.index)}</span>)
+    if (m[2]) parts.push(<strong key={m.index} style={{ color: '#e2e8f0' }}>{m[2]}</strong>)
+    else if (m[3]) parts.push(<code key={m.index} style={{ background: '#1e293b', color: '#7dd3fc', borderRadius: 3, padding: '0 4px', fontSize: '0.85em' }}>{m[3]}</code>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push(<span key={last}>{text.slice(last)}</span>)
+  return <>{parts}</>
+}
+
 // ── Live Activity — execution log / terminal style ───────────────────────────
 function LiveActivity() {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState({})
+  const scrollRef = useRef(null)
 
   useEffect(() => {
     const load = async () => {
@@ -939,56 +977,88 @@ function LiveActivity() {
     const p = agentProfile(name)
     return (
       <span style={{
-        display: 'inline-block',
+        display: 'inline-flex', alignItems: 'center',
         fontSize: 9, fontWeight: 700, fontFamily: 'monospace',
         color: p.color, background: p.color + '18',
         border: `1px solid ${p.color}44`,
-        borderRadius: 3, padding: '1px 5px', marginRight: 6,
-        letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0
+        borderRadius: 3, padding: '1px 6px', marginRight: 8,
+        letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0, whiteSpace: 'nowrap'
       }}>{name}</span>
     )
   }
 
+  const PREVIEW_LEN = 220
+
   return (
     <div style={{ background: '#0a0e1a', borderRadius: 10, border: '1px solid #1e293b', overflow: 'hidden' }}>
       {/* Terminal header bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: '#111827', borderBottom: '1px solid #1e293b' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#111827', borderBottom: '1px solid #1e293b' }}>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }} />
         <span style={{ marginLeft: 8, fontSize: 11, color: '#4b5563', fontFamily: 'monospace', letterSpacing: '0.05em' }}>agent-activity.log</span>
-        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#22c55e' }}>
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#22c55e' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
           LIVE
         </span>
       </div>
+
       {/* Log entries */}
-      <div style={{ overflowY: 'auto', maxHeight: 300, padding: '8px 0', fontFamily: 'monospace' }}>
+      <div ref={scrollRef} style={{ overflowY: 'auto', maxHeight: 520, padding: '6px 0' }}>
         {loading ? (
-          <div style={{ color: '#374151', fontSize: 11, padding: '12px 14px' }}>Loading...</div>
+          <div style={{ color: '#374151', fontSize: 11, padding: '14px 16px', fontFamily: 'monospace' }}>Loading...</div>
         ) : messages.length === 0 ? (
-          <div style={{ color: '#374151', fontSize: 11, padding: '12px 14px' }}>$ waiting for activity...</div>
+          <div style={{ color: '#374151', fontSize: 11, padding: '14px 16px', fontFamily: 'monospace' }}>$ waiting for activity...</div>
         ) : messages.map((msg, idx) => {
-          const ts = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : ''
-          const text = (msg.text || '').slice(0, 180)
-          const p = agentProfile(msg.sender)
+          const ts = msg.timestamp
+            ? new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+            : ''
+          const fullText = msg.text || ''
+          const isLong = fullText.length > PREVIEW_LEN
+          const isExpanded = !!expanded[idx]
+          const isMarkdown = /[#*`\|]/.test(fullText) || fullText.includes('\n')
+
           return (
             <div key={idx} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 0,
-              padding: '3px 14px',
+              padding: '8px 16px',
               borderBottom: '1px solid #0f172a',
-              background: idx % 2 === 0 ? 'transparent' : '#ffffff03',
+              background: idx % 2 === 0 ? 'transparent' : '#ffffff02',
             }}>
-              <span style={{ fontSize: 9, color: '#374151', fontFamily: 'monospace', marginRight: 10, flexShrink: 0, paddingTop: 2 }}>{ts}</span>
-              {agentTag(msg.sender)}
-              <span style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, wordBreak: 'break-word' }}>
-                {text}{(msg.text || '').length > 180 ? <span style={{ color: '#4b5563' }}>…</span> : ''}
-              </span>
+              {/* Header row: time + agent tag */}
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: isMarkdown ? 6 : 0 }}>
+                <span style={{ fontSize: 9, color: '#374151', fontFamily: 'monospace', marginRight: 10, flexShrink: 0 }}>{ts}</span>
+                {agentTag(msg.sender)}
+                {!isMarkdown && (
+                  <span style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, wordBreak: 'break-word', flex: 1 }}>
+                    {isLong && !isExpanded ? fullText.slice(0, PREVIEW_LEN) : fullText}
+                    {isLong && !isExpanded && <span style={{ color: '#4b5563' }}>…</span>}
+                  </span>
+                )}
+              </div>
+              {/* Markdown body */}
+              {isMarkdown && (
+                <div style={{ paddingLeft: 2 }}>
+                  {isLong && !isExpanded
+                    ? <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{fullText.slice(0, PREVIEW_LEN)}<span style={{ color: '#4b5563' }}>…</span></div>
+                    : <MdText text={fullText} style={{ fontSize: 12 }} />
+                  }
+                </div>
+              )}
+              {/* Expand/collapse toggle */}
+              {isLong && (
+                <button onClick={() => setExpanded(e => ({ ...e, [idx]: !isExpanded }))} style={{
+                  marginTop: 6, background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 10, color: '#3b82f6', padding: 0, fontFamily: 'monospace'
+                }}>
+                  {isExpanded ? '▲ collapse' : '▼ show more'}
+                </button>
+              )}
             </div>
           )
         })}
       </div>
-      <div style={{ padding: '6px 14px', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+
+      <div style={{ padding: '6px 16px', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 10, color: '#374151', fontFamily: 'monospace' }}>$ _</span>
         <span style={{ fontSize: 9, color: '#1e293b', marginLeft: 'auto' }}>refreshes every 20s</span>
       </div>
@@ -1003,7 +1073,7 @@ function AgentCommsLive() {
 
 // ── Dashboard View ───────────────────────────────────────────────────────────
 
-function DashboardView({ state, setView = () => {}, isMobile }) {
+function DashboardView({ state, setView = () => {}, isMobile, tsegaTrading }) {
   const activity = Array.isArray(state?.activity)
     ? state.activity
     : state?.activity
@@ -1041,8 +1111,8 @@ function DashboardView({ state, setView = () => {}, isMobile }) {
   if (isMobile) {
     const liveAgents = state?.liveActivities?.agents || []
     const queue = state?.liveActivities?.queue || []
-    const agentColors = { Selam: '#3b82f6', Bulcha: '#f97316', Merry: '#a855f7' }
-    const agentIcons = { Selam: '⚙️', Bulcha: '📬', Merry: '💼' }
+    const agentColors = { Selam: '#3b82f6', Bulcha: '#f97316', Merry: '#a855f7', Tsega: '#10b981' }
+    const agentIcons = { Selam: '⚙️', Bulcha: '📬', Merry: '💼', Tsega: '📈' }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1175,6 +1245,59 @@ function DashboardView({ state, setView = () => {}, isMobile }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Tsega Capital Desk — top priority summary */}
+      {tsegaTrading && (
+        <div style={{ ...S.card, borderLeft: '3px solid #10b981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>📈</span> Tsega · Capital Desk
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: tsegaTrading.meta?.live ? '#10b981' : '#f59e0b' }}>
+                {tsegaTrading.meta?.live ? '● live' : tsegaTrading.meta?.dataAgeMin != null ? `${tsegaTrading.meta.dataAgeMin}m ago` : 'cached'}
+              </span>
+              <span style={{ fontSize: 10, color: '#10b981', background: '#10b98115', padding: '2px 6px', borderRadius: 4 }}>TESTNET</span>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#ffffff06', borderRadius: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981' }}>
+                ${tsegaTrading.equity?.current?.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) || '—'}
+              </div>
+              <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Equity</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#ffffff06', borderRadius: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: (tsegaTrading.performance?.todayPnl || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+                {tsegaTrading.performance?.todayPnl != null ? `${tsegaTrading.performance.todayPnl >= 0 ? '+' : ''}$${tsegaTrading.performance.todayPnl.toFixed(2)}` : '—'}
+              </div>
+              <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Today P&L</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#ffffff06', borderRadius: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6' }}>
+                {tsegaTrading.performance?.winRate != null ? `${tsegaTrading.performance.winRate}%` : '—'}
+              </div>
+              <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Win Rate</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#ffffff06', borderRadius: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>
+                {tsegaTrading.positions?.length || 0}/3
+              </div>
+              <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Positions</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: '#9ca3af' }}>{tsegaTrading.positions?.length > 0 ? tsegaTrading.positions.map(p => p.symbol.replace('USDT','')).join(', ') : 'no open positions'}</span>
+            <span style={{ fontSize: 11, color: '#6b7280' }}>{tsegaTrading.milestone?.label || '0/20'} to mainnet</span>
+          </div>
+          <div style={{ background: '#ffffff15', borderRadius: 3, height: 4, overflow: 'hidden', marginBottom: 10 }}>
+            <div style={{ width: `${tsegaTrading.milestone?.pct || 0}%`, height: '100%', background: '#10b981' }} />
+          </div>
+          <button onClick={() => setView('capital')} style={{ width: '100%', padding: '6px', fontSize: 11, color: '#10b981', background: '#10b98115', border: '1px solid #10b98130', borderRadius: 4, cursor: 'pointer' }}>
+            View Capital Desk →
+          </button>
+        </div>
+      )}
+
       <div style={metricsGridStyle}>
         <RevenueProgressChart current={currentRevenue} target={targetRevenue} />
         <TaskStatusDonut
@@ -1353,13 +1476,22 @@ const MERRY_AGENT = {
   avatar: '/avatars/merry.svg',
 }
 
+const TSEGA_AGENT = {
+  name: 'Tsega',
+  role: 'Treasury & Trading Agent',
+  icon: '📈',
+  status: 'active',
+  focus: 'Autonomous crypto trading — Bybit testnet → mainnet',
+  avatar: null,
+}
+
 const FUTURE_AGENTS = [
   { name: 'Research Agent', role: 'Head of Research', icon: '🔬', status: 'hiring', focus: 'Hiring — insights + enrichment engine' },
   { name: 'Content Agent', role: 'Head of Content', icon: '✍️', status: 'hiring', focus: 'Hiring — narrative + distribution' },
 ]
 
 // All execution agents under Selam
-const EXECUTION_AGENTS = [BULCHA_AGENT, MERRY_AGENT, ...FUTURE_AGENTS]
+const EXECUTION_AGENTS = [BULCHA_AGENT, MERRY_AGENT, TSEGA_AGENT, ...FUTURE_AGENTS]
 
 function OrgCard({ agent, isMobile }) {
   const status = (agent.status || '').toLowerCase()
@@ -1474,12 +1606,63 @@ function Connector({ horizontal }) {
     : <div style={{ width: 2, height: 24, background: '#ffffff20', margin: '0 auto' }} />
 }
 
-function AgentsView({ state, isMobile }) {
+// ── Agent Activity Card with expand/collapse ─────────────────────────────────
+function AgentActivityCard({ agent, live, relativeTime }) {
+  const [expanded, setExpanded] = useState(false)
+  const msg = live.lastMessage || ''
+  const PREVIEW = 160
+  const isLong = msg.length > PREVIEW
+  const isMarkdown = /[#*`|]/.test(msg) || msg.includes('\n')
+  const preview = isLong && !expanded ? msg.slice(0, PREVIEW) : msg
+
+  return (
+    <div style={{ ...S.card, background: 'linear-gradient(135deg,#0f1117,#151929)', display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        {agent.avatar
+          ? <img src={agent.avatar} alt={agent.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display='none' }} />
+          : <span style={{ fontSize: 26, flexShrink: 0 }}>{agent.icon}</span>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{agent.name}</div>
+          <div style={{ fontSize: 11, color: '#9ca3af' }}>{agent.role}</div>
+        </div>
+        <Pill status={live.status || agent.status} />
+      </div>
+
+      {/* Message body */}
+      {msg ? (
+        <div style={{ flex: 1 }}>
+          {isMarkdown
+            ? <MdText text={preview} style={{ fontSize: 12.5 }} />
+            : <div style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.65, wordBreak: 'break-word' }}>
+                {preview}{isLong && !expanded && <span style={{ color: '#4b5563' }}>…</span>}
+              </div>
+          }
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+            <span style={{ fontSize: 11, color: '#6b7280' }}>{relativeTime(live.timestamp)}</span>
+            {isLong && (
+              <button onClick={() => setExpanded(e => !e)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 11, color: '#3b82f6', padding: 0
+              }}>
+                {expanded ? '▲ less' : '▼ more'}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, color: '#9ca3af' }}>{agent.focus}</div>
+      )}
+    </div>
+  )
+}
+
+function AgentsView({ state, isMobile, tsegaTrading }) {
   const selamLive = state?.operations?.ai_workers?.find(w => w.name === 'Selam')
   // OrgCard shows mission, not operational log
   const ceo = { ...SELAM, status: selamLive?.status || SELAM.status }
-  const orgAgents = [ceo, BULCHA_AGENT, MERRY_AGENT]
-  const directReports = [BULCHA_AGENT, MERRY_AGENT, ...FUTURE_AGENTS]
+  const orgAgents = [ceo, BULCHA_AGENT, MERRY_AGENT, TSEGA_AGENT]
+  const directReports = [BULCHA_AGENT, MERRY_AGENT, TSEGA_AGENT, ...FUTURE_AGENTS]
   const [liveActivity, setLiveActivity] = useState({})
 
   useEffect(() => {
@@ -1563,35 +1746,10 @@ function AgentsView({ state, isMobile }) {
         <div style={S.sectionTitle}>
           <span>📡</span> Live Activity by Agent
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {orgAgents.map((agent) => {
             const live = liveActivity[agent.name] || {}
-            return (
-              <div key={agent.name} style={{ ...S.card, background: 'linear-gradient(135deg,#111118,#1a1a2e)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                  {agent.avatar
-                    ? <img src={agent.avatar} alt={agent.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} onError={(e) => { e.target.style.display='none' }} />
-                    : <span style={{ fontSize: 24 }}>{agent.icon}</span>}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{agent.name}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{agent.role}</div>
-                  </div>
-                  <Pill status={live.status || agent.status} />
-                </div>
-                {live.lastMessage ? (
-                  <div>
-                    <div style={{ fontSize: 13, color: '#e5e7eb', lineHeight: 1.6 }}>
-                      {live.lastMessage}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
-                      {relativeTime(live.timestamp)}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 13, color: '#9ca3af' }}>{agent.focus}</div>
-                )}
-              </div>
-            )
+            return <AgentActivityCard key={agent.name} agent={agent} live={live} relativeTime={relativeTime} />
           })}
           {FUTURE_AGENTS.map((agent) => (
             <div key={agent.name} style={{ ...S.card, opacity: 0.5, borderStyle: 'dashed' }}>
@@ -2318,6 +2476,155 @@ function AssignmentsView({ state, isMobile }) {
         </div>
       </div>
 
+      <div style={{ borderTop: '1px solid #ffffff10', margin: '8px 0' }} />
+
+      {/* Tsega — Capital Desk */}
+      <div>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#10b98122', border: '2px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📈</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Tsega</div>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>Treasury & Trading Agent · Bybit</div>
+          </div>
+          <Pill status="active" />
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#10b981', background: '#10b98115', padding: '2px 8px', borderRadius: 4, border: '1px solid #10b98130' }}>TESTNET</span>
+            {tsegaTrading?.meta && (
+              <span style={{ fontSize: 10, color: tsegaTrading.meta.live ? '#10b981' : '#f59e0b' }}>
+                {tsegaTrading.meta.live ? 'live' : tsegaTrading.meta.dataAgeMin != null ? `${tsegaTrading.meta.dataAgeMin}m ago` : 'cached'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Metric cards */}
+        {tsegaTrading && (() => {
+          const eq   = tsegaTrading.equity       || {}
+          const perf = tsegaTrading.performance  || {}
+          const pos  = tsegaTrading.positions    || []
+          const chg  = eq.changeToday ?? 0
+          const chgPct = eq.changePct ?? 0
+          const metrics = [
+            {
+              label: 'Equity',
+              value: eq.current != null ? `$${eq.current.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}` : '—',
+              sub:   eq.changeToday != null ? `${chg >= 0 ? '+' : ''}$${chg.toFixed(2)} today (${chg >= 0 ? '+' : ''}${chgPct.toFixed(2)}%)` : null,
+              color: '#10b981',
+              subColor: chg >= 0 ? '#22c55e' : '#ef4444',
+            },
+            {
+              label: 'Today P&L',
+              value: perf.todayPnl != null ? `${perf.todayPnl >= 0 ? '+' : ''}$${perf.todayPnl.toFixed(2)}` : '—',
+              sub:   perf.totalPnl != null ? `Total: ${perf.totalPnl >= 0 ? '+' : ''}$${perf.totalPnl.toFixed(2)}` : null,
+              color: (perf.todayPnl || 0) >= 0 ? '#22c55e' : '#ef4444',
+              subColor: '#6b7280',
+            },
+            {
+              label: 'Win Rate',
+              value: perf.winRate != null ? `${perf.winRate}%` : '—',
+              sub:   perf.totalTrades > 0 ? `${perf.wins}W / ${perf.losses}L` : 'no closed trades',
+              color: '#3b82f6',
+              subColor: '#6b7280',
+            },
+            {
+              label: 'Positions',
+              value: `${pos.length}/3`,
+              sub:   pos.length > 0 ? pos.map(p => p.symbol.replace('USDT','')).join(', ') : 'none open',
+              color: '#f59e0b',
+              subColor: '#9ca3af',
+            },
+          ]
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
+              {metrics.map(m => (
+                <div key={m.label} style={{ ...S.card, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: m.color }}>{m.value}</div>
+                  <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', marginTop: 2 }}>{m.label}</div>
+                  {m.sub && <div style={{ fontSize: 10, color: m.subColor, marginTop: 3 }}>{m.sub}</div>}
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* Milestone progress */}
+        {tsegaTrading?.milestone && (
+          <div style={{ ...S.card, padding: '10px 14px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>Mainnet milestone</span>
+              <span style={{ fontSize: 12, color: '#10b981' }}>{tsegaTrading.milestone.label}</span>
+            </div>
+            <div style={{ background: '#ffffff15', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+              <div style={{ width: `${tsegaTrading.milestone.pct || 0}%`, height: '100%', background: '#10b981', borderRadius: 4, transition: 'width 0.5s' }} />
+            </div>
+            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>{tsegaTrading.milestone.nextStep}</div>
+          </div>
+        )}
+
+        {/* Open positions */}
+        {tsegaTrading?.positions?.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6 }}>Open Positions</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tsegaTrading.positions.map((pos, i) => (
+                <div key={pos.id || i} style={{ ...S.card, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>{pos.symbol}</span>
+                      <span style={{ fontSize: 11, color: pos.side === 'long' ? '#22c55e' : '#ef4444', textTransform: 'uppercase', fontWeight: 600 }}>{pos.side}</span>
+                      <span style={{ fontSize: 11, color: '#6b7280' }}>${(pos.sizeUsd || 0).toFixed(0)}</span>
+                    </div>
+                    {pos.openedAt && (
+                      <span style={{ fontSize: 10, color: '#6b7280' }}>
+                        {new Date(pos.openedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 14, fontSize: 11 }}>
+                    <span style={{ color: '#9ca3af' }}>Entry <span style={{ color: '#fff' }}>${parseFloat(pos.entry || 0).toFixed(2)}</span></span>
+                    <span style={{ color: '#9ca3af' }}>Stop <span style={{ color: '#ef4444' }}>${parseFloat(pos.stop || 0).toFixed(2)}</span>
+                      {pos.distToStop != null && <span style={{ color: '#ef444488' }}> ({pos.distToStop}%)</span>}
+                    </span>
+                    <span style={{ color: '#9ca3af' }}>TP <span style={{ color: '#22c55e' }}>${parseFloat(pos.tp || 0).toFixed(2)}</span>
+                      {pos.distToTp != null && <span style={{ color: '#22c55e88' }}> (+{pos.distToTp}%)</span>}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Portfolio holdings */}
+        {tsegaTrading?.holdings?.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6 }}>Holdings</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {tsegaTrading.holdings.map((h, i) => (
+                <div key={i} style={{ ...S.card, padding: '6px 10px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{h.coin}</span>
+                  <span style={{ fontSize: 11, color: '#10b981' }}>${(h.usdValue || 0).toLocaleString('en-US', {maximumFractionDigits:0})}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dashboard link */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a href="http://161.35.220.149:3001" target="_blank" rel="noreferrer"
+            style={{ fontSize: 12, color: '#10b981', textDecoration: 'none', background: '#10b98115', padding: '4px 10px', borderRadius: 4, border: '1px solid #10b98130' }}>
+            Open Tsega Dashboard →
+          </a>
+          {tsegaTrading?.meta && (
+            <span style={{ fontSize: 11, color: '#6b7280' }}>
+              updated {tsegaTrading.meta.dataAgeMin != null ? `${tsegaTrading.meta.dataAgeMin}m ago` : '—'}
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Summary Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12 }}>
         <div style={{ ...S.card, textAlign: 'center' }}>
@@ -2339,6 +2646,443 @@ function AssignmentsView({ state, isMobile }) {
           <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Done</div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Capital Desk View ─────────────────────────────────────────────────────────
+
+function PolymarketSection({ poly, isMobile }) {
+  const metrics = poly?.metrics || {}
+  const bets    = poly?.bets    || []
+  const balance = poly?.balance || 0
+
+  const statusColor = (outcome) => {
+    if (outcome === 'won')  return '#10b981'
+    if (outcome === 'lost') return '#ef4444'
+    return '#f59e0b'
+  }
+  const modeColor = (mode) => mode === 'live' ? '#3b82f6' : '#6b7280'
+
+  const ago = (ts) => {
+    if (!ts) return ''
+    const s = (Date.now() - new Date(ts).getTime()) / 1000
+    if (s < 3600)  return `${Math.floor(s/60)}m ago`
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`
+    return `${Math.floor(s/86400)}d ago`
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Metrics row */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr 1fr', gap: 10 }}>
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>USDC Balance</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>${balance.toFixed(2)}</div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>Polygon mainnet</div>
+        </div>
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Win Rate</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#3b82f6' }}>
+            {metrics.wins + metrics.losses > 0 ? `${metrics.winRate}%` : '—'}
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>{metrics.wins || 0}W · {metrics.losses || 0}L · {metrics.pending || 0} pending</div>
+        </div>
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>ROI</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: (metrics.roi || 0) >= 0 ? '#10b981' : '#ef4444' }}>
+            {metrics.totalStaked > 0 ? `${metrics.roi >= 0 ? '+' : ''}${metrics.roi}%` : '—'}
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>${(metrics.totalPnl || 0).toFixed(2)} P&L on ${(metrics.totalStaked || 0).toFixed(0)} staked</div>
+        </div>
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Total Bets</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{metrics.totalBets || 0}</div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>{metrics.pending || 0} open positions</div>
+        </div>
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Avg Edge</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#8b5cf6' }}>
+            {metrics.avgEdge > 0 ? `${metrics.avgEdge}pt` : '—'}
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>target: ≥20pt edge</div>
+        </div>
+      </div>
+
+      {/* Bets log */}
+      <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid #1e293b', background: '#ffffff03' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Bet Log</span>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: '#6b7280' }}>
+              <span style={{ color: '#3b82f6', fontWeight: 600 }}>● live</span>
+              <span style={{ marginLeft: 8, color: '#4b5563' }}>● paper</span>
+            </span>
+            <span style={{ fontSize: 10, color: '#4b5563', fontWeight: 600 }}>{bets.length} total</span>
+          </div>
+        </div>
+
+        {bets.length === 0 ? (
+          <div style={{ padding: '32px 16px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>
+            No bets logged yet — agent will log assessments when it scans Polymarket.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #1e293b' }}>
+                  {['Question', 'Side', 'Size', 'Mkt%', 'Agent%', 'Edge', 'Mode', 'Status', 'When'].map(h => (
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, color: '#4b5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...bets].reverse().map((b, i) => {
+                  const edge = b.edge_pts != null ? b.edge_pts : (b.agent_estimate && b.market_price ? b.agent_estimate - b.market_price * 100 : null)
+                  return (
+                    <tr key={b.id || i} style={{ borderBottom: i < bets.length - 1 ? '1px solid #0f172a' : 'none' }}>
+                      <td style={{ padding: '10px 10px 10px 16px', maxWidth: 220 }}>
+                        <div style={{ color: '#e2e8f0', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }} title={b.question}>
+                          {b.question || '—'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: b.side === 'YES' ? '#10b981' : '#ef4444', background: (b.side === 'YES' ? '#10b981' : '#ef4444') + '18', padding: '2px 7px', borderRadius: 3 }}>
+                          {b.side || '—'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 10px', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        ${(b.size_usd || 0).toFixed(0)}
+                      </td>
+                      <td style={{ padding: '10px 10px', color: '#9ca3af', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                        {b.market_price != null ? `${(b.market_price * 100 > 1 ? b.market_price : b.market_price * 100).toFixed(0)}%` : '—'}
+                      </td>
+                      <td style={{ padding: '10px 10px', color: '#3b82f6', whiteSpace: 'nowrap', fontFamily: 'monospace', fontWeight: 600 }}>
+                        {b.agent_estimate != null ? `${b.agent_estimate.toFixed(0)}%` : '—'}
+                      </td>
+                      <td style={{ padding: '10px 10px', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                        {edge != null ? (
+                          <span style={{ color: Math.abs(edge) >= 20 ? '#10b981' : '#f59e0b', fontWeight: 700 }}>
+                            {edge >= 0 ? '+' : ''}{edge.toFixed(0)}pt
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: modeColor(b.mode), background: modeColor(b.mode) + '20', padding: '2px 6px', borderRadius: 3 }}>
+                          {b.mode || 'live'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: statusColor(b.outcome), background: statusColor(b.outcome) + '18', padding: '2px 6px', borderRadius: 3, textTransform: 'uppercase' }}>
+                          {b.outcome || b.status || 'open'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 10px', color: '#6b7280', whiteSpace: 'nowrap' }}>{ago(b.ts)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Calibration note */}
+      <div style={{ background: '#0d111b', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 16px', fontSize: 11, color: '#4b5563', lineHeight: 1.6 }}>
+        <span style={{ color: '#8b5cf6', fontWeight: 600 }}>Edge methodology:</span> Agent uses Deribit options delta as primary probability estimate (calibrated from real options market). Only bets placed when Deribit vs Polymarket divergence ≥ 20pt. Win rate tracked against resolved outcomes to validate calibration over time.
+      </div>
+    </div>
+  )
+}
+
+function CapitalDeskView({ tsegaTrading, isMobile }) {
+  const [activeTab, setActiveTab] = useState('perps')
+  const eq        = tsegaTrading?.equity       || {}
+  const perf      = tsegaTrading?.performance  || {}
+  const pos       = tsegaTrading?.positions    || []
+  const holdings  = tsegaTrading?.holdings     || []
+  const milestone = tsegaTrading?.milestone    || {}
+  const meta      = tsegaTrading?.meta         || {}
+  const risk      = tsegaTrading?.risk         || {}
+  const agent     = tsegaTrading?.agent        || {}
+  const curve     = tsegaTrading?.equityCurve  || []
+  const poly      = tsegaTrading?.polymarket   || {}
+
+  const fmtPrice = (v) => {
+    if (v == null) return '—'
+    if (v >= 1000)  return `$${v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+    if (v >= 1)    return `$${v.toFixed(4)}`
+    return `$${v.toFixed(5)}`
+  }
+  const fmtUsd = (v) => v == null ? '—' : `$${v.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0})}`
+  const ago = (ts) => {
+    if (!ts) return ''
+    const s = (Date.now() - new Date(ts).getTime()) / 1000
+    if (s < 3600)  return `${Math.floor(s/60)}m`
+    if (s < 86400) return `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`
+    return `${Math.floor(s/86400)}d`
+  }
+
+  // SVG Sparkline from equityCurve
+  const Sparkline = () => {
+    if (curve.length < 2) return null
+    const W = 240, H = 44
+    const vals = curve.map(p => p.value)
+    const min = Math.min(...vals), max = Math.max(...vals)
+    const range = max - min || 1
+    const pts = vals.map((v, i) => {
+      const x = (i / (vals.length - 1)) * W
+      const y = H - ((v - min) / range) * (H - 4) - 2
+      return `${x},${y}`
+    }).join(' ')
+    const lastPct = ((vals[vals.length-1] - vals[0]) / vals[0] * 100).toFixed(0)
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+        <svg width={W} height={H} style={{ display: 'block' }}>
+          <defs>
+            <linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+          </defs>
+          <polyline points={pts} fill="none" stroke="url(#sparkGrad)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+        <span style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>+{lastPct}% all-time</span>
+      </div>
+    )
+  }
+
+  // Holdings allocation
+  const totalHoldings = holdings.reduce((s, h) => s + (h.usdValue || 0), 0)
+
+  // Status color
+  const statusColor = agent.status === 'running' ? '#10b981' : agent.status === 'idle' ? '#f59e0b' : '#6b7280'
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'linear-gradient(135deg,#0a1a10,#0d111b)', borderRadius: 10, border: '1px solid #10b98125' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>Capital Desk</div>
+            <div style={{ fontSize: 11, color: '#4b5563', marginTop: 1 }}>Tsega · Bybit Mainnet · Autonomous</div>
+          </div>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: '#10b98115', padding: '3px 8px', borderRadius: 4, border: '1px solid #10b98130', letterSpacing: '0.07em' }}>LIVE</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: statusColor, background: statusColor + '15', padding: '3px 10px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {agent.status || 'unknown'}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: meta.live ? '#10b981' : '#f59e0b' }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.live ? '#10b981' : '#f59e0b', display: 'inline-block', boxShadow: meta.live ? '0 0 6px #10b981' : 'none' }} />
+            {meta.live ? `live · ${Math.round(meta.dataAgeMin || 0)}m` : meta.dataAgeMin != null ? `${Math.round(meta.dataAgeMin)}m ago` : 'cached'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Tab switcher ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 4, background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: 4 }}>
+        {[
+          { id: 'perps',      label: 'Bybit Perps',         color: '#10b981' },
+          { id: 'polymarket', label: 'Polymarket Bets',      color: '#8b5cf6' },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+            flex: 1, padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            background: activeTab === tab.id ? tab.color + '20' : 'transparent',
+            color: activeTab === tab.id ? tab.color : '#4b5563',
+            outline: activeTab === tab.id ? `1px solid ${tab.color}40` : 'none',
+            transition: 'all 0.15s',
+          }}>
+            {tab.label}
+            {tab.id === 'polymarket' && (poly?.metrics?.pending > 0) && (
+              <span style={{ marginLeft: 6, fontSize: 10, background: '#8b5cf620', color: '#8b5cf6', padding: '1px 5px', borderRadius: 10 }}>
+                {poly.metrics.pending}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'polymarket' ? <PolymarketSection poly={poly} isMobile={isMobile} /> : <>
+
+      {/* ── Metrics + Sparkline ──────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr auto', gap: 10, alignItems: 'stretch' }}>
+        {/* Portfolio */}
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Portfolio</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{fmtUsd(eq.current)}</div>
+          {eq.changeToday != null && (
+            <div style={{ fontSize: 11, color: eq.changeToday >= 0 ? '#10b981' : '#ef4444', marginTop: 5, fontWeight: 600 }}>
+              {eq.changeToday >= 0 ? '+' : ''}{fmtUsd(eq.changeToday)} &nbsp;
+              <span style={{ opacity: 0.7 }}>({eq.changePct >= 0 ? '+' : ''}{eq.changePct?.toFixed(2)}% today)</span>
+            </div>
+          )}
+        </div>
+
+        {/* Positions */}
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Positions</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 22, fontWeight: 800, color: pos.length >= 3 ? '#10b981' : '#f59e0b', lineHeight: 1 }}>{pos.length}</span>
+            <span style={{ fontSize: 14, color: '#4b5563', fontWeight: 600 }}>/ {risk.maxPositions || 3}</span>
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 5, lineHeight: 1.5 }}>
+            {pos.length > 0 ? pos.map(p => p.symbol.replace('USDT','')).join(' · ') : 'scanning…'}
+          </div>
+        </div>
+
+        {/* Win Rate */}
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Win Rate</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>
+            {perf.totalTrades > 0 ? `${perf.winRate}%` : '—'}
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 5 }}>
+            {perf.totalTrades > 0 ? `${perf.wins}W · ${perf.losses}L · ${perf.totalTrades} trades` : 'no closed trades yet'}
+          </div>
+        </div>
+
+        {/* Drawdown */}
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Peak Drawdown</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: (risk.peakDrawdownUsed || 0) > 10 ? '#ef4444' : '#e2e8f0', lineHeight: 1 }}>
+            {risk.peakDrawdownUsed != null ? `${risk.peakDrawdownUsed?.toFixed(2)}%` : '—'}
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 5 }}>limit {risk.peakDrawdownLimit || 15}% · stop {risk.stopPct || 3}% · tp {risk.tpPct || 6}%</div>
+        </div>
+
+        {/* Sparkline */}
+        {!isMobile && (
+          <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 8, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Equity Curve</div>
+            <Sparkline />
+          </div>
+        )}
+      </div>
+
+      {/* ── Main: positions + sidebar ────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: 14, alignItems: 'start' }}>
+
+        {/* Positions table */}
+        <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid #1e293b', background: '#ffffff03' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Open Positions</span>
+            <span style={{ fontSize: 10, color: pos.length >= 3 ? '#10b981' : '#4b5563', fontWeight: 600 }}>{pos.length} / {risk.maxPositions || 3} slots used</span>
+          </div>
+
+          {pos.length === 0 ? (
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>No open positions — scanning markets…</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #1e293b' }}>
+                  {['Pair', 'Side', 'Entry', 'Size', 'Stop %', 'TP %', 'Opened'].map(h => (
+                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#4b5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pos.map((p, i) => {
+                  const sc = p.side === 'long' ? '#22c55e' : '#ef4444'
+                  const stopDist = p.distToStop
+                  const tpDist   = p.distToTp
+                  const atStop   = stopDist != null && Math.abs(stopDist) < 0.1
+                  return (
+                    <tr key={p.id || i} style={{ borderBottom: i < pos.length - 1 ? '1px solid #0f172a' : 'none' }}>
+                      <td style={{ padding: '13px 12px 13px 16px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{(p.symbol || '').replace('USDT','')}</span>
+                        <span style={{ color: '#374151', fontSize: 10 }}>/USDT</span>
+                      </td>
+                      <td style={{ padding: '13px 12px' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: sc + '18', padding: '2px 8px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.side}</span>
+                      </td>
+                      <td style={{ padding: '13px 12px', color: '#e2e8f0', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtPrice(p.entry)}</td>
+                      <td style={{ padding: '13px 12px', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap' }}>${(p.sizeUsd || 0).toLocaleString('en-US', {maximumFractionDigits:0})}</td>
+                      <td style={{ padding: '13px 12px', whiteSpace: 'nowrap' }}>
+                        {atStop ? (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: '#ef444420', padding: '2px 6px', borderRadius: 3 }}>⚠ AT STOP</span>
+                        ) : (
+                          <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                            {stopDist != null ? `${stopDist.toFixed(1)}%` : '—'}
+                          </span>
+                        )}
+                        <div style={{ color: '#374151', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>{fmtPrice(p.stop)}</div>
+                      </td>
+                      <td style={{ padding: '13px 12px', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: '#10b981', fontWeight: 700 }}>
+                          {tpDist != null ? `+${tpDist.toFixed(1)}%` : '—'}
+                        </span>
+                        <div style={{ color: '#374151', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>{fmtPrice(p.tp)}</div>
+                      </td>
+                      <td style={{ padding: '13px 12px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 11 }}>{ago(p.openedAt)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {/* Holdings */}
+          {holdings.length > 0 && (
+            <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Holdings</span>
+                <span style={{ fontSize: 11, color: '#4b5563', fontWeight: 600 }}>{fmtUsd(totalHoldings)}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {holdings.filter(h => (h.usdValue || 0) >= 1).map((h, i) => {
+                  const pct = totalHoldings > 0 ? (h.usdValue / totalHoldings * 100) : 0
+                  const barColors = ['#f59e0b','#3b82f6','#10b981','#8b5cf6']
+                  const bc = barColors[i % barColors.length]
+                  return (
+                    <div key={i}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{h.coin}</span>
+                          <span style={{ fontSize: 10, color: '#4b5563' }}>{h.qty >= 1 ? h.qty?.toFixed(4) : h.qty?.toFixed(6)}</span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>{fmtUsd(h.usdValue)}</span>
+                          <span style={{ fontSize: 10, color: '#4b5563', marginLeft: 5 }}>{pct.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div style={{ background: '#1e293b', borderRadius: 3, height: 4, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: bc, borderRadius: 3 }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Milestone */}
+          <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Mainnet Milestone</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>{milestone.label || '0/20'}</span>
+            </div>
+            <div style={{ background: '#1e293b', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+              <div style={{ width: `${Math.max(milestone.pct || 0, 1)}%`, height: '100%', background: 'linear-gradient(90deg,#3b82f6,#10b981)', borderRadius: 4, transition: 'width 0.6s' }} />
+            </div>
+            <div style={{ fontSize: 11, color: '#4b5563' }}>{milestone.nextStep || '20 net-positive trades → mainnet'}</div>
+          </div>
+
+          {/* Dashboard link */}
+          <a href="http://161.35.220.149:3001" target="_blank" rel="noreferrer"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', background: '#10b98108', border: '1px solid #10b98125', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#10b981', fontWeight: 600 }}>
+            Full VPS Dashboard →
+          </a>
+        </div>
+      </div>
+
+      </>}
     </div>
   )
 }
@@ -2967,6 +3711,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'roadmap', label: 'Roadmap', icon: '🗺️' },
   { id: 'agents', label: 'Agents', icon: '🤖' },
+  { id: 'capital', label: 'Capital Desk', icon: '📈' },
   { id: 'assignments', label: 'Assignments', icon: '📋' },
   { id: 'cron', label: 'Cron Jobs', icon: '⏱️' },
   { id: 'documents', label: 'Docs', icon: '📄' },
@@ -2980,6 +3725,19 @@ export default function App() {
   const [view, setView] = useState('dashboard')
   const [lastRefresh, setLastRefresh] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [tsegaTrading, setTsegaTrading] = useState(null)
+
+  useEffect(() => {
+    const loadTrading = async () => {
+      try {
+        const res = await fetch('/api/tsega')
+        if (res.ok) setTsegaTrading(await res.json())
+      } catch (e) {}
+    }
+    loadTrading()
+    const iv = setInterval(loadTrading, 30000)
+    return () => clearInterval(iv)
+  }, [])
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768)
@@ -3033,7 +3791,7 @@ export default function App() {
 
   const renderView = () => {
     switch (view) {
-      case 'agents': return <AgentsView state={state} isMobile={isMobile} />
+      case 'agents': return <AgentsView state={state} isMobile={isMobile} tsegaTrading={tsegaTrading} />
       case 'assignments': return <AssignmentsView state={state} isMobile={isMobile} />
       case 'conversations': return <ConversationsView isMobile={isMobile} />
       case 'roadmap': return <RoadmapView />
@@ -3042,7 +3800,8 @@ export default function App() {
       case 'cron': return <CronView state={state} />
       case 'documents': return <DocumentsView state={state} />
       case 'conventions': return <ConventionsView />
-      default: return <DashboardView state={state} setView={setView} isMobile={isMobile} />
+      case 'capital': return <CapitalDeskView tsegaTrading={tsegaTrading} isMobile={isMobile} />
+      default: return <DashboardView state={state} setView={setView} isMobile={isMobile} tsegaTrading={tsegaTrading} />
     }
   }
 
@@ -3090,8 +3849,9 @@ export default function App() {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', maxWidth: '100vw', background: '#0a0a0f', color: '#ffffff', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", overflow: 'hidden' }}>
         {/* Mobile Header */}
         <header style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #ffffff10', background: '#111118', flexShrink: 0 }}>
-          <span style={{ fontSize: 18 }}>⚙️</span>
-          <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>Mission Control</span>
+          <span style={{ fontSize: 18 }}>⬡</span>
+          <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>ATXO Labs</span>
+          <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 2 }}>Mission Control</span>
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#22c55e' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
             Live
@@ -3142,10 +3902,10 @@ export default function App() {
       <aside style={S.sidebar}>
         <div style={S.sidebarLogo}>
           <div style={S.logoText}>
-            <span>⚙️</span>
-            Mission Control
+            <span>⬡</span>
+            ATXO Labs
           </div>
-          <div style={S.logoSub}>AI Operations</div>
+          <div style={S.logoSub}>Mission Control · AI Operations</div>
         </div>
 
         <nav style={S.nav}>

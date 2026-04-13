@@ -22,6 +22,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import json
+import urllib.request
+import urllib.error
 
 # Stripe config
 STRIPE_RESTRICTED_KEY = os.environ.get(
@@ -36,6 +38,79 @@ ZOHO_HOST = "smtp.zoho.com"
 ZOHO_PORT = 465
 ZOHO_USER = "selam@atxo.me"
 
+# WhatsApp notification config
+WHATSAPP_TARGET = "+16172308368"  # Mikael's number
+
+def _send_whatsapp_notification(message: str) -> None:
+    """Send WhatsApp notification via OpenClaw gateway."""
+    try:
+        # Use the OpenClaw messaging API
+        import urllib.request as _ur
+        payload = json.dumps({
+            "channel": "whatsapp",
+            "to": WHATSAPP_TARGET,
+            "text": message
+        }).encode()
+        
+        req = _ur.Request(
+            "http://localhost:18789/message",  # OpenClaw gateway
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        _ur.urlopen(req, timeout=10)
+    except Exception as e:
+        print(f"[WhatsApp] Failed to send: {e}")
+
+def _segment_buyer(email: str, product_key: str, amount: int) -> dict:
+    """Segment buyer and enroll in nurture sequence."""
+    segments = {
+        "agent-security-toolkit": {"segment": "security_buyer", "sequence": "security_nurture", "priority": "high"},
+        "agent-security-core": {"segment": "security_buyer", "sequence": "security_nurture", "priority": "medium"},
+        "ai-sdr-system": {"segment": "sales_buyer", "sequence": "sdr_nurture", "priority": "high"},
+        "lead-lists": {"segment": "data_buyer", "sequence": "lead_list_nurture", "priority": "medium", "recurring": True},
+        "cold-email-starter-kit": {"segment": "starter_buyer", "sequence": "starter_nurture", "priority": "low"},
+        "90-day-revenue-roadmap": {"segment": "strategy_buyer", "sequence": "roadmap_nurture", "priority": "medium"},
+        "founders-growth-os": {"segment": "vip_buyer", "sequence": "vip_nurture", "priority": "high"},
+    }
+    
+    segment_info = segments.get(product_key, {"segment": "general", "sequence": "general_nurture", "priority": "medium"})
+    
+    buyer_record = {
+        "email": email,
+        "product_key": product_key,
+        "amount": amount,
+        "segment": segment_info["segment"],
+        "sequence": segment_info["sequence"],
+        "priority": segment_info["priority"],
+        "purchased_at": datetime.utcnow().isoformat(),
+        "next_touch": (datetime.utcnow().timestamp() + 2 * 24 * 3600),  # 2 days
+        "touch_count": 0,
+        "lifetime_value": amount,
+    }
+    
+    # Save to buyer segments
+    segments_path = BASE_DIR / "data" / "buyer_segments.jsonl"
+    segments_data = []
+    if segments_path.exists():
+        with open(segments_path) as f:
+            segments_data = [json.loads(line) for line in f if line.strip()]
+    
+    # Update if exists, else append
+    existing = next((s for s in segments_data if s["email"] == email), None)
+    if existing:
+        existing["lifetime_value"] += amount
+        existing["touch_count"] += 1
+        existing["last_purchase"] = buyer_record["purchased_at"]
+        existing["product_key"] = product_key  # Track latest purchase
+    else:
+        segments_data.append(buyer_record)
+    
+    with open(segments_path, "w") as f:
+        for s in segments_data:
+            f.write(json.dumps(s) + "\n")
+    
+    return buyer_record
+
 def _get_zoho_password() -> str:
     pw = os.environ.get("ZOHO_PASSWORD")
     if pw:
@@ -49,6 +124,56 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "state.json"
 DOCUMENTS_PATH = BASE_DIR / "data" / "documents.json"
 CONVENTIONS_PATH = BASE_DIR / "data" / "conventions.json"
+
+# Tsega trading dashboard state (local trading agent)
+TSEGA_STATE_PATH = Path("/Users/michaelderibe/Downloads/trading-agent/data/dashboard-state.json")
+
+def load_tsega_live() -> dict[str, Any]:
+    """Read live trading state from Tsega's dashboard and return a summary dict."""
+    try:
+        if not TSEGA_STATE_PATH.exists():
+            return {}
+        raw = json.loads(TSEGA_STATE_PATH.read_text())
+        trades     = raw.get("trades", [])
+        positions  = raw.get("positions", [])
+        metrics    = raw.get("metrics", {})
+        equity_pts = raw.get("equity", [])
+        open_pos   = [p for p in positions if p.get("status") == "open"]
+        closed     = [t for t in trades if t.get("closedAt")]
+        wins       = [t for t in closed if (t.get("pnl") or 0) > 0]
+        win_rate   = round(len(wins) / len(closed) * 100, 1) if closed else 0
+        total_pnl  = round(sum(t.get("pnl", 0) for t in closed), 2)
+        equity     = metrics.get("equity", 0)
+        # Today P&L
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_pnl = round(sum(
+            t.get("pnl", 0) for t in closed
+            if t.get("closedAt") and datetime.fromisoformat(t["closedAt"].replace("Z","+00:00")) >= today
+        ), 2)
+        return {
+            "status": raw.get("status", "unknown"),
+            "equity": equity,
+            "totalPnl": total_pnl,
+            "todayPnl": today_pnl,
+            "winRate": win_rate,
+            "totalTrades": len(closed),
+            "openPositions": len(open_pos),
+            "openPositionList": [
+                {"symbol": p.get("symbol"), "side": p.get("side"), "entry": p.get("entryPrice"),
+                 "stop": p.get("stopPrice"), "tp": p.get("tpPrice"), "size": p.get("sizeUsd")}
+                for p in open_pos
+            ],
+            "recentTrades": [
+                {"symbol": t.get("symbol"), "side": t.get("side"), "pnl": t.get("pnl"),
+                 "exitReason": t.get("exitReason"), "closedAt": t.get("closedAt")}
+                for t in closed[-5:]
+            ],
+            "milestone": f"{len(closed)}/20 trades toward mainnet",
+            "dashboard": "http://161.35.220.149:3001",
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 app = FastAPI(title="Mission Control Backend", version="0.1.0")
 app.add_middleware(
@@ -126,9 +251,28 @@ def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/tsega")
+def get_tsega() -> dict[str, Any]:
+    """Live Tsega trading status endpoint."""
+    return load_tsega_live()
+
 @app.get("/state")
 def get_state() -> dict[str, Any]:
     state = load_state()
+    # Inject live Tsega trading data
+    tsega_live = load_tsega_live()
+    if tsega_live:
+        state["trading"] = {**state.get("trading", {}), **tsega_live}
+        # Update agentStatus with live numbers
+        pnl_str = f"+${tsega_live['totalPnl']:.2f}" if tsega_live.get("totalPnl", 0) >= 0 else f"-${abs(tsega_live['totalPnl']):.2f}"
+        state["agentStatus"]["Tsega"] = (
+            f"ONLINE — {tsega_live.get('status','?')} — "
+            f"equity ${tsega_live.get('equity',0):.2f} — "
+            f"P&L {pnl_str} — "
+            f"{tsega_live.get('totalTrades',0)} trades — "
+            f"win rate {tsega_live.get('winRate',0)}% — "
+            f"{tsega_live.get('openPositions',0)} open"
+        )
     return state
 
 
@@ -598,6 +742,7 @@ def get_token_status() -> dict[str, Any]:
         "Selam":  Path("/Users/michaelderibe/.openclaw/agents/main/sessions"),
         "Bulcha": Path("/Users/michaelderibe/.openclaw/agents/bulcha/sessions"),
         "Merry":  Path("/Users/michaelderibe/.openclaw/agents/closer/sessions"),
+        "Tsega":  Path("/Users/michaelderibe/.openclaw/agents/tsega/sessions"),
     }
     cutoff = time.time() - 24 * 3600
     result = []
@@ -1339,6 +1484,7 @@ async def stripe_webhook(request: Request) -> dict[str, str]:
         session = event["data"]["object"]
         session_id = session.get("id", "")
         customer_email = session.get("customer_details", {}).get("email") or session.get("customer_email", "")
+        amount = session.get("amount_total", 0) // 100  # Convert cents to dollars
         product_key = _detect_product_key(session)
 
         email_status = "ok"
@@ -1348,6 +1494,13 @@ async def stripe_webhook(request: Request) -> dict[str, str]:
             except Exception as exc:
                 email_status = f"error: {exc}"
 
+            # Segment buyer and enroll in nurture sequence
+            try:
+                buyer_info = _segment_buyer(customer_email, product_key, amount)
+                segment_msg = f"🎯 {buyer_info['segment']} | {buyer_info['sequence']}"
+            except Exception as e:
+                segment_msg = f"Segment error: {e}"
+
             # Schedule 48h follow-up for Agent Security Playbook buyers
             if product_key in ("agent-security-toolkit", "agent-security-core"):
                 try:
@@ -1355,12 +1508,32 @@ async def stripe_webhook(request: Request) -> dict[str, str]:
                 except Exception:
                     pass  # Non-critical — don't fail the webhook
 
+            # WhatsApp notification for ALL sales
+            try:
+                product_name = PRODUCT_CONFIG.get(product_key, {}).get("name", product_key)
+                emoji = "🎉" if amount >= 197 else "💰" if amount >= 97 else "✅"
+                priority = "🔥 HIGH" if amount >= 197 else "📊 Medium" if amount >= 97 else "📝 Standard"
+                
+                wa_message = f"""{emoji} SALE: ${amount}
+
+Product: {product_name}
+Buyer: {customer_email}
+Priority: {priority}
+{segment_msg}
+
+Time: {datetime.utcnow().strftime('%H:%M UTC')}"""
+                
+                _send_whatsapp_notification(wa_message)
+            except Exception as e:
+                print(f"[WhatsApp] Notification failed: {e}")
+
         # Log delivery
         deliveries = _load_json_file(DELIVERIES_PATH, [])
         deliveries.append({
             "session_id": session_id,
             "email": customer_email,
             "product_key": product_key,
+            "amount": amount,
             "sent_at": datetime.utcnow().isoformat(),
             "email_status": email_status,
         })
@@ -1500,6 +1673,477 @@ def download_founders_os(session_id: str) -> FileResponse:
     if not _verify_stripe_session(session_id):
         raise HTTPException(status_code=403, detail="Invalid or unpaid session")
     return FileResponse(str(pdf), filename="founders-growth-os.pdf", media_type="application/pdf")
+
+
+@app.get("/api/analytics/sales")
+def get_sales_analytics() -> dict:
+    """Sales analytics dashboard data."""
+    deliveries = _load_json_file(DELIVERIES_PATH, [])
+    segments = _load_json_file(BASE_DIR / "data" / "buyer_segments.jsonl", [])
+    
+    # Calculate metrics
+    total_sales = len([d for d in deliveries if d.get("event_type") != "renewal"])
+    total_revenue = sum(d.get("amount", 0) for d in deliveries if d.get("event_type") != "renewal")
+    renewals = len([d for d in deliveries if d.get("event_type") == "renewal"])
+    
+    # Product breakdown
+    product_sales = {}
+    for d in deliveries:
+        if d.get("event_type") == "renewal":
+            continue
+        pk = d.get("product_key", "unknown")
+        if pk not in product_sales:
+            product_sales[pk] = {"count": 0, "revenue": 0}
+        product_sales[pk]["count"] += 1
+        product_sales[pk]["revenue"] += d.get("amount", 0)
+    
+    # Segment breakdown
+    segment_counts = {}
+    for s in segments:
+        seg = s.get("segment", "unknown")
+        segment_counts[seg] = segment_counts.get(seg, 0) + 1
+    
+    # Recent sales (last 7 days)
+    from datetime import datetime, timedelta
+    week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    recent_sales = [d for d in deliveries if d.get("sent_at", "") > week_ago and d.get("event_type") != "renewal"]
+    recent_revenue = sum(d.get("amount", 0) for d in recent_sales)
+    
+    return {
+        "summary": {
+            "total_sales": total_sales,
+            "total_revenue": total_revenue,
+            "renewals": renewals,
+            "unique_buyers": len(segments),
+            "recent_sales_7d": len(recent_sales),
+            "recent_revenue_7d": recent_revenue,
+        },
+        "by_product": product_sales,
+        "by_segment": segment_counts,
+        "recent_transactions": sorted(
+            [d for d in deliveries if d.get("event_type") != "renewal"],
+            key=lambda x: x.get("sent_at", ""),
+            reverse=True
+        )[:10],  # Last 10 sales
+    }
+
+
+@app.get("/api/analytics/buyers")
+def get_buyer_segments() -> dict:
+    """Get all buyer segments with nurture status."""
+    segments_path = BASE_DIR / "data" / "buyer_segments.jsonl"
+    segments = []
+    
+    if segments_path.exists():
+        with open(segments_path) as f:
+            for line in f:
+                if line.strip():
+                    segments.append(json.loads(line))
+    
+    # Group by segment
+    by_segment = {}
+    for s in segments:
+        seg = s.get("segment", "unknown")
+        if seg not in by_segment:
+            by_segment[seg] = []
+        by_segment[seg].append(s)
+    
+    # Calculate nurture queue (who needs follow-up)
+    now = datetime.utcnow().timestamp()
+    nurture_queue = [s for s in segments if s.get("next_touch", 0) < now]
+    
+    return {
+        "total_buyers": len(segments),
+        "by_segment": {k: len(v) for k, v in by_segment.items()},
+        "buyer_details": segments,
+        "nurture_queue": {
+            "count": len(nurture_queue),
+            "buyers": nurture_queue[:20],  # Top 20 needing follow-up
+        },
+    }
+
+
+@app.get("/os", response_class=HTMLResponse)
+def serve_atxo_os():
+    """Serve ATXO OS dashboard."""
+    atxo_path = Path("/Users/michaelderibe/.openclaw/workspace/atxo-os/frontend/index.html")
+    if atxo_path.exists():
+        content = atxo_path.read_text()
+        # Update API endpoints to use relative paths
+        content = content.replace('fetch(\'/api/', 'fetch(\'/os/api/')
+        return HTMLResponse(content)
+    raise HTTPException(status_code=404, detail="ATXO OS not found")
+
+
+@app.get("/os/api/health")
+def atxo_health():
+    """ATXO OS health check."""
+    return {"status": "online", "station": "ATXO-1", "version": "1.0.0"}
+
+
+@app.get("/os/api/revenue/dashboard")
+def atxo_revenue():
+    """ATXO OS revenue data."""
+    # Reuse existing analytics
+    sales_data = get_sales_analytics()
+    return sales_data
+
+
+@app.get("/os/api/crew/status")
+def atxo_crew():
+    """ATXO OS crew status."""
+    return {
+        "crew": [
+            {"name": "Selam", "role": "CEO", "status": "active", "current_task": "Station Command", "efficiency": 98},
+            {"name": "Bulcha", "role": "Operations", "status": "standby", "current_task": "Awaiting Orders", "efficiency": 85},
+            {"name": "Merry", "role": "Sales", "status": "standby", "current_task": "Inbox Monitoring", "efficiency": 90},
+        ],
+        "tasks_queued": 0,
+        "tasks_completed_today": 12,
+    }
+
+
+@app.get("/os/api/outreach/status")
+def atxo_outreach():
+    """ATXO OS outreach status."""
+    return {
+        "campaigns": {
+            "active": True,
+            "batch_size": 51,
+            "emails_sent": 5,
+            "emails_remaining": 46,
+            "reply_rate": 0,
+            "leads_generated": 0,
+            "meetings_booked": 0,
+        },
+        "channels": {
+            "email": {"status": "active", "volume": "5/day"},
+            "x_twitter": {"status": "standby", "last_post": "2026-03-27"},
+            "reddit": {"status": "monitoring", "karma": 5},
+        },
+    }
+
+
+@app.get("/os/api/analytics/sales")
+def atxo_analytics():
+    """ATXO OS sales analytics."""
+    return get_sales_analytics()
+
+
+# ============================================================================
+# TSEGA — CAPITAL DESK / TRADING API
+# ============================================================================
+
+TSEGA_DASHBOARD_URL = "http://161.35.220.149:3001"
+MAINNET_MILESTONE   = 20   # net-positive trades required before mainnet brief
+
+
+def _build_tsega_response(raw: dict) -> dict:
+    """
+    Build the canonical Tsega API response from raw dashboard-state.json.
+
+    Returned shape (all fields always present, nulls on missing data):
+    {
+      agent        : { name, status, phase, venue, task }
+      equity       : { current, peak, startOfDay, changeToday, changePct }
+      performance  : { totalPnl, todayPnl, winRate, totalTrades, wins, losses }
+      risk         : { stopPct, tpPct, threshold, maxPositions, dailyDrawdownLimit,
+                       peakDrawdownLimit, dailyDrawdownUsed, peakDrawdownUsed }
+      positions    : [ { id, symbol, side, entry, stop, tp, sizeUsd, venue,
+                         openedAt, distToStop, distToTp } ]
+      trades       : [ { symbol, side, pnl, exitReason, openedAt, closedAt,
+                         durationMin } ]  ← last 20
+      equityCurve  : [ { ts, value } ]    ← downsampled to ≤100 pts, last 24 h
+      holdings     : [ { coin, qty, usdValue } ]
+      milestone    : { wins, target, remaining, pct, label, nextStep }
+      meta         : { lastUpdated, syncedAt, dataAge, live }
+    }
+    """
+    from datetime import datetime, timezone
+
+    now_utc   = datetime.now(timezone.utc)
+    today_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    trades    = raw.get("trades",    [])
+    positions = raw.get("positions", [])
+    metrics   = raw.get("metrics",  {})
+    eq_curve  = raw.get("equity",   [])
+    params    = raw.get("params",   {})
+    holdings  = raw.get("holdings", [])
+
+    # ── Closed trades ────────────────────────────────────────────────────────
+    closed = [t for t in trades if t.get("closedAt")]
+    wins   = [t for t in closed if (t.get("pnl") or 0) > 0]
+    losses = [t for t in closed if (t.get("pnl") or 0) <= 0]
+
+    total_pnl = round(sum(t.get("pnl", 0) for t in closed), 2)
+    win_rate  = round(len(wins) / len(closed) * 100, 1) if closed else 0
+
+    today_pnl = round(sum(
+        t.get("pnl", 0) for t in closed
+        if t.get("closedAt") and
+        datetime.fromisoformat(t["closedAt"].replace("Z", "+00:00")) >= today_utc
+    ), 2)
+
+    # ── Open positions ───────────────────────────────────────────────────────
+    # Filter: not explicitly closed AND sizeUsd >= 100 (excludes pre-sizing-fix ghost positions)
+    open_pos = [p for p in positions if p.get("status") != "closed" and (p.get("sizeUsd") or 0) >= 100]
+
+    def _dist_pct(entry, target):
+        if not entry or not target: return None
+        return round((target - entry) / entry * 100, 2)
+
+    positions_out = [
+        {
+            "id":        p.get("id"),
+            "symbol":    p.get("symbol"),
+            "side":      p.get("side"),
+            "entry":     p.get("entryPrice"),
+            "stop":      p.get("stopPrice"),
+            "tp":        p.get("tpPrice"),
+            "sizeUsd":   p.get("sizeUsd"),
+            "score":     p.get("score"),
+            "venue":     p.get("venue", "bybit"),
+            "openedAt":  p.get("openedAt"),
+            "distToStop": _dist_pct(p.get("entryPrice"), p.get("stopPrice")),
+            "distToTp":   _dist_pct(p.get("entryPrice"), p.get("tpPrice")),
+        }
+        for p in open_pos
+    ]
+
+    # ── Last 20 closed trades ────────────────────────────────────────────────
+    def _dur(t):
+        try:
+            o = datetime.fromisoformat(t["openedAt"].replace("Z", "+00:00"))
+            c = datetime.fromisoformat(t["closedAt"].replace("Z", "+00:00"))
+            return round((c - o).total_seconds() / 60, 1)
+        except Exception:
+            return None
+
+    trades_out = [
+        {
+            "symbol":     t.get("symbol"),
+            "side":       t.get("side"),
+            "pnl":        t.get("pnl"),
+            "exitReason": t.get("exitReason"),
+            "entry":      t.get("entryPrice"),
+            "exit":       t.get("exitPrice"),
+            "openedAt":   t.get("openedAt"),
+            "closedAt":   t.get("closedAt"),
+            "durationMin": _dur(t),
+        }
+        for t in closed[-20:]
+    ]
+
+    # ── Equity ───────────────────────────────────────────────────────────────
+    current_equity = metrics.get("equity", 0)
+    peak_equity    = max((pt["value"] for pt in eq_curve if pt.get("value")), default=current_equity)
+
+    # Start-of-day equity: first curve point at/after today 00:00 UTC
+    sod_equity = current_equity
+    for pt in eq_curve:
+        try:
+            ts = datetime.fromisoformat(pt["ts"].replace("Z", "+00:00"))
+            if ts >= today_utc:
+                sod_equity = pt["value"]
+                break
+        except Exception:
+            pass
+
+    change_today  = round(current_equity - sod_equity, 2)
+    change_pct    = round(change_today / sod_equity * 100, 2) if sod_equity else 0
+
+    # ── Equity curve — last 24 h, downsampled to ≤100 points ────────────────
+    cutoff_24h = now_utc.timestamp() - 86400
+    recent_pts = [
+        pt for pt in eq_curve
+        if pt.get("ts") and _ts_epoch(pt["ts"]) >= cutoff_24h
+    ]
+    curve_out = _downsample(recent_pts, max_pts=100)
+
+    # ── Risk metrics ─────────────────────────────────────────────────────────
+    daily_dd_used = round((sod_equity - current_equity) / sod_equity * 100, 2) if sod_equity else 0
+    peak_dd_used  = round((peak_equity - current_equity) / peak_equity * 100, 2) if peak_equity else 0
+
+    # ── Milestone ────────────────────────────────────────────────────────────
+    net_wins   = len(wins)
+    remaining  = max(0, MAINNET_MILESTONE - net_wins)
+    mile_pct   = round(min(100, net_wins / MAINNET_MILESTONE * 100), 1)
+
+    # ── Data freshness ───────────────────────────────────────────────────────
+    last_updated_str = raw.get("lastUpdated", "")
+    data_age_min = None
+    if last_updated_str:
+        try:
+            lu = datetime.fromisoformat(last_updated_str.replace("Z", "+00:00"))
+            data_age_min = round((now_utc - lu).total_seconds() / 60, 1)
+        except Exception:
+            pass
+
+    return {
+        "agent": {
+            "name":   "Tsega",
+            "status": raw.get("status", "unknown"),
+            "phase":  "testnet",
+            "venue":  "Bybit",
+            "task":   (raw.get("currentTask") or "")[:120] or None,
+        },
+        "equity": {
+            "current":      current_equity,
+            "peak":         round(peak_equity, 4),
+            "startOfDay":   round(sod_equity, 4),
+            "changeToday":  change_today,
+            "changePct":    change_pct,
+        },
+        "performance": {
+            "totalPnl":    total_pnl,
+            "todayPnl":    today_pnl,
+            "winRate":     win_rate,
+            "totalTrades": len(closed),
+            "wins":        len(wins),
+            "losses":      len(losses),
+        },
+        "risk": {
+            "stopPct":            params.get("stopPct", 3),
+            "tpPct":              params.get("tpPct", 6),
+            "threshold":          params.get("tradeThreshold", 60),
+            "maxPositions":       3,
+            "dailyDrawdownLimit": params.get("dailyDrawdownLimit", 8),
+            "peakDrawdownLimit":  params.get("peakDrawdownLimit", 15),
+            "dailyDrawdownUsed":  max(0, daily_dd_used),
+            "peakDrawdownUsed":   max(0, peak_dd_used),
+        },
+        "positions":   positions_out,
+        "trades":      trades_out,
+        "equityCurve": curve_out,
+        "holdings":    holdings,
+        "milestone": {
+            "wins":      net_wins,
+            "target":    MAINNET_MILESTONE,
+            "remaining": remaining,
+            "pct":       mile_pct,
+            "label":     f"{net_wins}/{MAINNET_MILESTONE} net-positive trades",
+            "nextStep":  f"{remaining} more wins → mainnet brief to Selam" if remaining > 0 else "Ready for mainnet brief",
+        },
+        "meta": {
+            "lastUpdated": last_updated_str,
+            "syncedAt":    now_utc.isoformat(),
+            "dataAgeMin":  data_age_min,
+            "live":        (data_age_min is not None and data_age_min < 10),
+        },
+        "polymarket": raw.get("polymarket", {
+            "bets": [],
+            "balance": 0,
+            "metrics": {"totalBets": 0, "wins": 0, "losses": 0, "pending": 0,
+                        "winRate": 0, "roi": 0, "totalStaked": 0, "totalPnl": 0, "avgEdge": 0},
+        }),
+    }
+
+
+def _ts_epoch(ts_str: str) -> float:
+    """ISO timestamp string → Unix epoch float."""
+    try:
+        from datetime import datetime, timezone
+        return datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0.0
+
+
+def _downsample(pts: list, max_pts: int = 100) -> list:
+    """Return at most max_pts evenly-spaced entries from pts list."""
+    if len(pts) <= max_pts:
+        return pts
+    step = len(pts) / max_pts
+    return [pts[int(i * step)] for i in range(max_pts)]
+
+
+@app.get("/api/tsega")
+def get_tsega() -> dict:
+    """
+    Canonical Tsega trading data endpoint.
+
+    Returns complete agent state: equity, positions, trades, equity curve,
+    holdings, performance metrics, risk parameters, and milestone progress.
+
+    Data is read from the locally-synced dashboard-state.json (updated every
+    2 minutes by the LaunchAgent SCP sync from the VPS).
+
+    Response shape:
+      agent        — name, status, phase, venue, current task
+      equity       — current, peak, start-of-day, today change
+      performance  — totalPnl, todayPnl, winRate, totalTrades, wins, losses
+      risk         — stop/TP %, threshold, drawdown usage
+      positions    — all open positions with entry/stop/TP distances
+      trades       — last 20 closed trades
+      equityCurve  — last 24 h, downsampled to ≤100 pts (for charting)
+      holdings     — spot portfolio breakdown
+      milestone    — progress toward mainnet (target: 20 net-positive trades)
+      meta         — lastUpdated, dataAgeMin, live flag
+    """
+    import urllib.request
+    # Fetch live from VPS direct IP (no tunnel needed — port 3001 is publicly accessible)
+    try:
+        req = urllib.request.Request(
+            f"{TSEGA_DASHBOARD_URL}/state",
+            headers={"User-Agent": "mission-control/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            raw = json.loads(resp.read().decode())
+        return _build_tsega_response(raw)
+    except Exception:
+        pass
+    # Fallback: local synced file
+    if not TSEGA_STATE_PATH.exists():
+        return {
+            "error": "no_data",
+            "message": "VPS unreachable and local sync file not found.",
+        }
+    try:
+        raw = json.loads(TSEGA_STATE_PATH.read_text())
+        return _build_tsega_response(raw)
+    except Exception as e:
+        return {"error": "parse_error", "message": str(e)}
+
+
+@app.get("/api/trading/summary")
+def get_trading_summary() -> dict:
+    """Backwards-compatible summary endpoint — proxies to /api/tsega."""
+    if not TSEGA_STATE_PATH.exists():
+        return {
+            "status": "unavailable", "equity": None, "openPositions": 0,
+            "todayPnl": None, "winRate": None, "totalTrades": 0,
+            "live": False, "error": "state file not found"
+        }
+    try:
+        raw  = json.loads(TSEGA_STATE_PATH.read_text())
+        full = _build_tsega_response(raw)
+        # Flatten to the shape the frontend currently expects
+        wins_count = full["performance"]["wins"]
+        return {
+            "status":          full["agent"]["status"],
+            "equity":          full["equity"]["current"],
+            "totalPnl":        full["performance"]["totalPnl"],
+            "todayPnl":        full["performance"]["todayPnl"],
+            "winRate":         full["performance"]["winRate"],
+            "totalTrades":     full["performance"]["totalTrades"],
+            "openPositions":   len(full["positions"]),
+            "openPositionList": full["positions"],
+            "recentTrades":    full["trades"][-5:],
+            "phase":           full["agent"]["phase"],
+            "milestone":       full["milestone"]["label"],
+            "nextMilestone":   full["milestone"]["nextStep"],
+            "dashboardUrl":    TSEGA_DASHBOARD_URL,
+            "live":            full["meta"]["live"],
+            "lastUpdate":      full["meta"]["syncedAt"],
+        }
+    except Exception as e:
+        return {"error": str(e), "live": False}
+
+
+@app.get("/api/trading/live")
+def get_trading_live() -> dict:
+    """Backwards-compatible live endpoint — proxies to /api/tsega."""
+    return get_tsega()
 
 
 if __name__ == "__main__":
