@@ -955,6 +955,7 @@ function LiveActivity() {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState({})
+  const [panelExpanded, setPanelExpanded] = useState(false)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -997,14 +998,20 @@ function LiveActivity() {
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }} />
         <span style={{ marginLeft: 8, fontSize: 11, color: '#4b5563', fontFamily: 'monospace', letterSpacing: '0.05em' }}>agent-activity.log</span>
-        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#22c55e' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-          LIVE
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, color: '#22c55e' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+            LIVE
+          </span>
+          <button onClick={() => { setPanelExpanded(e => !e); setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50) }}
+            style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 3, color: '#4b5563', cursor: 'pointer', fontSize: 10, padding: '2px 8px', fontFamily: 'monospace' }}>
+            {panelExpanded ? '▲ collapse' : '▼ expand'}
+          </button>
         </span>
       </div>
 
       {/* Log entries */}
-      <div ref={scrollRef} style={{ overflowY: 'auto', maxHeight: 520, padding: '6px 0' }}>
+      <div ref={scrollRef} style={{ overflowY: 'auto', maxHeight: panelExpanded ? 900 : 320, padding: '6px 0', transition: 'max-height 0.3s ease' }}>
         {loading ? (
           <div style={{ color: '#374151', fontSize: 11, padding: '14px 16px', fontFamily: 'monospace' }}>Loading...</div>
         ) : messages.length === 0 ? (
@@ -1256,7 +1263,7 @@ function DashboardView({ state, setView = () => {}, isMobile, tsegaTrading }) {
               <span style={{ fontSize: 11, color: tsegaTrading.meta?.live ? '#10b981' : '#f59e0b' }}>
                 {tsegaTrading.meta?.live ? '● live' : tsegaTrading.meta?.dataAgeMin != null ? `${tsegaTrading.meta.dataAgeMin}m ago` : 'cached'}
               </span>
-              <span style={{ fontSize: 10, color: '#10b981', background: '#10b98115', padding: '2px 6px', borderRadius: 4 }}>TESTNET</span>
+              <span style={{ fontSize: 10, color: '#10b981', background: '#10b98115', padding: '2px 6px', borderRadius: 4 }}>LIVE</span>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
