@@ -1564,54 +1564,11 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
           <span class="live">Live</span>
         </div>
 
-        <div class="figure">
-          <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;" aria-hidden="true">
-            <defs>
-              <radialGradient id="hkf" cx="40%" cy="28%" r="68%">
-                <stop offset="0%" stop-color="#c07840"/><stop offset="52%" stop-color="#8b5028"/><stop offset="100%" stop-color="#4a2510"/>
-              </radialGradient>
-            </defs>
-            <!-- Clothing -->
-            <path d="M-5 160 L2 126 L30 107 L52 100 L60 98 L68 100 L90 107 L118 126 L125 160Z" fill="#1c1915"/>
-            <path d="M52 100 Q60 103 68 100" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-            <!-- Neck -->
-            <path d="M52 90 Q49 96 49 102 L71 102 Q71 96 68 90Z" fill="#7a4520"/>
-            <ellipse cx="60" cy="100" rx="10" ry="3.5" fill="rgba(0,0,0,0.2)"/>
-            <!-- Face -->
-            <ellipse cx="60" cy="51" rx="30" ry="42" fill="url(#hkf)"/>
-            <ellipse cx="76" cy="55" rx="14" ry="28" fill="rgba(0,0,0,0.1)"/>
-            <ellipse cx="46" cy="45" rx="10" ry="14" fill="rgba(220,130,70,0.1)"/>
-            <!-- Afro hair -->
-            <ellipse cx="60" cy="10" rx="37" ry="26" fill="#1a1008"/>
-            <circle cx="33" cy="24" r="21" fill="#1a1008"/>
-            <circle cx="87" cy="24" r="21" fill="#1a1008"/>
-            <circle cx="60" cy="1" r="18" fill="#0d0904"/>
-            <ellipse cx="60" cy="14" rx="26" ry="8" fill="rgba(8,5,2,0.82)"/>
-            <!-- Eyebrows -->
-            <path d="M39 38 Q46 33 53 37" stroke="#1e0e05" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-            <path d="M67 37 Q74 33 81 38" stroke="#1e0e05" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-            <!-- Eyelid arcs (html .eye divs overlay at approx y=46.5, x≈47 & 73) -->
-            <path d="M39.5 46.5 Q47 41 54.5 46.5" stroke="#2a1208" stroke-width="1.7" fill="rgba(26,14,5,0.25)" stroke-linecap="round"/>
-            <path d="M65.5 46.5 Q73 41 80.5 46.5" stroke="#2a1208" stroke-width="1.7" fill="rgba(26,14,5,0.25)" stroke-linecap="round"/>
-            <path d="M40.5 47.5 Q47 52 53.5 47.5" stroke="rgba(42,18,8,0.22)" stroke-width="0.9" fill="none"/>
-            <path d="M66.5 47.5 Q73 52 79.5 47.5" stroke="rgba(42,18,8,0.22)" stroke-width="0.9" fill="none"/>
-            <!-- Nose -->
-            <path d="M58 57 Q55 66 52 68 Q56 71 60 70 Q64 71 68 68 Q65 66 62 57Z" fill="rgba(0,0,0,0.08)"/>
-            <ellipse cx="53" cy="68" rx="4" ry="3" fill="rgba(0,0,0,0.18)"/>
-            <ellipse cx="67" cy="68" rx="4" ry="3" fill="rgba(0,0,0,0.18)"/>
-            <!-- Lips -->
-            <path d="M49 79 Q53 74 60 75 Q67 74 71 79 Q67 75 60 74 Q53 75 49 79Z" fill="#7a3825"/>
-            <path d="M49 79 Q54 88 60 89 Q66 88 71 79 Q66 86 60 87 Q54 86 49 79Z" fill="#8f4230"/>
-            <path d="M49 79 Q54 77 57 78 Q60 76.5 63 78 Q66 77 71 79" stroke="#5a2518" stroke-width="0.8" fill="none"/>
-            <!-- Blink overlay -->
-            <rect x="38" y="42.5" width="47" height="8.5" rx="4.5" fill="#8b5028" opacity="0">
-              <animate attributeName="opacity" values="0;0;0;1;1;0;0" keyTimes="0;0.93;0.95;0.965;0.975;0.985;1" dur="6s" repeatCount="indefinite"/>
-            </rect>
-          </svg>
-          <div class="eyes" style="top:27.5%">
-            <div class="eye" data-eye></div>
-            <div class="eye" data-eye></div>
-          </div>
+        <div class="figure" style="overflow:hidden;border-radius:4px 4px 0 0;">
+          <img src="https://randomuser.me/api/portraits/women/44.jpg"
+               alt="Kiya"
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;filter:brightness(0.92) saturate(0.95);">
+          <div style="position:absolute;bottom:0;left:0;right:0;height:35%;background:linear-gradient(to top,var(--paper-2) 0%,transparent 100%);pointer-events:none;"></div>
         </div>
 
         <div class="name-overlay">
@@ -1712,8 +1669,11 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         <div class="agent-portrait agent-a">
           <div class="bg"></div>
           <div class="agent-dot-indicator">Online</div>
-          <div class="mini-figure">
-            <svg viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;" aria-hidden="true">
+          <div class="mini-figure" style="overflow:hidden;">
+            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Kiya"
+                 style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;filter:brightness(0.9) saturate(0.95);">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:30%;background:linear-gradient(to top,var(--paper-2) 0%,transparent 100%);pointer-events:none;"></div>
+            <svg style="display:none" viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <radialGradient id="akf" cx="40%" cy="28%" r="68%">
                   <stop offset="0%" stop-color="#c07840"/><stop offset="52%" stop-color="#8b5028"/><stop offset="100%" stop-color="#4a2510"/>
@@ -1764,8 +1724,11 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         <div class="agent-portrait agent-b">
           <div class="bg"></div>
           <div class="agent-dot-indicator">Online</div>
-          <div class="mini-figure">
-            <svg viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;" aria-hidden="true">
+          <div class="mini-figure" style="overflow:hidden;">
+            <img src="https://randomuser.me/api/portraits/men/17.jpg" alt="Daniel"
+                 style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;filter:brightness(0.9) saturate(0.95);">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:30%;background:linear-gradient(to top,var(--paper-2) 0%,transparent 100%);pointer-events:none;"></div>
+            <svg style="display:none" viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <radialGradient id="adf" cx="40%" cy="28%" r="68%">
                   <stop offset="0%" stop-color="#8a4f1e"/><stop offset="55%" stop-color="#5a3010"/><stop offset="100%" stop-color="#2e1608"/>
@@ -1821,8 +1784,11 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         <div class="agent-portrait agent-c">
           <div class="bg"></div>
           <div class="agent-dot-indicator">Online</div>
-          <div class="mini-figure">
-            <svg viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;" aria-hidden="true">
+          <div class="mini-figure" style="overflow:hidden;">
+            <img src="https://randomuser.me/api/portraits/women/33.jpg" alt="Reya"
+                 style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;filter:brightness(0.9) saturate(0.95);">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:30%;background:linear-gradient(to top,var(--paper-2) 0%,transparent 100%);pointer-events:none;"></div>
+            <svg style="display:none" viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <radialGradient id="arf" cx="42%" cy="30%" r="65%">
                   <stop offset="0%" stop-color="#d08848"/><stop offset="52%" stop-color="#9a6035"/><stop offset="100%" stop-color="#5a3318"/>
@@ -1893,8 +1859,10 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         </p>
       </div>
       <div class="founder-portrait">
-        <div class="mini-figure agent-a" style="position:absolute;">
-          <svg viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;" aria-hidden="true">
+        <div class="mini-figure agent-a" style="position:absolute;overflow:hidden;">
+          <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Selam"
+               style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;filter:brightness(0.9) saturate(0.95);">
+          <svg style="display:none" viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <radialGradient id="fkf" cx="40%" cy="28%" r="68%">
                 <stop offset="0%" stop-color="#c07840"/><stop offset="52%" stop-color="#8b5028"/><stop offset="100%" stop-color="#4a2510"/>
