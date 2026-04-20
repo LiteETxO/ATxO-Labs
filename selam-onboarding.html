@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Selam — First run</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --ink:            #faf6ef;
+  --ink-dim:        #c5bda9;
+  --ink-muted:      #7a7162;
+  --paper:          #0a0907;
+  --paper-2:        #141210;
+  --paper-3:        #1c1915;
+  --paper-4:        #25211a;
+  --line:           #2f2a22;
+  --line-bright:    #403a2f;
+  --ember:          #ff7145;
+  --ember-bright:   #ff9970;
+  --ember-dim:      #c45632;
+  --ember-deep:     #8a3a1e;
+  --success:        #8fb376;
+  --skin-hi:        #c2957a;
+  --skin:           #8b604a;
+  --skin-shadow:    #3a2518;
+  --font-display:   'Instrument Serif', serif;
+  --font-body:      'Inter Tight', system-ui, sans-serif;
+  --font-mono:      'JetBrains Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 20%, rgba(255,113,69,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 80%, rgba(138,58,30,0.08) 0%, transparent 60%);
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, textarea { font: inherit; }
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(0.88); }
+}
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* App window frame (simulating the Electron window) */
+.app-window {
+  max-width: 780px;
+  margin: 3rem auto;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 60px 120px -30px rgba(0,0,0,0.8),
+    0 0 80px rgba(255,113,69,0.08);
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 640px;
+}
+
+/* titlebar */
+.titlebar {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 100%);
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.traffic {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--line-bright);
+}
+.traffic.close { background: #ff5f57; }
+.traffic.min   { background: #febc2e; }
+.traffic.max   { background: #28c840; }
+.titlebar-title {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* progress */
+.progress {
+  display: flex;
+  gap: 0.4rem;
+  padding: 1.25rem 2.5rem 0;
+}
+.progress-dot {
+  height: 2px;
+  flex: 1;
+  background: var(--line);
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+.progress-dot.active { background: var(--ember); box-shadow: 0 0 8px color-mix(in srgb, var(--ember) 50%, transparent); }
+.progress-dot.done   { background: var(--ember-dim); }
+
+/* screen body */
+.screen {
+  flex: 1;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: fadeUp 0.5s ease-out;
+}
+.screen:not(.active) { display: none; }
+
+.step-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ember);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.step-label::before { content: ''; width: 24px; height: 1px; background: var(--ember); }
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix(in srgb, var(--ember) 40%, transparent); }
+
+.subhead {
+  font-size: 1.05rem;
+  color: var(--ink-dim);
+  max-width: 50ch;
+  line-height: 1.5;
+}
+
+/* text input */
+.text-input {
+  padding: 1.1rem 1.25rem;
+  background: var(--paper);
+  border: 1px solid var(--line-bright);
+  border-radius: 3px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  letter-spacing: -0.01em;
+  outline: none;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 500px;
+}
+.text-input:focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 15%, transparent);
+}
+.text-input::placeholder { color: var(--ink-muted); font-style: italic; }
+
+/* textarea */
+.textarea-input {
+  padding: 1.1rem 1.25rem;
+  background: var(--paper);
+  border: 1px solid var(--line-bright);
+  border-radius: 3px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  outline: none;
+  transition: all 0.2s;
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+}
+.textarea-input:focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 15%, transparent);
+}
+
+.hint-text {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.55;
+}
+
+/* Avatar picker grid */
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+.avatar-option {
+  aspect-ratio: 1;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.avatar-option::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, var(--glow, rgba(255,113,69,0.15)) 0%, transparent 65%);
+}
+.avatar-option:hover { border-color: var(--line-bright); transform: translateY(-2px); }
+.avatar-option.selected {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 2px var(--ember), 0 10px 30px color-mix(in srgb, var(--ember) 25%, transparent);
+}
+.avatar-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 20px;
+  height: 20px;
+  background: var(--ember);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  z-index: 3;
+}
+
+/* mini figure for avatar options */
+.ao-figure {
+  position: absolute;
+  bottom: -4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65%;
+  aspect-ratio: 3/4;
+}
+.ao-shoulders {
+  position: absolute;
+  bottom: 0;
+  left: -10%; right: -10%;
+  height: 38%;
+  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-4) 100%);
+  clip-path: polygon(15% 100%, 85% 100%, 95% 15%, 75% 0%, 25% 0%, 5% 15%);
+}
+.ao-head {
+  position: absolute;
+  bottom: 36%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58%;
+  aspect-ratio: 4/5;
+  background:
+    radial-gradient(ellipse 70% 55% at 45% 40%, color-mix(in srgb, var(--skin) 70%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-4) 0%, var(--paper-3) 70%, var(--paper-2) 100%);
+  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+  box-shadow: inset 20px -10px 40px rgba(0,0,0,0.5);
+}
+.ao-hair {
+  position: absolute;
+  top: -8%;
+  left: -5%;
+  right: -5%;
+  height: 40%;
+  background: radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, rgba(0,0,0,0.85) 70%);
+  border-radius: 60% 60% 30% 30% / 80% 80% 30% 30%;
+}
+.ao-eyes {
+  position: absolute;
+  top: 41%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46%;
+  display: flex;
+  justify-content: space-between;
+  z-index: 3;
+}
+.ao-eye {
+  width: 22%;
+  aspect-ratio: 1.5/1;
+  background: radial-gradient(ellipse at 50% 60%, #fff 0%, #e8dfd0 60%, #b5a990 100%);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 -1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.5);
+}
+.ao-eye::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 55%;
+  height: 80%;
+  background: var(--eye-color, var(--ember));
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--eye-color, var(--ember));
+}
+.ao-eye::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20%;
+  height: 30%;
+  background: #000;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+/* Nav buttons */
+.screen-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2.5rem;
+  border-top: 1px solid var(--line);
+  background: var(--paper-2);
+  flex-shrink: 0;
+}
+.btn {
+  padding: 0.9rem 1.4rem;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  transition: all 0.2s cubic-bezier(.2,.8,.2,1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-primary {
+  background: var(--ember);
+  color: #fff;
+  box-shadow: 0 4px 30px color-mix(in srgb, var(--ember) 25%, transparent);
+}
+.btn-primary:hover { background: var(--ember-bright); transform: translateY(-1px); }
+.btn-primary:disabled {
+  background: var(--paper-4);
+  color: var(--ink-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-back {
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--line-bright);
+}
+.btn-back:hover { color: var(--ember); border-color: var(--ember); }
+.step-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Final "done" screen */
+.done-stage {
+  padding: 3.5rem 2.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+.done-portrait {
+  width: 180px;
+  aspect-ratio: 4/5;
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255,113,69,0.2) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 100%);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.done-portrait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.6) 95%);
+  pointer-events: none;
+}
+.done-portrait .ao-figure {
+  width: 70%;
+  bottom: -5%;
+}
+.done-title {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+.done-title em { font-style: italic; color: var(--ember); }
+.done-sub {
+  font-size: 1.05rem;
+  color: var(--ink-dim);
+  max-width: 42ch;
+  line-height: 1.55;
+}
+.done-sub strong { color: var(--ember); font-weight: 500; }
+
+@media (max-width: 700px) {
+  .app-window { margin: 0; min-height: 100vh; border-radius: 0; }
+  .avatar-grid { grid-template-columns: repeat(2, 1fr); }
+  .screen, .screen-nav { padding: 1.5rem; }
+}
+
+/* Back to landing link */
+.back-link {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 100;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.2s;
+}
+.back-link:hover { color: var(--ember); border-color: var(--ember); }
+</style>
+</head>
+
+<body>
+
+<a href="selam-landing.html" class="back-link">← Landing preview</a>
+
+<div class="app-window">
+
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="traffic close"></div>
+    <div class="traffic min"></div>
+    <div class="traffic max"></div>
+    <div class="titlebar-title">Selam — First run</div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress">
+    <div class="progress-dot active" data-dot="1"></div>
+    <div class="progress-dot" data-dot="2"></div>
+    <div class="progress-dot" data-dot="3"></div>
+    <div class="progress-dot" data-dot="4"></div>
+  </div>
+
+  <!-- ─── Screen 1: Name ─── -->
+  <div class="screen active" data-screen="1">
+    <div class="step-label">Step 01 · The name</div>
+    <h1>What do you want to <em>call</em> them?</h1>
+    <p class="subhead">
+      This is what you'll say when you want their attention. It's their wake word,
+      their signature, the thing you'll mutter to yourself at 11pm when you need
+      a sounding board. Choose well. You can change it later.
+    </p>
+
+    <input type="text" class="text-input" id="nameInput" placeholder="Kiya" autocomplete="off" autofocus>
+
+    <div class="hint-text">
+      Suggestions: Kiya · Daniel · Reya · Marcus · Amara · Noa · Tesfaye · Sofia · Isaac
+    </div>
+  </div>
+
+  <!-- ─── Screen 2: Face ─── -->
+  <div class="screen" data-screen="2">
+    <div class="step-label">Step 02 · The face</div>
+    <h1>What do they <em>look like</em>?</h1>
+    <p class="subhead">
+      Pick from our curated avatars, or upload a 2-minute video of someone you'd
+      like your agent to look and sound like (Pro only). You can swap this later.
+    </p>
+
+    <div class="avatar-grid" id="avatarGrid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- ─── Screen 3: Soul ─── -->
+  <div class="screen" data-screen="3">
+    <div class="step-label">Step 03 · The soul</div>
+    <h1>Who are <em>they</em>?</h1>
+    <p class="subhead">
+      Write it in your own words. Their mission, their voice, their relationship
+      to you. This becomes their SOUL.md — the file they'll read every time you
+      speak. You can edit it anytime.
+    </p>
+
+    <textarea class="textarea-input" id="soulInput" placeholder="You are my chief of staff. You are direct, warm, and you don't waste my time. You remember everything that matters. You push back when I'm wrong. You protect my focus from noise. Your job is to make my life navigable."></textarea>
+
+    <div class="hint-text">
+      Saved to <code style="color: var(--ember);">~/selam/SOUL.md</code> — plain text, yours forever.
+    </div>
+  </div>
+
+  <!-- ─── Screen 4: User ─── -->
+  <div class="screen" data-screen="4">
+    <div class="step-label">Step 04 · You</div>
+    <h1>Now tell them about <em>you</em>.</h1>
+    <p class="subhead">
+      Your name, what you do, your people, your projects, your patterns. The more
+      they know, the more useful they'll be. Don't worry about being complete —
+      they'll ask about things as you go.
+    </p>
+
+    <textarea class="textarea-input" id="userInput" placeholder="I'm Mikael. I run ATXO Labs out of Addis Ababa. I'm building Selam, a trading agent, and Kelvin Wear (a cooling swim trunk company). My co-founders are Solomon and Bekele. I think best early in the morning. I get stuck at 3pm. When I'm quiet, I'm deep. When I'm fast, I'm scattered — remind me to slow down."></textarea>
+
+    <div class="hint-text">
+      Saved to <code style="color: var(--ember);">~/selam/USER.md</code> — grows as they learn more.
+    </div>
+  </div>
+
+  <!-- ─── Done screen (hidden) ─── -->
+  <div class="screen done-stage" data-screen="done">
+    <div class="done-portrait">
+      <div class="ao-figure">
+        <div class="ao-shoulders"></div>
+        <div class="ao-head">
+          <div class="ao-hair"></div>
+          <div class="ao-eyes"><div class="ao-eye"></div><div class="ao-eye"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <h1 class="done-title">Meet <em id="doneName">Kiya</em>.</h1>
+    <p class="done-sub">
+      They're ready. Click below and they'll say hello. From here on, talk to them
+      like a person — they'll learn fast. Say <strong id="doneWakeName">Kiya</strong>
+      to wake them up anytime.
+    </p>
+
+    <button class="btn btn-primary" style="padding: 1.1rem 2rem; font-size: 0.85rem;" onclick="alert('(Demo: this would launch Selam with your new agent live.)')">
+      Say hello →
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <div class="screen-nav" id="screenNav">
+    <button class="btn btn-back" id="backBtn" disabled>← Back</button>
+    <div class="step-indicator" id="stepIndicator">Step 1 of 4</div>
+    <button class="btn btn-primary" id="nextBtn" disabled>Continue →</button>
+  </div>
+
+</div>
+
+<script>
+// Build avatar grid
+const avatarOptions = [
+  { id: 'a', eye: '#ff7145', glow: 'rgba(255,113,69,0.22)' },
+  { id: 'b', eye: '#8fb376', glow: 'rgba(143,179,118,0.22)' },
+  { id: 'c', eye: '#9a8cff', glow: 'rgba(154,140,255,0.22)' },
+  { id: 'd', eye: '#6bb8e0', glow: 'rgba(107,184,224,0.22)' },
+  { id: 'e', eye: '#e07b9a', glow: 'rgba(224,123,154,0.22)' },
+  { id: 'f', eye: '#d4af37', glow: 'rgba(212,175,55,0.22)' },
+  { id: 'g', eye: '#b58cf0', glow: 'rgba(181,140,240,0.22)' },
+  { id: 'h', eye: '#50c8a0', glow: 'rgba(80,200,160,0.22)' },
+];
+const grid = document.getElementById('avatarGrid');
+avatarOptions.forEach(opt => {
+  const el = document.createElement('div');
+  el.className = 'avatar-option';
+  el.style.setProperty('--glow', opt.glow);
+  el.style.setProperty('--eye-color', opt.eye);
+  el.innerHTML = `
+    <div class="ao-figure">
+      <div class="ao-shoulders"></div>
+      <div class="ao-head">
+        <div class="ao-hair"></div>
+        <div class="ao-eyes"><div class="ao-eye"></div><div class="ao-eye"></div></div>
+      </div>
+    </div>
+  `;
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    checkCanProceed();
+  });
+  grid.appendChild(el);
+});
+
+// screen navigation
+let currentScreen = 1;
+const TOTAL_SCREENS = 4;
+
+const nameInput = document.getElementById('nameInput');
+const soulInput = document.getElementById('soulInput');
+const userInput = document.getElementById('userInput');
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+const stepIndicator = document.getElementById('stepIndicator');
+
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (n === 'done') {
+    document.querySelector('[data-screen="done"]').classList.add('active');
+    document.getElementById('screenNav').style.display = 'none';
+    const name = nameInput.value.trim() || 'Kiya';
+    document.getElementById('doneName').textContent = name;
+    document.getElementById('doneWakeName').textContent = name;
+    document.querySelectorAll('.progress-dot').forEach(d => d.classList.add('done'));
+    return;
+  }
+  document.querySelector(`[data-screen="${n}"]`).classList.add('active');
+  document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+    dot.classList.remove('active', 'done');
+    if (i + 1 < n) dot.classList.add('done');
+    else if (i + 1 === n) dot.classList.add('active');
+  });
+  stepIndicator.textContent = `Step ${n} of ${TOTAL_SCREENS}`;
+  backBtn.disabled = n === 1;
+  currentScreen = n;
+  checkCanProceed();
+}
+
+function checkCanProceed() {
+  let can = false;
+  if (currentScreen === 1) can = nameInput.value.trim().length > 0;
+  if (currentScreen === 2) can = !!document.querySelector('.avatar-option.selected');
+  if (currentScreen === 3) can = soulInput.value.trim().length > 0;
+  if (currentScreen === 4) can = userInput.value.trim().length > 0;
+  nextBtn.disabled = !can;
+  if (currentScreen === TOTAL_SCREENS) nextBtn.innerHTML = 'Meet them &nbsp;→';
+  else nextBtn.innerHTML = 'Continue &nbsp;→';
+}
+
+nameInput.addEventListener('input', checkCanProceed);
+soulInput.addEventListener('input', checkCanProceed);
+userInput.addEventListener('input', checkCanProceed);
+
+nextBtn.addEventListener('click', () => {
+  if (currentScreen < TOTAL_SCREENS) showScreen(currentScreen + 1);
+  else showScreen('done');
+});
+backBtn.addEventListener('click', () => {
+  if (currentScreen > 1) showScreen(currentScreen - 1);
+});
+
+// Keyboard: Enter advances from name input
+nameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !nextBtn.disabled) { e.preventDefault(); nextBtn.click(); }
+});
+
+checkCanProceed();
+</script>
+
+</body>
+</html>

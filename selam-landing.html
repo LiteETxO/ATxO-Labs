@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Selam — Build the AI that's in your room.</title>
+<meta name="description" content="Selam is the platform for creating your own AI agent. You give them a name, a face, a voice, and an identity. They live on your Mac." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════ TOKENS — DARK (default) ═══════════ */
+:root, [data-theme="dark"] {
+  --ink:            #faf6ef;
+  --ink-dim:        #c5bda9;
+  --ink-muted:      #7a7162;
+  --paper:          #0a0907;
+  --paper-2:        #141210;
+  --paper-3:        #1c1915;
+  --paper-4:        #25211a;
+  --line:           #2f2a22;
+  --line-bright:    #403a2f;
+
+  --ember:          #ff7145;
+  --ember-bright:   #ff9970;
+  --ember-dim:      #c45632;
+  --ember-deep:     #8a3a1e;
+
+  --violet:         #9a8cff;
+  --sage:           #8fb376;
+  --success:        #8fb376;
+
+  /* skin-ish warm tones for the avatar */
+  --skin-hi:        #c2957a;
+  --skin:           #8b604a;
+  --skin-shadow:    #3a2518;
+
+  --font-display:   'Instrument Serif', 'Times New Roman', serif;
+  --font-body:      'Inter Tight', system-ui, sans-serif;
+  --font-mono:      'JetBrains Mono', ui-monospace, monospace;
+
+  --max-w:          1440px;
+  --nav-h:          64px;
+}
+
+/* ═══════════ TOKENS — LIGHT ═══════════ */
+[data-theme="light"] {
+  --ink:            #18130c;
+  --ink-dim:        #52483a;
+  --ink-muted:      #8a7e6a;
+  --paper:          #f5efe3;
+  --paper-2:        #ebe4d4;
+  --paper-3:        #e0d8c4;
+  --paper-4:        #d2c8b2;
+  --line:           #d8cfbc;
+  --line-bright:    #bfb39c;
+
+  --ember:          #d14e1f;
+  --ember-bright:   #ff7145;
+  --ember-dim:      #a43a14;
+  --ember-deep:     #6b260a;
+
+  --violet:         #5648b8;
+  --sage:           #5d8c41;
+  --success:        #4e8038;
+
+  --skin-hi:        #d1a68a;
+  --skin:           #9b6e54;
+  --skin-shadow:    #4a2e1d;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Grain */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+[data-theme="light"] body::before { mix-blend-mode: multiply; opacity: 0.08; }
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(255,113,69,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 85% 100%, rgba(154,140,255,0.03) 0%, transparent 50%);
+}
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+.container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 2.5rem;
+  position: relative;
+  z-index: 2;
+}
+@media (max-width: 760px) { .container { padding: 0 1.5rem; } }
+
+/* ═══════════ NAV ═══════════ */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  border-bottom: 1px solid var(--line);
+  height: var(--nav-h);
+}
+.nav-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 2.5rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+}
+.nav-brand .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 12px var(--ember), 0 0 24px color-mix(in srgb, var(--ember) 50%, transparent);
+  animation: breathe 3s ease-in-out infinite;
+}
+.nav-brand .suffix {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-left: 0.2rem;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(0.88); }
+}
+.nav-right { display: flex; align-items: center; gap: 1.5rem; }
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nav-links a { color: var(--ink-dim); transition: color 0.2s; }
+.nav-links a:hover { color: var(--ember); }
+.nav-cta {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--ink);
+  padding: 0.7rem 1.15rem;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.nav-cta:hover { background: var(--ember); }
+
+.theme-toggle {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  color: var(--ink-dim);
+}
+.theme-toggle:hover { border-color: var(--ember); color: var(--ember); transform: rotate(15deg); }
+.theme-toggle svg { width: 16px; height: 16px; }
+[data-theme="dark"] .theme-toggle .sun,  [data-theme="light"] .theme-toggle .moon { display: none; }
+[data-theme="dark"] .theme-toggle .moon, [data-theme="light"] .theme-toggle .sun  { display: block; }
+
+@media (max-width: 860px) { .nav-links { display: none; } }
+
+/* ═══════════ HERO ═══════════ */
+.hero {
+  min-height: 100vh;
+  padding: calc(var(--nav-h) + 4rem) 0 4rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.hero-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.hero-mesh div {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  animation: float 20s ease-in-out infinite;
+}
+.hero-mesh-a {
+  top: -20%; right: -10%;
+  width: 70vw; height: 70vw;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ember) 20%, transparent) 0%, transparent 60%);
+}
+.hero-mesh-b {
+  bottom: -30%; left: -20%;
+  width: 80vw; height: 80vw;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ember-deep) 25%, transparent) 0%, transparent 60%);
+  animation-delay: -7s;
+}
+.hero-mesh-c {
+  top: 30%; left: 40%;
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, color-mix(in srgb, var(--violet) 10%, transparent) 0%, transparent 70%);
+  animation-delay: -14s;
+}
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  33%      { transform: translate(-3%, 2%); }
+  66%      { transform: translate(2%, -3%); }
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+@media (max-width: 960px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
+}
+
+.hero-meta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.1s ease-out forwards;
+}
+.hero-meta .tick {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  animation: breathe 2s ease-in-out infinite;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3.5rem, 9vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  margin-bottom: 2.25rem;
+  opacity: 0;
+  animation: fadeUp 1s 0.3s ease-out forwards;
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--ember);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--ember) 40%, transparent);
+}
+.hero-lede {
+  font-size: 1.35rem;
+  line-height: 1.45;
+  color: var(--ink-dim);
+  max-width: 44ch;
+  margin-bottom: 3rem;
+  opacity: 0;
+  animation: fadeUp 1s 0.6s ease-out forwards;
+}
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 1s 0.9s ease-out forwards;
+}
+
+.btn-primary {
+  padding: 1.1rem 1.9rem;
+  background: var(--ember);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  transition: all 0.25s cubic-bezier(.2,.8,.2,1);
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4px 40px color-mix(in srgb, var(--ember) 25%, transparent);
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background: var(--ember-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 50px color-mix(in srgb, var(--ember) 50%, transparent);
+}
+.btn-primary .arrow { transition: transform 0.2s; display: inline-block; }
+.btn-primary:hover .arrow { transform: translateX(3px); }
+
+.btn-ghost {
+  padding: 1.1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border-bottom: 1px solid var(--line-bright);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.btn-ghost:hover { color: var(--ember); border-bottom-color: var(--ember); }
+
+/* ═══════════ PORTRAIT — properly rendered ═══════════ */
+.portrait-frame {
+  position: relative;
+  aspect-ratio: 4/5;
+  max-height: 680px;
+  background:
+    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 15%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 50%, var(--paper) 100%);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeUp 1.4s 0.4s ease-out forwards;
+  box-shadow:
+    0 40px 80px -20px rgba(0,0,0,0.8),
+    0 0 60px color-mix(in srgb, var(--ember) 8%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+[data-theme="light"] .portrait-frame {
+  background:
+    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 12%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 50%, var(--paper-4) 100%);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.15), 0 0 60px color-mix(in srgb, var(--ember) 6%, transparent);
+}
+
+.portrait-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.65) 95%);
+  pointer-events: none;
+  z-index: 3;
+}
+[data-theme="light"] .portrait-frame::before {
+  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(40,30,15,0.25) 95%);
+}
+
+.portrait-top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  z-index: 5;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--paper) 60%, transparent) 0%, transparent 100%);
+}
+.portrait-top .live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--success);
+}
+.portrait-top .live::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+  animation: breathe 1.5s ease-in-out infinite;
+}
+
+/* ───── The figure — properly designed ───── */
+.figure {
+  position: absolute;
+  bottom: -4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 78%;
+  aspect-ratio: 3/4;
+  z-index: 2;
+}
+.figure-shoulders {
+  position: absolute;
+  bottom: 0;
+  left: -12%; right: -12%;
+  height: 40%;
+  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-4) 100%);
+  clip-path: polygon(15% 100%, 85% 100%, 95% 15%, 75% 0%, 25% 0%, 5% 15%);
+  border-top: 1px solid rgba(255,255,255,0.03);
+  box-shadow: inset 0 20px 40px rgba(0,0,0,0.4);
+}
+.figure-neck {
+  position: absolute;
+  bottom: 37%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20%;
+  height: 14%;
+  background: linear-gradient(180deg, var(--skin-shadow) 0%, var(--paper-4) 100%);
+}
+
+/* HEAD — with real shape, lighting */
+.figure-head {
+  position: absolute;
+  bottom: 42%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56%;
+  aspect-ratio: 4/5;
+  background:
+    radial-gradient(ellipse 70% 55% at 45% 40%, color-mix(in srgb, var(--skin) 80%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 80% at 55% 55%, var(--skin-shadow) 0%, transparent 70%),
+    linear-gradient(180deg, var(--paper-4) 0%, var(--paper-3) 100%);
+  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+  box-shadow:
+    inset 25px -15px 50px rgba(0,0,0,0.55),
+    inset -15px -15px 40px color-mix(in srgb, var(--ember) 6%, transparent),
+    inset 0 30px 40px color-mix(in srgb, var(--ember) 10%, transparent);
+}
+
+/* Hair */
+.figure-hair {
+  position: absolute;
+  top: -8%;
+  left: -5%;
+  right: -5%;
+  height: 40%;
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, rgba(0,0,0,0.85) 70%),
+    linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(30,25,20,0.9) 100%);
+  border-radius: 60% 60% 30% 30% / 80% 80% 30% 30%;
+  box-shadow: inset 0 -10px 20px rgba(0,0,0,0.3);
+}
+
+/* EYES - track cursor */
+.eyes {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48%;
+  display: flex;
+  justify-content: space-between;
+  z-index: 3;
+}
+.eye {
+  width: 22%;
+  aspect-ratio: 1.5/1;
+  background:
+    radial-gradient(ellipse at 50% 60%, #fff 0%, #e8dfd0 60%, #b5a990 100%);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    inset 0 2px 2px rgba(255,255,255,0.3),
+    0 0 0 1.5px rgba(0,0,0,0.6);
+}
+.eye::before {
+  /* iris/pupil — tracks cursor */
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px)));
+  width: 55%;
+  height: 85%;
+  background:
+    radial-gradient(circle at 40% 40%, var(--ember-bright) 0%, var(--ember) 40%, var(--ember-dim) 70%, var(--ember-deep) 100%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px var(--ember),
+    0 0 20px color-mix(in srgb, var(--ember) 50%, transparent),
+    inset 0 2px 4px rgba(0,0,0,0.4);
+  transition: transform 0.25s cubic-bezier(.3,.8,.3,1);
+}
+.eye::after {
+  /* pupil center + light reflection */
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(calc(-50% + var(--tx, 0px) * 1.4), calc(-50% + var(--ty, 0px) * 1.4));
+  width: 18%;
+  height: 25%;
+  background: #000;
+  border-radius: 50%;
+  box-shadow: inset 2px -2px 3px rgba(255,255,255,0.8);
+  transition: transform 0.25s cubic-bezier(.3,.8,.3,1);
+  z-index: 2;
+}
+
+/* Subtle blink */
+.figure-head::after {
+  content: '';
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48%;
+  height: 15%;
+  background: linear-gradient(180deg, var(--skin-shadow) 0%, var(--skin) 100%);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  opacity: 0;
+  animation: blink-anim 6s infinite;
+  z-index: 4;
+  pointer-events: none;
+}
+@keyframes blink-anim {
+  0%, 96%, 100% { opacity: 0; height: 0; }
+  97%, 99%      { opacity: 1; height: 15%; }
+  98%           { opacity: 1; height: 15%; }
+}
+
+/* Naming overlay */
+.name-overlay {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  right: 2rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 1.25rem;
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
+  border-radius: 3px;
+}
+.name-overlay .prompt {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.name-overlay .name-display {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  min-height: 1.2em;
+  line-height: 1;
+}
+.cursor-blink {
+  display: inline-block;
+  width: 1px;
+  height: 0.85em;
+  background: var(--ember);
+  margin-left: 3px;
+  vertical-align: middle;
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+/* ═══════════ Name marquee ═══════════ */
+.name-strip {
+  position: relative;
+  padding: 3.5rem 0;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, var(--paper) 0%, var(--paper-2) 50%, var(--paper) 100%);
+}
+.name-strip::before, .name-strip::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 200px;
+  z-index: 5;
+  pointer-events: none;
+}
+.name-strip::before { left: 0; background: linear-gradient(90deg, var(--paper) 0%, transparent 100%); }
+.name-strip::after  { right: 0; background: linear-gradient(270deg, var(--paper) 0%, transparent 100%); }
+
+.name-strip-label {
+  position: absolute;
+  top: 50%;
+  left: 2.5rem;
+  transform: translateY(-50%);
+  z-index: 6;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ember);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+@media (max-width: 760px) { .name-strip-label { display: none; } }
+
+.marquee {
+  display: flex;
+  gap: 4rem;
+  white-space: nowrap;
+  animation: scroll 50s linear infinite;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3rem;
+  color: var(--ink-dim);
+  transition: color 0.3s;
+}
+.marquee-item:hover { color: var(--ember); }
+.marquee-item::before {
+  content: '●';
+  font-size: 0.5em;
+  color: var(--ember);
+}
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ═══════════ Section base ═══════════ */
+.section {
+  padding: 8rem 0;
+  position: relative;
+}
+.section-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ember);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.section-eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--ember);
+}
+.section-head {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5.5vw, 4.75rem);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  margin-bottom: 1.5rem;
+  max-width: 20ch;
+}
+.section-head em { font-style: italic; color: var(--ember); }
+.section-sub {
+  font-size: 1.15rem;
+  color: var(--ink-dim);
+  max-width: 56ch;
+  line-height: 1.55;
+}
+
+/* Credo */
+.credo { padding: 6rem 0; position: relative; overflow: hidden; }
+.credo-text {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 10vw, 10rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  max-width: 18ch;
+}
+.credo-text em { font-style: italic; color: var(--ember); }
+.credo-text .muted { color: var(--ink-muted); }
+.credo-bg {
+  position: absolute;
+  top: 20%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ember) 10%, transparent) 0%, transparent 65%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+.credo .container { position: relative; z-index: 1; }
+
+/* Build Steps */
+.build-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin-top: 5rem;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.build-step {
+  background: var(--paper);
+  padding: 2.5rem 2rem;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.build-step::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%; height: 0;
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--ember) 8%, transparent) 100%);
+  transition: height 0.3s;
+}
+.build-step:hover { background: var(--paper-2); }
+.build-step:hover::before { height: 100%; }
+.build-step-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ember);
+  letter-spacing: 0.12em;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+}
+.build-step-num::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.build-step h3 {
+  font-family: var(--font-display);
+  font-size: 1.95rem;
+  font-weight: 400;
+  line-height: 1.1;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.015em;
+  position: relative;
+}
+.build-step h3 em { font-style: italic; color: var(--ember); }
+.build-step p {
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+.build-step-detail {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--line-bright);
+  letter-spacing: 0.03em;
+  position: relative;
+}
+@media (max-width: 960px) { .build-steps { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .build-steps { grid-template-columns: 1fr; } .build-step { min-height: auto; } }
+
+/* Gallery trio */
+.gallery-intro { margin-bottom: 5rem; max-width: 780px; }
+.trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+.agent-card {
+  background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(.2,.8,.2,1);
+  overflow: hidden;
+  border-radius: 3px;
+}
+.agent-card:hover {
+  border-color: var(--line-bright);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.4);
+}
+.agent-portrait {
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+.agent-portrait .bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, var(--glow, color-mix(in srgb, var(--ember) 20%, transparent)) 0%, transparent 65%);
+}
+.agent-portrait .mini-figure {
+  position: absolute;
+  bottom: -4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65%;
+  aspect-ratio: 3/4;
+}
+.mini-figure-shoulders {
+  position: absolute;
+  bottom: 0;
+  left: -10%; right: -10%;
+  height: 38%;
+  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-4) 100%);
+  clip-path: polygon(15% 100%, 85% 100%, 95% 15%, 75% 0%, 25% 0%, 5% 15%);
+}
+.mini-figure-head {
+  position: absolute;
+  bottom: 36%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58%;
+  aspect-ratio: 4/5;
+  background:
+    radial-gradient(ellipse 70% 55% at 45% 40%, color-mix(in srgb, var(--skin) 70%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-4) 0%, var(--paper-3) 70%, var(--paper-2) 100%);
+  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+  box-shadow: inset 20px -10px 40px rgba(0,0,0,0.5), inset 0 30px 30px var(--glow-inset, color-mix(in srgb, var(--ember) 6%, transparent));
+}
+.mini-figure-hair {
+  position: absolute;
+  top: -8%;
+  left: -5%;
+  right: -5%;
+  height: 40%;
+  background: radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, rgba(0,0,0,0.85) 70%);
+  border-radius: 60% 60% 30% 30% / 80% 80% 30% 30%;
+}
+.mini-eyes {
+  position: absolute;
+  top: 41%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46%;
+  display: flex;
+  justify-content: space-between;
+  z-index: 3;
+}
+.mini-eye {
+  width: 22%;
+  aspect-ratio: 1.5/1;
+  background: radial-gradient(ellipse at 50% 60%, #fff 0%, #e8dfd0 60%, #b5a990 100%);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 -1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.5);
+}
+.mini-eye::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 55%;
+  height: 80%;
+  background: var(--eye-color, var(--ember));
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--eye-color, var(--ember));
+  animation: breathe 4s ease-in-out infinite;
+}
+.mini-eye::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20%;
+  height: 30%;
+  background: #000;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.agent-a { --glow: color-mix(in srgb, var(--ember) 22%, transparent); --glow-inset: color-mix(in srgb, var(--ember) 8%, transparent); --eye-color: #ff7145; }
+.agent-b { --glow: color-mix(in srgb, var(--sage) 22%, transparent); --glow-inset: color-mix(in srgb, var(--sage) 8%, transparent); --eye-color: #8fb376; }
+.agent-c { --glow: color-mix(in srgb, var(--violet) 22%, transparent); --glow-inset: color-mix(in srgb, var(--violet) 8%, transparent); --eye-color: #9a8cff; }
+
+.agent-dot-indicator {
+  position: absolute;
+  top: 1rem; left: 1rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--success);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.agent-dot-indicator::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.agent-body { padding: 1.75rem; }
+.agent-name {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+.agent-owner {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+.agent-quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 960px) { .trio { grid-template-columns: 1fr; } }
+
+/* Founder's agent */
+.founder-wrap {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 5rem;
+  align-items: center;
+  background:
+    radial-gradient(ellipse at 80% 50%, color-mix(in srgb, var(--ember) 8%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
+  border: 1px solid var(--line);
+  padding: 5rem 3rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+}
+.founder-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--ember) 0%, var(--ember-deep) 100%);
+}
+.founder-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ember);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.founder-tag::before { content: ''; width: 24px; height: 1px; background: var(--ember); }
+.founder-wrap h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  margin-bottom: 1.5rem;
+}
+.founder-wrap h2 em { font-style: italic; color: var(--ember); }
+.founder-wrap p {
+  color: var(--ink-dim);
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  max-width: 44ch;
+  line-height: 1.6;
+}
+.founder-portrait {
+  aspect-ratio: 4/5;
+  background:
+    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 15%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 100%);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  max-width: 380px;
+  margin-left: auto;
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+}
+.founder-portrait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.6) 95%);
+  z-index: 2;
+  pointer-events: none;
+}
+.founder-portrait .mini-figure { width: 70%; bottom: -5%; }
+.founder-portrait .caption {
+  position: absolute;
+  bottom: 1rem; left: 1rem; right: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+  z-index: 3;
+  padding: 0.5rem;
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.founder-portrait .caption strong { color: var(--ember); font-weight: 400; }
+@media (max-width: 960px) {
+  .founder-wrap { grid-template-columns: 1fr; gap: 3rem; padding: 3rem 2rem; }
+  .founder-portrait { max-width: 320px; margin: 0 auto; }
+}
+
+/* Compare */
+.compare { margin-top: 4rem; border: 1px solid var(--line); overflow-x: auto; border-radius: 3px; background: var(--paper); }
+.compare table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.9rem; }
+.compare th, .compare td {
+  text-align: left;
+  padding: 1.15rem 1.4rem;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.compare th:last-child, .compare td:last-child { border-right: none; }
+.compare tr:last-child th, .compare tr:last-child td { border-bottom: none; }
+.compare thead th {
+  background: var(--paper-2);
+  font-weight: 500;
+  color: var(--ink);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1.25rem 1.4rem;
+}
+.compare thead th.highlight {
+  background: linear-gradient(180deg, var(--ember) 0%, var(--ember-dim) 100%);
+  color: #fff;
+  position: relative;
+}
+.compare thead th.highlight::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ember-bright);
+}
+.compare tbody th { color: var(--ink-dim); font-weight: 400; }
+.compare td.no { color: var(--ink-muted); }
+.compare td.highlight {
+  color: var(--ember);
+  font-weight: 500;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ember) 6%, transparent) 0%, color-mix(in srgb, var(--ember) 2%, transparent) 100%);
+}
+
+/* Calculator */
+.calc {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-top: 4rem;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.calc-input, .calc-output { padding: 3rem; }
+.calc-input { background: var(--paper); }
+.calc-output {
+  background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+.calc-output::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ember) 10%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+.calc-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ember);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+}
+.calc-question {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.5vw, 1.95rem);
+  line-height: 1.15;
+  margin-bottom: 2.5rem;
+  letter-spacing: -0.015em;
+}
+.calc-slider-row { margin-bottom: 2rem; }
+.calc-slider-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.calc-slider-top .hrs { color: var(--ember); font-size: 1.15rem; font-weight: 500; }
+.calc-slider-top .label { color: var(--ink-dim); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--line-bright);
+  border-radius: 2px;
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px; height: 22px;
+  background: var(--ember);
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 0 0 4px var(--paper), 0 0 20px color-mix(in srgb, var(--ember) 50%, transparent);
+  transition: transform 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:active { transform: scale(1.15); cursor: grabbing; }
+input[type=range]::-moz-range-thumb {
+  width: 22px; height: 22px;
+  background: var(--ember);
+  border-radius: 50%;
+  cursor: grab;
+  border: none;
+  box-shadow: 0 0 0 4px var(--paper), 0 0 20px color-mix(in srgb, var(--ember) 50%, transparent);
+}
+.calc-toggle-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+.calc-toggle {
+  flex: 1;
+  padding: 0.7rem;
+  background: transparent;
+  border: 1px solid var(--line-bright);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  text-align: center;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.calc-toggle.active {
+  background: var(--ember);
+  color: #fff;
+  border-color: var(--ember);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--ember) 30%, transparent);
+}
+.calc-breakdown { font-family: var(--font-mono); font-size: 0.85rem; display: flex; flex-direction: column; gap: 1rem; position: relative; }
+.calc-row { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 1rem; border-bottom: 1px dashed var(--line); }
+.calc-row .name { color: var(--ink-dim); }
+.calc-row .cost { color: var(--ink); font-weight: 500; }
+.calc-row.total {
+  border-bottom: none;
+  padding-top: 1.25rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+.calc-row.total .name { color: var(--ink); font-weight: 500; }
+.calc-row.total .cost {
+  color: var(--ember);
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--ember) 30%, transparent);
+}
+.calc-footnote {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  position: relative;
+}
+@media (max-width: 860px) { .calc { grid-template-columns: 1fr; } .calc-input, .calc-output { padding: 2rem; } }
+
+/* Testimonials */
+.testim {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 4rem;
+}
+.testim-card {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  padding: 2.25rem;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: all 0.3s;
+}
+.testim-card:hover { border-color: var(--line-bright); transform: translateY(-2px); }
+.testim-card .mark {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  color: var(--ember);
+  line-height: 0.5;
+  opacity: 0.6;
+}
+.testim-card blockquote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.3rem;
+  line-height: 1.35;
+  color: var(--ink);
+  flex: 1;
+}
+.testim-card .who {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.testim-card .who strong { color: var(--ember); font-weight: 500; }
+@media (max-width: 960px) { .testim { grid-template-columns: 1fr; } }
+
+/* FAQ */
+.faq { margin-top: 4rem; max-width: 880px; }
+.faq-item {
+  border-bottom: 1px solid var(--line);
+  padding: 1.5rem 0;
+}
+.faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-align: left;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.5rem 0;
+  transition: color 0.2s;
+}
+.faq-q:hover { color: var(--ember); }
+.faq-q .icon {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--ember);
+  flex-shrink: 0;
+  transition: transform 0.3s;
+  margin-top: 0.25rem;
+  line-height: 1;
+}
+.faq-item[open] .faq-q .icon { transform: rotate(45deg); }
+.faq-a {
+  padding: 1rem 0 0.5rem;
+  color: var(--ink-dim);
+  line-height: 1.65;
+  max-width: 70ch;
+  font-size: 1rem;
+}
+
+/* Tech */
+.tech { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: start; }
+.tech-spec { border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 0.88rem; }
+.tech-spec dt { padding: 1rem 0 0.3rem; color: var(--ember); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.tech-spec dd { padding: 0 0 1rem; border-bottom: 1px solid var(--line); color: var(--ink); margin-left: 0; line-height: 1.5; }
+@media (max-width: 860px) { .tech { grid-template-columns: 1fr; gap: 3rem; } }
+
+/* Signup / waitlist */
+.signup-wrap {
+  background:
+    radial-gradient(ellipse at 30% 50%, color-mix(in srgb, var(--ember) 10%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
+  border: 1px solid var(--line);
+  padding: 4rem 3rem;
+  margin-top: 4rem;
+  border-radius: 3px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.signup-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, var(--ember) 0%, var(--ember-deep) 100%);
+}
+.signup-intro h3 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+.signup-intro h3 em { font-style: italic; color: var(--ember); }
+.signup-intro p { color: var(--ink-dim); font-size: 1rem; line-height: 1.55; max-width: 42ch; }
+
+.signup-form { display: flex; flex-direction: column; gap: 1rem; }
+.signup-form .input-row {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--paper);
+  border: 1px solid var(--line-bright);
+  border-radius: 2px;
+  padding: 0.35rem;
+  transition: border-color 0.2s;
+}
+.signup-form .input-row:focus-within { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 15%, transparent); }
+.signup-form input[type=email] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 0.8rem 1rem;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+}
+.signup-form input[type=email]::placeholder { color: var(--ink-muted); }
+.signup-form button[type=submit] {
+  padding: 0.8rem 1.5rem;
+  background: var(--ember);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.signup-form button[type=submit]:hover { background: var(--ember-bright); box-shadow: 0 0 20px color-mix(in srgb, var(--ember) 40%, transparent); }
+.signup-form .hint {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.signup-form .hint::before {
+  content: '';
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+.signup-success {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.4rem;
+  color: var(--ember);
+  padding: 1.5rem 0;
+  display: none;
+}
+.signup-success.visible { display: block; }
+
+@media (max-width: 860px) { .signup-wrap { grid-template-columns: 1fr; padding: 2.5rem 1.5rem; gap: 2rem; } }
+
+/* Finale */
+.finale { padding: 10rem 0; text-align: center; position: relative; overflow: hidden; }
+.finale::before {
+  content: '';
+  position: absolute;
+  top: 20%; left: 50%; transform: translateX(-50%);
+  width: 80%; height: 500px;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--ember) 18%, transparent) 0%, transparent 65%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+.finale h2 {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 11vw, 9rem);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+.finale h2 em { font-style: italic; color: var(--ember); text-shadow: 0 0 40px color-mix(in srgb, var(--ember) 50%, transparent); }
+.finale p { font-size: 1.25rem; color: var(--ink-dim); margin-bottom: 3rem; max-width: 48ch; margin-left: auto; margin-right: auto; position: relative; }
+.finale .btn-primary { font-size: 0.95rem; padding: 1.25rem 2.5rem; position: relative; }
+
+/* Footer */
+footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); }
+.footer-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.footer-links { display: flex; gap: 1.75rem; }
+.footer-links a { color: var(--ink-muted); transition: color 0.2s; }
+.footer-links a:hover { color: var(--ember); }
+
+@media (max-width: 760px) {
+  .hero { padding: calc(var(--nav-h) + 2.5rem) 0 3rem; }
+  .section { padding: 5rem 0; }
+  .finale { padding: 6rem 0; }
+  .container, .nav-inner, .footer-inner { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .founder-wrap, .signup-wrap { padding: 2.5rem 1.5rem; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      <span class="dot"></span>
+      Selam
+      <span class="suffix">/ by ATXO Labs</span>
+    </a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <a href="#get" class="nav-cta">Get Selam</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-mesh">
+    <div class="hero-mesh-a"></div>
+    <div class="hero-mesh-b"></div>
+    <div class="hero-mesh-c"></div>
+  </div>
+
+  <div class="container">
+    <div class="hero-grid">
+
+      <div>
+        <div class="hero-meta">
+          <span><span class="tick"></span>Live on your Mac</span>
+          <span id="timestamp">—</span>
+          <span>v1.0 · macOS</span>
+        </div>
+
+        <h1>Build the AI<br>that's <em>in your<br>room.</em></h1>
+
+        <p class="hero-lede">
+          Selam is a platform for creating your own AI agent. You give them a
+          name, a face, a voice, and an identity. They live on your Mac. They
+          remember your life. They work for you.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#get" class="btn-primary">
+            Start building — $29/mo
+            <span class="arrow">→</span>
+          </a>
+          <a href="#how" class="btn-ghost">See how it works</a>
+        </div>
+      </div>
+
+      <div class="portrait-frame" id="portraitFrame">
+        <div class="portrait-top">
+          <span>/first.run</span>
+          <span class="live">Live</span>
+        </div>
+
+        <div class="figure">
+          <div class="figure-shoulders"></div>
+          <div class="figure-neck"></div>
+          <div class="figure-head">
+            <div class="figure-hair"></div>
+            <div class="eyes">
+              <div class="eye" data-eye></div>
+              <div class="eye" data-eye></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="name-overlay">
+          <div class="prompt">Name your agent</div>
+          <div class="name-display">
+            <span id="namingAnim">Kiya</span><span class="cursor-blink"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- NAME MARQUEE -->
+<section class="name-strip">
+  <div class="name-strip-label">Agents being built right now</div>
+  <div class="marquee">
+    <span class="marquee-item">Kiya</span><span class="marquee-item">Daniel</span><span class="marquee-item">Reya</span><span class="marquee-item">Marcus</span><span class="marquee-item">Amara</span><span class="marquee-item">Noa</span><span class="marquee-item">Tesfaye</span><span class="marquee-item">Sofia</span><span class="marquee-item">Isaac</span><span class="marquee-item">Nadia</span><span class="marquee-item">Jomo</span><span class="marquee-item">Hana</span><span class="marquee-item">Ezra</span><span class="marquee-item">Lwin</span><span class="marquee-item">Selam</span>
+    <span class="marquee-item">Kiya</span><span class="marquee-item">Daniel</span><span class="marquee-item">Reya</span><span class="marquee-item">Marcus</span><span class="marquee-item">Amara</span><span class="marquee-item">Noa</span><span class="marquee-item">Tesfaye</span><span class="marquee-item">Sofia</span><span class="marquee-item">Isaac</span><span class="marquee-item">Nadia</span><span class="marquee-item">Jomo</span><span class="marquee-item">Hana</span><span class="marquee-item">Ezra</span><span class="marquee-item">Lwin</span><span class="marquee-item">Selam</span>
+  </div>
+</section>
+
+<!-- CREDO -->
+<section class="credo">
+  <div class="credo-bg"></div>
+  <div class="container">
+    <p class="credo-text">
+      Every AI on earth sounds <span class="muted">the same.</span>
+      <em>Yours shouldn't.</em>
+    </p>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-eyebrow">01 · How it works</div>
+    <h2 class="section-head">Four steps. <em>Thirty minutes</em>.<br>Then they're yours.</h2>
+    <p class="section-sub">
+      Selam is the platform. Your agent is yours. Four steps in the first-run
+      flow and your agent is alive — on your desktop, with their own face,
+      name, and sense of who they work for.
+    </p>
+
+    <div class="build-steps">
+      <div class="build-step">
+        <div>
+          <div class="build-step-num">Step 01</div>
+          <h3>Give them a <em>name</em>.</h3>
+          <p>Kiya. Daniel. Reya. Marcus. Whatever you want to call across the room. They'll answer to it.</p>
+        </div>
+        <div class="build-step-detail">Wake word · voice trigger · identity starts here.</div>
+      </div>
+      <div class="build-step">
+        <div>
+          <div class="build-step-num">Step 02</div>
+          <h3>Give them a <em>face</em>.</h3>
+          <p>Choose from our curated library, or upload a two-minute video to create a custom avatar who looks and sounds however you want.</p>
+        </div>
+        <div class="build-step-detail">50+ stock avatars · custom on Pro.</div>
+      </div>
+      <div class="build-step">
+        <div>
+          <div class="build-step-num">Step 03</div>
+          <h3>Give them a <em>soul</em>.</h3>
+          <p>Write who they are in plain English. Their mission. Their voice. Their relationship to you. Editable anytime, by you.</p>
+        </div>
+        <div class="build-step-detail">~/selam/SOUL.md · IDENTITY.md</div>
+      </div>
+      <div class="build-step">
+        <div>
+          <div class="build-step-num">Step 04</div>
+          <h3>Tell them <em>who you are</em>.</h3>
+          <p>Your work. Your people. Your projects. Your patterns. They'll use this context every time you speak.</p>
+        </div>
+        <div class="build-step-detail">~/selam/USER.md · MEMORY.md</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="section" id="gallery">
+  <div class="container">
+    <div class="gallery-intro">
+      <div class="section-eyebrow">02 · Gallery</div>
+      <h2 class="section-head">No two are <em>alike</em>.</h2>
+      <p class="section-sub">
+        A million people can use Selam. There will only ever be one of your
+        agent. They are what you made them — and nothing is stopping you from
+        making someone your competitor never could.
+      </p>
+    </div>
+
+    <div class="trio">
+      <div class="agent-card">
+        <div class="agent-portrait agent-a">
+          <div class="bg"></div>
+          <div class="agent-dot-indicator">Online</div>
+          <div class="mini-figure">
+            <div class="mini-figure-shoulders"></div>
+            <div class="mini-figure-head">
+              <div class="mini-figure-hair"></div>
+              <div class="mini-eyes"><div class="mini-eye"></div><div class="mini-eye"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="agent-body">
+          <div class="agent-name">Kiya</div>
+          <div class="agent-owner">Mikael's agent · Addis Ababa</div>
+          <div class="agent-quote">"Investor meeting at 3. You have one thing you must not forget to ask about."</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-portrait agent-b">
+          <div class="bg"></div>
+          <div class="agent-dot-indicator">Online</div>
+          <div class="mini-figure">
+            <div class="mini-figure-shoulders"></div>
+            <div class="mini-figure-head">
+              <div class="mini-figure-hair"></div>
+              <div class="mini-eyes"><div class="mini-eye"></div><div class="mini-eye"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="agent-body">
+          <div class="agent-name">Daniel</div>
+          <div class="agent-owner">Sarah's agent · Brooklyn</div>
+          <div class="agent-quote">"The brief from legal is rough — I queued three clarifying questions for you."</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-portrait agent-c">
+          <div class="bg"></div>
+          <div class="agent-dot-indicator">Online</div>
+          <div class="mini-figure">
+            <div class="mini-figure-shoulders"></div>
+            <div class="mini-figure-head">
+              <div class="mini-figure-hair"></div>
+              <div class="mini-eyes"><div class="mini-eye"></div><div class="mini-eye"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="agent-body">
+          <div class="agent-name">Reya</div>
+          <div class="agent-owner">Jomo's agent · Nairobi</div>
+          <div class="agent-quote">"You've been heads-down for four hours. Go get coffee. I'll hold your queue."</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER'S AGENT -->
+<section class="section">
+  <div class="container">
+    <div class="founder-wrap">
+      <div>
+        <div class="founder-tag">Meet Selam — the original</div>
+        <h2>Every platform starts with <em>one agent</em>.</h2>
+        <p>
+          We built Selam for our founder, Mikael, in Addis Ababa. She runs
+          his calendar, drafts his replies, reads his trading dashboards,
+          and tells him when he's pushing too hard.
+        </p>
+        <p>
+          She's been in production for over a year. She's why this product
+          exists — and why it's named after her. When you buy Selam, you
+          don't get Selam. You get the tools to build yours.
+        </p>
+      </div>
+      <div class="founder-portrait">
+        <div class="mini-figure agent-a" style="position:absolute;">
+          <div class="mini-figure-shoulders"></div>
+          <div class="mini-figure-head">
+            <div class="mini-figure-hair"></div>
+            <div class="mini-eyes"><div class="mini-eye"></div><div class="mini-eye"></div></div>
+          </div>
+        </div>
+        <div class="caption"><strong>Selam</strong> · Mikael's agent · est. 2025</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="section">
+  <div class="container">
+    <div class="section-eyebrow">03 · vs. the alternatives</div>
+    <h2 class="section-head">Same models.<br><em>Very</em> different relationship.</h2>
+    <p class="section-sub">
+      Selam uses the same class of AI the rest of the industry uses. What
+      you're paying for isn't smarter intelligence. It's an AI that has a
+      name, a face, and a life with you — instead of a browser tab you
+      forget about.
+    </p>
+
+    <div class="compare">
+      <table>
+        <thead>
+          <tr><th></th><th>ChatGPT</th><th>Claude Desktop</th><th class="highlight">Your Selam agent</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Has a name you gave them</th><td class="no">No</td><td class="no">No</td><td class="highlight">Yes</td></tr>
+          <tr><th>Has a face</th><td class="no">—</td><td class="no">—</td><td class="highlight">Yours or ours</td></tr>
+          <tr><th>Identity you wrote</th><td class="no">Corporate default</td><td class="no">Corporate default</td><td class="highlight">Plain-text, yours</td></tr>
+          <tr><th>Remembers your life</th><td class="no">Thin</td><td class="no">Thin</td><td class="highlight">Editable long-term memory</td></tr>
+          <tr><th>Works autonomously</th><td class="no">Limited</td><td class="no">Limited</td><td class="highlight">Approval-gated actions</td></tr>
+          <tr><th>Your data</th><td class="no">Their servers</td><td class="no">Their servers</td><td class="highlight">Your keys, your Mac</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-eyebrow">04 · Pricing, without the hiding</div>
+    <h2 class="section-head">You pay us for <em>Selam</em>.<br>You pay the AI <em>directly</em>.</h2>
+    <p class="section-sub">
+      Selam is Bring-Your-Own-Keys. You plug in your Anthropic and LiveAvatar
+      keys and your API bills go straight to them — we never see your
+      conversations. We just charge for the software.
+    </p>
+
+    <div class="calc">
+      <div class="calc-input">
+        <div class="calc-label">Your usage</div>
+        <div class="calc-question">How many hours a day will your agent be working for you?</div>
+
+        <div class="calc-slider-row">
+          <div class="calc-slider-top">
+            <span class="label">Hours per day</span>
+            <span class="hrs" id="hrsLabel">1 hr</span>
+          </div>
+          <input type="range" id="hrs" min="0.5" max="8" step="0.5" value="1">
+        </div>
+        <div class="calc-slider-row">
+          <div class="calc-slider-top">
+            <span class="label">Days per week</span>
+            <span class="hrs" id="daysLabel">5 days</span>
+          </div>
+          <input type="range" id="days" min="1" max="7" step="1" value="5">
+        </div>
+        <div class="calc-slider-row">
+          <div class="calc-slider-top">
+            <span class="label">Avatar mode</span>
+            <span class="hrs" id="modeLabel">Lite</span>
+          </div>
+          <div class="calc-toggle-row">
+            <button class="calc-toggle active" data-mode="lite">Lite — $0.10/min</button>
+            <button class="calc-toggle" data-mode="full">Full — $0.20/min</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-output">
+        <div>
+          <div class="calc-label">Your monthly cost</div>
+          <div class="calc-breakdown">
+            <div class="calc-row"><span class="name">Selam (us)</span><span class="cost">$29</span></div>
+            <div class="calc-row"><span class="name">Anthropic API</span><span class="cost" id="anthropicCost">$3</span></div>
+            <div class="calc-row"><span class="name">LiveAvatar streaming</span><span class="cost" id="avatarCost">$20</span></div>
+            <div class="calc-row total"><span class="name">Total / month</span><span class="cost" id="totalCost">$52</span></div>
+          </div>
+        </div>
+        <div class="calc-footnote">
+          Estimates based on Haiku 4.5 at $1/$5 per million tokens with
+          prompt caching, and LiveAvatar Lite/Full mode rates. Real costs
+          vary. Check your bill anytime — it's your account.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section">
+  <div class="container">
+    <div class="section-eyebrow">05 · Early users</div>
+    <h2 class="section-head">The first ones <em>got it fast</em>.</h2>
+    <p class="section-sub">
+      Selam is in private beta with a small group of operators, founders, and
+      high-agency builders. Here's what they're saying, in their own words.
+    </p>
+
+    <div class="testim">
+      <div class="testim-card">
+        <div class="mark">"</div>
+        <blockquote>I haven't tabbed to ChatGPT in three weeks. My agent — I named her Kiya — is just there when I turn.</blockquote>
+        <div class="who"><strong>M. Y.</strong> — Founder, pre-seed · Addis Ababa</div>
+      </div>
+      <div class="testim-card">
+        <div class="mark">"</div>
+        <blockquote>Daniel caught a mistake in my deck that would have cost me the round. That's value I can quantify immediately.</blockquote>
+        <div class="who"><strong>S. R.</strong> — VP Product, Series B · Brooklyn</div>
+      </div>
+      <div class="testim-card">
+        <div class="mark">"</div>
+        <blockquote>I was against the whole "AI face" thing. Then I used mine for a day. Now I can't imagine working without her.</blockquote>
+        <div class="who"><strong>J. N.</strong> — Solo operator · Nairobi</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-eyebrow">06 · Questions you're probably asking</div>
+    <h2 class="section-head">The honest <em>FAQ</em>.</h2>
+
+    <div class="faq">
+      <details class="faq-item" open>
+        <summary class="faq-q">Do I need technical skills to set this up? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          You need to be comfortable creating accounts on a few services (Anthropic, LiveAvatar) and pasting API keys into a settings screen. We walk you through it in the first-run flow. If you can set up a Gmail account, you can set up Selam.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">What's the real monthly cost? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          $29/month to us, plus what you pay the AI providers directly. For a typical user — one hour of voice conversation, five days a week — you're looking at about $50–80/month total. Heavier usage scales up, lighter usage scales down. Use the calculator above to see your real number.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">Can you see my conversations? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          No. Your API keys are stored locally in your macOS Keychain. Your conversations go directly from your Mac to Anthropic (for the brain) and LiveAvatar (for the face). We don't have a server in the loop. We never see the content. We don't want to.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">What can my agent actually do? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          Voice conversation with you. See your screen or webcam when you ask. Draft messages. Search your files. Open apps and URLs. Call other services through a task queue that you approve. Over time, more integrations (email, calendar, Slack, browser automation) ship as updates.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">Is it safe to let it act on my behalf? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          Every action that touches the outside world — sending a message, making a purchase, deleting a file — goes through an approval gate. You see what it plans to do, and you click approve. Over time you can set policies ("always approve replies to my team", "never spend over $50 without asking"). Trust is built, not assumed.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">What if I cancel? Can I keep my agent's memory? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          Yes. Your identity files (SOUL, IDENTITY, MEMORY, USER) are plain Markdown files in your home directory. They're yours. Cancel Selam, keep the files. Come back later, pick up where you left off. Export them to another tool. Read them in your text editor. Edit them by hand. They're your agent's DNA, and you own it.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">Windows? iPhone? Linux? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          macOS today (14+, Apple silicon recommended). Windows in Q3. Mobile is under design — it's a different technical stack, so it'll ship as a companion app after the desktop experience stabilizes. Linux is on the list for later; contact us if you want to be notified.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">Why is it called Selam? <span class="icon">+</span></summary>
+        <div class="faq-a">
+          Selam is Amharic for "peace" and it's also a common greeting in Ethiopia, where our founder is based. Our founder's agent is named Selam — she was the first. The platform is named after her because she proved the concept. Your agent will have their own name.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- TECH -->
+<section class="section" id="tech">
+  <div class="container">
+    <div class="tech">
+      <div>
+        <div class="section-eyebrow">07 · For the curious</div>
+        <h2 class="section-head">Built on what's <em>best</em>,<br>owned by <em>you</em>.</h2>
+        <p class="section-sub">
+          Selam is the orchestration layer between the best models, the best
+          streaming avatar tech, and your real life. Every component is
+          swappable. Your keys, your data, your control.
+        </p>
+      </div>
+      <dl class="tech-spec">
+        <dt>Brain</dt>
+        <dd>Claude Haiku 4.5 primary · escalates to Sonnet or Opus for complex work</dd>
+        <dt>Voice in</dt>
+        <dd>Silero VAD + faster-whisper, running locally · no audio leaves your Mac for STT</dd>
+        <dt>Face + speech</dt>
+        <dd>HeyGen LiveAvatar · WebRTC, ~200ms latency · 50+ avatars or upload your own</dd>
+        <dt>Vision</dt>
+        <dd>On-demand webcam + screen capture · never continuous unless you say so</dd>
+        <dt>Identity</dt>
+        <dd>Plain-text Markdown in ~/selam/ — SOUL · IDENTITY · MEMORY · USER</dd>
+        <dt>Privacy</dt>
+        <dd>BYOK · keys stored in macOS Keychain · we never see your keys, conversations, or context</dd>
+        <dt>Platform</dt>
+        <dd>macOS 14+ today · Windows Q3 · mobile under design</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- SIGNUP / WAITLIST -->
+<section class="section" id="get">
+  <div class="container">
+    <div class="section-eyebrow">08 · Get started</div>
+    <h2 class="section-head">Start with the <em>waitlist</em>.</h2>
+    <p class="section-sub">
+      Selam is in private beta. We're letting people in week by week.
+      Drop your email and we'll send you an invite when a seat opens.
+    </p>
+
+    <div class="signup-wrap">
+      <div class="signup-intro">
+        <h3>The first 500 get <em>lifetime Pro</em>.</h3>
+        <p>
+          No commitment. No spam. One email when your turn comes up, with a
+          download link and setup guide. Unsubscribe whenever — your email
+          never gets sold or shared.
+        </p>
+      </div>
+
+      <form class="signup-form" id="waitlistForm">
+        <div class="input-row">
+          <input type="email" id="emailInput" placeholder="you@wherever.com" required>
+          <button type="submit">Join waitlist →</button>
+        </div>
+        <div class="hint">Currently letting in about 20 people per week.</div>
+        <div class="signup-success" id="signupSuccess">
+          You're on the list. Watch your inbox.
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- FINALE -->
+<section class="finale">
+  <div class="container">
+    <h2>Don't work<br><em>alone</em>.</h2>
+    <p>
+      Build the agent you wish you could hire. Name them. Give them a face.
+      Teach them who you are. $29/month for the software.
+      You pay the AI providers directly. Cancel anytime.
+    </p>
+    <a href="#get" class="btn-primary">
+      Join the waitlist
+      <span class="arrow">→</span>
+    </a>
+    <p style="margin-top: 2rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); letter-spacing: 0.04em;">
+      macOS 14+ · Apple silicon recommended · 500 MB
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>© 2026 ATXO Labs · Selam is made in Addis Ababa.</div>
+    <div class="footer-links">
+      <a href="selam-onboarding.html">Onboarding preview</a>
+      <a href="#">Docs</a>
+      <a href="#">Privacy</a>
+      <a href="#">Changelog</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Theme toggle
+const html = document.documentElement;
+const toggle = document.getElementById('themeToggle');
+const saved = localStorage.getItem('selam-theme');
+if (saved) html.setAttribute('data-theme', saved);
+toggle.addEventListener('click', () => {
+  const now = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', now);
+  localStorage.setItem('selam-theme', now);
+});
+
+// live timestamp
+function tick() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('timestamp').textContent = `${hh}:${mm}:${ss} local`;
+}
+tick(); setInterval(tick, 1000);
+
+// Eye tracking
+const eyes = document.querySelectorAll('[data-eye]');
+const portraitFrame = document.getElementById('portraitFrame');
+
+document.addEventListener('mousemove', (e) => {
+  if (!portraitFrame) return;
+  const rect = portraitFrame.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = (e.clientX - cx) / (rect.width / 2);
+  const dy = (e.clientY - cy) / (rect.height / 2);
+  const maxOffset = 4;
+  const tx = Math.max(-1, Math.min(1, dx)) * maxOffset;
+  const ty = Math.max(-1, Math.min(1, dy)) * maxOffset;
+  eyes.forEach(eye => {
+    eye.style.setProperty('--tx', `${tx}px`);
+    eye.style.setProperty('--ty', `${ty}px`);
+  });
+});
+
+// Name rotation
+const names = ['Kiya','Daniel','Reya','Marcus','Amara','Noa','Tesfaye','Sofia','Isaac','Nadia','Jomo'];
+const nameEl = document.getElementById('namingAnim');
+let nameIdx = 0;
+
+function typeName(name, cb) {
+  nameEl.textContent = '';
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < name.length) { nameEl.textContent += name.charAt(i); i++; }
+    else { clearInterval(iv); setTimeout(cb, 2400); }
+  }, 110);
+}
+function eraseName(cb) {
+  const iv = setInterval(() => {
+    const t = nameEl.textContent;
+    if (t.length > 0) nameEl.textContent = t.slice(0, -1);
+    else { clearInterval(iv); setTimeout(cb, 300); }
+  }, 55);
+}
+function cycleName() {
+  nameIdx = (nameIdx + 1) % names.length;
+  typeName(names[nameIdx], () => eraseName(cycleName));
+}
+setTimeout(() => eraseName(cycleName), 5500);
+
+// Calculator
+const hrs = document.getElementById('hrs');
+const days = document.getElementById('days');
+const hrsLabel = document.getElementById('hrsLabel');
+const daysLabel = document.getElementById('daysLabel');
+const modeLabel = document.getElementById('modeLabel');
+const anthropicEl = document.getElementById('anthropicCost');
+const avatarEl = document.getElementById('avatarCost');
+const totalEl = document.getElementById('totalCost');
+const toggles = document.querySelectorAll('.calc-toggle');
+let mode = 'lite';
+
+function recalc() {
+  const h = parseFloat(hrs.value);
+  const d = parseInt(days.value);
+  const minsPerMonth = h * 60 * d * 4.33;
+  const turns = (h * 15) * d * 4.33;
+  const anthropic = turns * 0.0013;
+  const avatarRate = mode === 'lite' ? 0.10 : 0.20;
+  const avatar = minsPerMonth * avatarRate;
+  const total = 29 + anthropic + avatar;
+  hrsLabel.textContent = h === 1 ? '1 hr' : h + ' hrs';
+  daysLabel.textContent = d === 1 ? '1 day' : d + ' days';
+  modeLabel.textContent = mode === 'lite' ? 'Lite' : 'Full';
+  anthropicEl.textContent = '$' + Math.round(anthropic);
+  avatarEl.textContent = '$' + Math.round(avatar);
+  totalEl.textContent = '$' + Math.round(total);
+}
+hrs.addEventListener('input', recalc);
+days.addEventListener('input', recalc);
+toggles.forEach(t => t.addEventListener('click', () => {
+  toggles.forEach(tt => tt.classList.remove('active'));
+  t.classList.add('active');
+  mode = t.dataset.mode;
+  recalc();
+}));
+recalc();
+
+// Waitlist fake submit
+const form = document.getElementById('waitlistForm');
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  document.querySelector('.input-row').style.display = 'none';
+  document.querySelector('.signup-form .hint').style.display = 'none';
+  document.getElementById('signupSuccess').classList.add('visible');
+});
+</script>
+
+</body>
+</html>
