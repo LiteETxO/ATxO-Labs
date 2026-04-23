@@ -306,7 +306,7 @@ h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix
   left: -5%;
   right: -5%;
   height: 40%;
-  background: radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, rgba(0,0,0,0.85) 70%);
+  background: radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, var(--hair-c, rgba(20,12,6,0.9)) 70%);
   border-radius: 60% 60% 30% 30% / 80% 80% 30% 30%;
 }
 .ao-eyes {
@@ -351,6 +351,54 @@ h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix
   background: #000;
   border-radius: 50%;
   z-index: 2;
+}
+
+/* Hair style variants */
+.ao-hair-long { height: 50%; }
+.ao-hair-long::before,
+.ao-hair-long::after {
+  content: '';
+  position: absolute;
+  top: 72%;
+  width: 27%;
+  height: 150%;
+  background: var(--hair-c, rgba(20,12,6,0.9));
+  border-radius: 0 0 40% 40%;
+}
+.ao-hair-long::before { left: 3%; }
+.ao-hair-long::after  { right: 3%; }
+
+.ao-hair-curly {
+  height: 58%;
+  top: -22%;
+  left: -14%;
+  right: -14%;
+  border-radius: 50% 50% 40% 40% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse 85% 75% at 50% 38%, var(--hair-c, rgba(20,12,6,0.95)) 0%, rgba(0,0,0,0.08) 70%);
+}
+
+.ao-hair-buzz {
+  height: 18%;
+  top: 2%;
+  border-radius: 35% 35% 10% 10%;
+}
+
+.ao-hair-bun::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36%;
+  height: 42%;
+  background: var(--hair-c, rgba(20,12,6,0.9));
+  border-radius: 50%;
+}
+
+.ao-hair-side {
+  border-radius: 55% 35% 25% 35% / 80% 50% 25% 50%;
+  left: -10%;
+  right: 3%;
 }
 
 /* Nav buttons */
@@ -595,13 +643,13 @@ h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix
     <div class="step-label">Step 02 · The face</div>
     <h1>What do they <em>look like</em>?</h1>
     <p class="subhead">
-      Pick from our curated avatars, or upload a 2-minute video of someone you'd
-      like your agent to look and sound like (Pro only). You can swap this later.
+      Pick from our curated avatars. You can swap this later.
     </p>
 
     <div class="avatar-grid" id="avatarGrid">
       <!-- populated by JS -->
     </div>
+    <p class="hint-text" style="text-align:center;">Illustrative — real setup uses photorealistic avatars from our catalog.</p>
   </div>
 
   <!-- ─── Screen 3: Soul ─── -->
@@ -680,14 +728,22 @@ h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix
 <script>
 // Build avatar grid
 const avatarOptions = [
-  { id: 'a', eye: '#ff7145', glow: 'rgba(255,113,69,0.22)' },
-  { id: 'b', eye: '#8fb376', glow: 'rgba(143,179,118,0.22)' },
-  { id: 'c', eye: '#9a8cff', glow: 'rgba(154,140,255,0.22)' },
-  { id: 'd', eye: '#6bb8e0', glow: 'rgba(107,184,224,0.22)' },
-  { id: 'e', eye: '#e07b9a', glow: 'rgba(224,123,154,0.22)' },
-  { id: 'f', eye: '#d4af37', glow: 'rgba(212,175,55,0.22)' },
-  { id: 'g', eye: '#b58cf0', glow: 'rgba(181,140,240,0.22)' },
-  { id: 'h', eye: '#50c8a0', glow: 'rgba(80,200,160,0.22)' },
+  // dark warm skin · curly/afro · near-black hair · amber eyes
+  { id: 'a', skin: '#7a4a35', hairClass: 'ao-hair ao-hair-curly', hairC: '#1e0e06', eye: '#ff7145', glow: 'rgba(255,113,69,0.22)'  },
+  // medium olive · buzz cut · dark hair · sage eyes
+  { id: 'b', skin: '#9c7b58', hairClass: 'ao-hair ao-hair-buzz',  hairC: '#140c06', eye: '#8fb376', glow: 'rgba(143,179,118,0.22)' },
+  // light cool · long hair · auburn · violet eyes
+  { id: 'c', skin: '#d4b8a0', hairClass: 'ao-hair ao-hair-long',  hairC: '#6b3a20', eye: '#9a8cff', glow: 'rgba(154,140,255,0.22)' },
+  // very dark · short standard · near-black · sky-blue eyes
+  { id: 'd', skin: '#4a2e1e', hairClass: 'ao-hair',               hairC: '#120806', eye: '#6bb8e0', glow: 'rgba(107,184,224,0.22)' },
+  // medium warm · bun · dark brown · rose eyes
+  { id: 'e', skin: '#b07850', hairClass: 'ao-hair ao-hair-bun',   hairC: '#2e1808', eye: '#e07b9a', glow: 'rgba(224,123,154,0.22)' },
+  // light golden · side-parted · warm blonde · gold eyes
+  { id: 'f', skin: '#e0c090', hairClass: 'ao-hair ao-hair-side',  hairC: '#c87838', eye: '#d4af37', glow: 'rgba(212,175,55,0.22)'  },
+  // dark medium · curly · dark · lavender eyes
+  { id: 'g', skin: '#5a3c2e', hairClass: 'ao-hair ao-hair-curly', hairC: '#1a0e06', eye: '#b58cf0', glow: 'rgba(181,140,240,0.22)' },
+  // medium light · long dark hair · teal eyes
+  { id: 'h', skin: '#c49070', hairClass: 'ao-hair ao-hair-long',  hairC: '#180e06', eye: '#50c8a0', glow: 'rgba(80,200,160,0.22)'  },
 ];
 const grid = document.getElementById('avatarGrid');
 avatarOptions.forEach(opt => {
@@ -695,11 +751,13 @@ avatarOptions.forEach(opt => {
   el.className = 'avatar-option';
   el.style.setProperty('--glow', opt.glow);
   el.style.setProperty('--eye-color', opt.eye);
+  el.style.setProperty('--skin', opt.skin);
+  el.style.setProperty('--hair-c', opt.hairC);
   el.innerHTML = `
     <div class="ao-figure">
       <div class="ao-shoulders"></div>
       <div class="ao-head">
-        <div class="ao-hair"></div>
+        <div class="${opt.hairClass}"></div>
         <div class="ao-eyes"><div class="ao-eye"></div><div class="ao-eye"></div></div>
       </div>
     </div>
