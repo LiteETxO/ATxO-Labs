@@ -369,8 +369,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 /* ═══════════ PORTRAIT — properly rendered ═══════════ */
 .portrait-frame {
   position: relative;
-  aspect-ratio: 4/5;
-  max-height: 680px;
+  aspect-ratio: 1400/757;
   background:
     radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 15%, transparent) 0%, transparent 55%),
     linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 50%, var(--paper) 100%);
@@ -389,18 +388,6 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 12%, transparent) 0%, transparent 55%),
     linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 50%, var(--paper-4) 100%);
   box-shadow: 0 30px 60px -20px rgba(0,0,0,0.15), 0 0 60px color-mix(in srgb, var(--ember) 6%, transparent);
-}
-
-.portrait-frame::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.65) 95%);
-  pointer-events: none;
-  z-index: 3;
-}
-[data-theme="light"] .portrait-frame::before {
-  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(40,30,15,0.25) 95%);
 }
 
 .portrait-top {
@@ -432,192 +419,39 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   animation: breathe 1.5s ease-in-out infinite;
 }
 
-/* ───── The figure — properly designed ───── */
-.figure {
+/* Hero video panel */
+.hero-video {
   position: absolute;
-  bottom: -4%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 78%;
-  aspect-ratio: 3/4;
-  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
-.figure-shoulders {
-  position: absolute;
-  bottom: 0;
-  left: -12%; right: -12%;
-  height: 40%;
-  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-4) 100%);
-  clip-path: polygon(15% 100%, 85% 100%, 95% 15%, 75% 0%, 25% 0%, 5% 15%);
-  border-top: 1px solid rgba(255,255,255,0.03);
-  box-shadow: inset 0 20px 40px rgba(0,0,0,0.4);
-}
-.figure-neck {
-  position: absolute;
-  bottom: 37%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20%;
-  height: 14%;
-  background: linear-gradient(180deg, var(--skin-shadow) 0%, var(--paper-4) 100%);
-}
-
-/* HEAD — with real shape, lighting */
-.figure-head {
-  position: absolute;
-  bottom: 42%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 56%;
-  aspect-ratio: 4/5;
-  background:
-    radial-gradient(ellipse 70% 55% at 45% 40%, color-mix(in srgb, var(--skin) 80%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 90% 80% at 55% 55%, var(--skin-shadow) 0%, transparent 70%),
-    linear-gradient(180deg, var(--paper-4) 0%, var(--paper-3) 100%);
-  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
-  box-shadow:
-    inset 25px -15px 50px rgba(0,0,0,0.55),
-    inset -15px -15px 40px color-mix(in srgb, var(--ember) 6%, transparent),
-    inset 0 30px 40px color-mix(in srgb, var(--ember) 10%, transparent);
-}
-
-/* Hair */
-.figure-hair {
-  position: absolute;
-  top: -8%;
-  left: -5%;
-  right: -5%;
-  height: 40%;
-  background:
-    radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, rgba(0,0,0,0.85) 70%),
-    linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(30,25,20,0.9) 100%);
-  border-radius: 60% 60% 30% 30% / 80% 80% 30% 30%;
-  box-shadow: inset 0 -10px 20px rgba(0,0,0,0.3);
-}
-
-/* EYES - track cursor */
-.eyes {
-  position: absolute;
-  top: 42%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 48%;
-  display: flex;
-  justify-content: space-between;
-  z-index: 3;
-}
-.eye {
-  width: 22%;
-  aspect-ratio: 1.5/1;
-  background:
-    radial-gradient(ellipse at 50% 60%, #fff 0%, #e8dfd0 60%, #b5a990 100%);
-  border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-  box-shadow:
-    inset 0 -2px 4px rgba(0,0,0,0.3),
-    inset 0 2px 2px rgba(255,255,255,0.3),
-    0 0 0 1.5px rgba(0,0,0,0.6);
-}
-.eye::before {
-  /* iris/pupil — tracks cursor */
-  content: '';
+.hero-play-btn {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px)));
-  width: 55%;
-  height: 85%;
-  background:
-    radial-gradient(circle at 40% 40%, var(--ember-bright) 0%, var(--ember) 40%, var(--ember-dim) 70%, var(--ember-deep) 100%);
+  transform: translate(-50%, -50%);
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
-  box-shadow:
-    0 0 12px var(--ember),
-    0 0 20px color-mix(in srgb, var(--ember) 50%, transparent),
-    inset 0 2px 4px rgba(0,0,0,0.4);
-  transition: transform 0.25s cubic-bezier(.3,.8,.3,1);
-}
-.eye::after {
-  /* pupil center + light reflection */
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(calc(-50% + var(--tx, 0px) * 1.4), calc(-50% + var(--ty, 0px) * 1.4));
-  width: 18%;
-  height: 25%;
-  background: #000;
-  border-radius: 50%;
-  box-shadow: inset 2px -2px 3px rgba(255,255,255,0.8);
-  transition: transform 0.25s cubic-bezier(.3,.8,.3,1);
-  z-index: 2;
-}
-
-/* Subtle blink */
-.figure-head::after {
-  content: '';
-  position: absolute;
-  top: 42%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 48%;
-  height: 15%;
-  background: linear-gradient(180deg, var(--skin-shadow) 0%, var(--skin) 100%);
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
-  opacity: 0;
-  animation: blink-anim 6s infinite;
-  z-index: 4;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--ember) 40%, transparent);
+  display: grid;
+  place-items: center;
+  color: var(--ember);
   pointer-events: none;
+  z-index: 4;
+  box-shadow: 0 0 30px color-mix(in srgb, var(--ember) 20%, transparent);
 }
-@keyframes blink-anim {
-  0%, 96%, 100% { opacity: 0; height: 0; }
-  97%, 99%      { opacity: 1; height: 15%; }
-  98%           { opacity: 1; height: 15%; }
+.hero-play-btn svg { width: 28px; height: 28px; margin-left: 4px; }
+@media (max-width: 900px) {
+  .hero-play-btn { width: 64px; height: 64px; }
+  .hero-play-btn svg { width: 22px; height: 22px; }
 }
-
-/* Naming overlay */
-.name-overlay {
-  position: absolute;
-  bottom: 2rem;
-  left: 2rem;
-  right: 2rem;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  text-align: center;
-  padding: 1.25rem;
-  background: color-mix(in srgb, var(--paper) 60%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
-  border-radius: 3px;
-}
-.name-overlay .prompt {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.name-overlay .name-display {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-  color: var(--ink);
-  letter-spacing: -0.015em;
-  min-height: 1.2em;
-  line-height: 1;
-}
-.cursor-blink {
-  display: inline-block;
-  width: 1px;
-  height: 0.85em;
-  background: var(--ember);
-  margin-left: 3px;
-  vertical-align: middle;
-  animation: blink 1s steps(2, start) infinite;
-}
-@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
 /* ═══════════ Name marquee ═══════════ */
 .name-strip {
@@ -1585,16 +1419,22 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
           <span class="live">Live</span>
         </div>
 
-        <div class="figure" style="overflow:hidden;border-radius:4px 4px 0 0;">
-          <img src="assets/selam-hero.webp" alt="Selam" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
-          <div style="position:absolute;bottom:0;left:0;right:0;height:35%;background:linear-gradient(to top,var(--paper-2) 0%,transparent 100%);pointer-events:none;"></div>
-        </div>
-
-        <div class="name-overlay">
-          <div class="prompt">Name your agent</div>
-          <div class="name-display">
-            <span id="namingAnim">Kiya</span><span class="cursor-blink"></span>
-          </div>
+        <!-- TODO: Once demo video is recorded, add:
+             src="assets/selam-demo.mp4"
+             controls
+             autoplay (muted) or loop as appropriate -->
+        <video
+          poster="assets/selam-poster.jpg"
+          muted
+          playsinline
+          preload="none"
+          aria-label="Selam demo — video coming soon"
+          class="hero-video"
+        ></video>
+        <div class="hero-play-btn" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="11,7 27,16 11,25" fill="currentColor"/>
+          </svg>
         </div>
       </div>
 
@@ -2076,51 +1916,6 @@ function tick() {
 }
 tick(); setInterval(tick, 1000);
 
-// Eye tracking
-const eyes = document.querySelectorAll('[data-eye]');
-const portraitFrame = document.getElementById('portraitFrame');
-
-document.addEventListener('mousemove', (e) => {
-  if (!portraitFrame) return;
-  const rect = portraitFrame.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const dx = (e.clientX - cx) / (rect.width / 2);
-  const dy = (e.clientY - cy) / (rect.height / 2);
-  const maxOffset = 4;
-  const tx = Math.max(-1, Math.min(1, dx)) * maxOffset;
-  const ty = Math.max(-1, Math.min(1, dy)) * maxOffset;
-  eyes.forEach(eye => {
-    eye.style.setProperty('--tx', `${tx}px`);
-    eye.style.setProperty('--ty', `${ty}px`);
-  });
-});
-
-// Name rotation
-const names = ['Kiya','Daniel','Reya','Marcus','Amara','Noa','Tesfaye','Sofia','Isaac','Nadia','Jomo'];
-const nameEl = document.getElementById('namingAnim');
-let nameIdx = 0;
-
-function typeName(name, cb) {
-  nameEl.textContent = '';
-  let i = 0;
-  const iv = setInterval(() => {
-    if (i < name.length) { nameEl.textContent += name.charAt(i); i++; }
-    else { clearInterval(iv); setTimeout(cb, 2400); }
-  }, 110);
-}
-function eraseName(cb) {
-  const iv = setInterval(() => {
-    const t = nameEl.textContent;
-    if (t.length > 0) nameEl.textContent = t.slice(0, -1);
-    else { clearInterval(iv); setTimeout(cb, 300); }
-  }, 55);
-}
-function cycleName() {
-  nameIdx = (nameIdx + 1) % names.length;
-  typeName(names[nameIdx], () => eraseName(cycleName));
-}
-setTimeout(() => eraseName(cycleName), 5500);
 
 // Calculator
 const hrs = document.getElementById('hrs');
