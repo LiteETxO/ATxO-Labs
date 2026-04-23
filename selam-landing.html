@@ -1650,16 +1650,19 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         <div>
           <div class="calc-label">Estimated monthly AI costs</div>
           <div class="calc-breakdown">
-            <div class="calc-row"><span class="name">Anthropic API (brain)</span><span class="cost" id="anthropicCost">—</span></div>
+            <div class="calc-row"><span class="name">Anthropic Haiku 4.5 (brain)</span><span class="cost" id="anthropicCost">—</span></div>
             <div class="calc-row"><span class="name">ElevenLabs (voice)</span><span class="cost" id="elevenLabsCost">—</span></div>
             <div class="calc-row"><span class="name">Simli (avatar)</span><span class="cost" id="simliCost">—</span></div>
             <div class="calc-row total"><span class="name">Monthly AI costs</span><span class="cost" id="totalCost">—</span></div>
           </div>
         </div>
         <div class="calc-footnote">
-          Estimates based on Haiku 4.5 ($1/$5 per million tokens with prompt caching),
-          ElevenLabs Starter, and Simli Hobby tier ($10/mo, 1,000 min). Real costs vary
-          with usage — you pay each provider directly.<br><br>
+          Estimates assume Haiku 4.5 ($1/$5 per million tokens with prompt caching),
+          ElevenLabs Starter, and Simli Hobby tier. Selam ships configured for Haiku
+          4.5 — other Claude models work but aren't yet user-switchable in v1.0. Simli
+          and ElevenLabs charge monthly subscriptions with minute allowances (Simli
+          Hobby: $10/mo for 1,000 min; Pro: $49/mo for 5,500 min). Anthropic is
+          pay-as-you-go. You pay each provider directly.<br><br>
           <strong style="color:var(--ink-dim);">Selam itself: $199 one-time.</strong> No subscription. No renewal.
         </div>
       </div>
