@@ -456,6 +456,77 @@ h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix
   .screen, .screen-nav { padding: 1.5rem; }
 }
 
+/* Waitlist form on done screen */
+.done-form { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 440px; text-align: left; }
+.done-form .form-field {
+  background: var(--paper);
+  border: 1px solid var(--line-bright);
+  border-radius: 3px;
+  transition: border-color 0.2s;
+}
+.done-form .form-field:focus-within { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 15%, transparent); }
+.done-form input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.85rem 1rem;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+}
+.done-form input::placeholder { color: var(--ink-muted); }
+.done-form .form-submit {
+  padding: 0.9rem 1.4rem;
+  background: var(--ember);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  border: none;
+}
+.done-form .form-submit:hover:not(:disabled) { background: var(--ember-bright); }
+.done-form .form-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.done-form .form-hint {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+.done-form .form-success { display: none; }
+.done-form .form-success.visible { display: block; }
+.done-form .form-success .success-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--ember);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.done-form .form-success .success-body {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+  line-height: 1.55;
+}
+.done-form .form-error {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+.done-form .form-error a { color: var(--ember); }
+.done-form .form-error button { color: var(--ember); background: none; border: none; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
+.done-stage { overflow-y: auto; }
+
 /* Back to landing link */
 .back-link {
   position: fixed;
@@ -569,27 +640,32 @@ h1 em { font-style: italic; color: var(--ember); text-shadow: 0 0 24px color-mix
 
   <!-- ─── Done screen (hidden) ─── -->
   <div class="screen done-stage" data-screen="done">
-    <div class="done-portrait">
-      <div class="ao-figure">
-        <div class="ao-shoulders"></div>
-        <div class="ao-head">
-          <div class="ao-hair"></div>
-          <div class="ao-eyes"><div class="ao-eye"></div><div class="ao-eye"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <h1 class="done-title">Meet <em id="doneName">Kiya</em>.</h1>
+    <h1 class="done-title">You just built <em id="doneName">Selam</em>.</h1>
     <p class="done-sub">
-      They're ready. Click below and they'll say hello. From here on, talk to them
-      like a person — they'll learn fast. Say <strong id="doneWakeName">Kiya</strong>
-      to wake them up anytime.
+      This is what first-run will feel like when Selam ships.
+      Your answers here aren't saved — this was a preview.
     </p>
 
-    <a href="#" class="btn btn-primary" style="padding: 1.1rem 2rem; font-size: 0.85rem;" title="Preview only — real version launches with the Selam app.">
-      Say hello →
-    </a>
-    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--ink-muted);letter-spacing:0.06em;margin-top:0.75rem;">Preview only — real version launches with the Selam app.</p>
+    <form class="done-form" id="doneForm">
+      <div class="form-field">
+        <input type="email" name="email" placeholder="you@wherever.com" required>
+      </div>
+      <div class="form-field">
+        <input type="text" name="use_case" placeholder="What would you use Selam for?" maxlength="200">
+      </div>
+      <div class="form-field">
+        <input type="text" name="current_tool" placeholder="What do you currently use for this?" maxlength="150">
+      </div>
+      <button type="submit" class="form-submit" id="doneSubmit">Notify me →</button>
+      <div class="form-hint">We'll email once when Selam ships. That's it. No newsletter, no upsell.</div>
+      <div class="form-success" id="doneSuccess">
+        <strong class="success-title">You're on the list.</strong>
+        <p class="success-body">Check your email — we sent a confirmation. When Selam ships, you'll get one more email with how to download and activate. That's it.</p>
+      </div>
+      <div class="form-error" id="doneError">
+        Something went wrong. <button type="button" id="doneRetryBtn">Retry</button> or email <a href="mailto:selam@atxo.me">selam@atxo.me</a> directly.
+      </div>
+    </form>
   </div>
 
   <!-- Navigation -->
@@ -652,9 +728,8 @@ function showScreen(n) {
   if (n === 'done') {
     document.querySelector('[data-screen="done"]').classList.add('active');
     document.getElementById('screenNav').style.display = 'none';
-    const name = nameInput.value.trim() || 'Kiya';
+    const name = nameInput.value.trim() || 'Selam';
     document.getElementById('doneName').textContent = name;
-    document.getElementById('doneWakeName').textContent = name;
     document.querySelectorAll('.progress-dot').forEach(d => d.classList.add('done'));
     return;
   }
@@ -699,6 +774,43 @@ nameInput.addEventListener('keydown', (e) => {
 });
 
 checkCanProceed();
+
+// Done-screen waitlist form
+const doneForm     = document.getElementById('doneForm');
+const doneSubmit   = document.getElementById('doneSubmit');
+const doneSuccess  = document.getElementById('doneSuccess');
+const doneError    = document.getElementById('doneError');
+const doneRetryBtn = document.getElementById('doneRetryBtn');
+
+async function submitDoneForm(e) {
+  e.preventDefault();
+  doneSubmit.disabled = true;
+  doneSubmit.textContent = 'Sending…';
+  doneError.style.display = 'none';
+  try {
+    const res = await fetch('https://formspree.io/f/mreronkj', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: new FormData(doneForm),
+    });
+    if (res.ok) {
+      doneForm.querySelectorAll('.form-field').forEach(f => f.style.display = 'none');
+      doneSubmit.style.display = 'none';
+      doneForm.querySelector('.form-hint').style.display = 'none';
+      doneSuccess.classList.add('visible');
+    } else { throw new Error(); }
+  } catch (_) {
+    doneError.style.display = 'block';
+    doneSubmit.disabled = false;
+    doneSubmit.textContent = 'Notify me →';
+  }
+}
+
+doneForm.addEventListener('submit', submitDoneForm);
+doneRetryBtn.addEventListener('click', () => {
+  doneError.style.display = 'none';
+  doneForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+});
 </script>
 
 </body>

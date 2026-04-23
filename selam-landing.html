@@ -1391,7 +1391,8 @@ input[type=range]::-moz-range-thumb {
   transition: border-color 0.2s;
 }
 .signup-form .input-row:focus-within { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 15%, transparent); }
-.signup-form input[type=email] {
+.signup-form input[type=email],
+.signup-form input[type=text] {
   flex: 1;
   background: transparent;
   border: none;
@@ -1400,8 +1401,10 @@ input[type=range]::-moz-range-thumb {
   font-family: var(--font-body);
   font-size: 0.95rem;
   outline: none;
+  width: 100%;
 }
-.signup-form input[type=email]::placeholder { color: var(--ink-muted); }
+.signup-form input[type=email]::placeholder,
+.signup-form input[type=text]::placeholder { color: var(--ink-muted); }
 .signup-form button[type=submit] {
   padding: 0.8rem 1.5rem;
   background: var(--ember);
@@ -1432,14 +1435,32 @@ input[type=range]::-moz-range-thumb {
   box-shadow: 0 0 6px var(--success);
 }
 .signup-success {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.4rem;
-  color: var(--ember);
   padding: 1.5rem 0;
   display: none;
 }
 .signup-success.visible { display: block; }
+.signup-success .success-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--ember);
+  display: block;
+  margin-bottom: 0.75rem;
+}
+.signup-success .success-body {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink-dim);
+  line-height: 1.55;
+}
+.signup-error {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+.signup-error a { color: var(--ember); }
+.signup-error button { color: var(--ember); background: none; border: none; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
 
 @media (max-width: 860px) { .signup-wrap { grid-template-columns: 1fr; padding: 2.5rem 1.5rem; gap: 2rem; } }
 
@@ -1981,15 +2002,24 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         </p>
       </div>
 
-      <form class="signup-form" id="waitlistForm" action="mailto:selam@atxo.me" method="POST" enctype="text/plain">
-        <input type="hidden" name="subject" value="Selam waitlist signup">
+      <form class="signup-form" id="waitlistForm">
         <div class="input-row">
           <input type="email" name="email" id="emailInput" placeholder="you@wherever.com" required>
-          <button type="submit">Join waitlist →</button>
         </div>
-        <div class="hint">Currently letting in about 20 people per week.</div>
+        <div class="input-row">
+          <input type="text" name="use_case" placeholder="What would you use Selam for?" maxlength="200">
+        </div>
+        <div class="input-row">
+          <input type="text" name="current_tool" placeholder="What do you currently use for this?" maxlength="150">
+        </div>
+        <button type="submit" id="waitlistSubmit" style="width:100%;">Notify me →</button>
+        <div class="hint">We'll email once when Selam ships. That's it. No newsletter, no upsell.</div>
         <div class="signup-success" id="signupSuccess">
-          Your mail client will open — send that email and you're on the list.
+          <strong class="success-title">You're on the list.</strong>
+          <p class="success-body">Check your email — we sent a confirmation. When Selam ships, you'll get one more email with how to download and activate. That's it.</p>
+        </div>
+        <div class="signup-error" id="signupError" style="display:none;">
+          Something went wrong. <button type="button" id="retryBtn">Retry</button> or email <a href="mailto:selam@atxo.me">selam@atxo.me</a> directly.
         </div>
       </form>
     </div>
@@ -2130,14 +2160,42 @@ toggles.forEach(t => t.addEventListener('click', () => {
 }));
 recalc();
 
-// Waitlist form — show success note when mail client opens
+// Waitlist form — Formspree
 const form = document.getElementById('waitlistForm');
-form.addEventListener('submit', () => {
-  setTimeout(() => {
-    document.querySelector('.input-row').style.display = 'none';
-    document.querySelector('.signup-form .hint').style.display = 'none';
-    document.getElementById('signupSuccess').classList.add('visible');
-  }, 300);
+const submitBtn = document.getElementById('waitlistSubmit');
+const signupError = document.getElementById('signupError');
+const retryBtn = document.getElementById('retryBtn');
+
+async function submitWaitlist(e) {
+  e.preventDefault();
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending…';
+  signupError.style.display = 'none';
+  try {
+    const res = await fetch('https://formspree.io/f/mreronkj', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: new FormData(form),
+    });
+    if (res.ok) {
+      form.querySelectorAll('.input-row').forEach(r => r.style.display = 'none');
+      submitBtn.style.display = 'none';
+      form.querySelector('.hint').style.display = 'none';
+      document.getElementById('signupSuccess').classList.add('visible');
+    } else {
+      throw new Error();
+    }
+  } catch (_) {
+    signupError.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Notify me →';
+  }
+}
+
+form.addEventListener('submit', submitWaitlist);
+retryBtn.addEventListener('click', () => {
+  signupError.style.display = 'none';
+  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
 });
 </script>
 
