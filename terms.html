@@ -1,31 +1,219 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ATXO — Terms</title>
-  <style>body{font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:24px 16px;background:#0b0d12;color:#e6ebf5}a{color:#4fd1c5;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:800px;margin:0 auto}.muted{color:#9aa5b1}</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — Selam</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0a0a0f;
+      color: #d4d4d8;
+      line-height: 1.7;
+      padding: 60px 24px 100px;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .back { display: inline-block; margin-bottom: 40px; font-size: 13px; color: #50b4ff; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+    h1 { font-size: 28px; font-weight: 700; color: #f4f4f5; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: #71717a; margin-bottom: 48px; }
+    h2 { font-size: 16px; font-weight: 600; color: #f4f4f5; margin: 36px 0 10px; }
+    p { font-size: 14px; color: #a1a1aa; margin-bottom: 14px; }
+    ul { padding-left: 20px; margin-bottom: 14px; }
+    li { font-size: 14px; color: #a1a1aa; margin-bottom: 6px; }
+    a { color: #50b4ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .callout {
+      background: rgba(80, 180, 255, 0.06);
+      border: 1px solid rgba(80, 180, 255, 0.15);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin: 24px 0;
+      font-size: 14px;
+      color: #a1a1aa;
+    }
+    .callout strong { color: #f4f4f5; }
+    .warning {
+      background: rgba(251, 191, 36, 0.05);
+      border: 1px solid rgba(251, 191, 36, 0.15);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin: 24px 0;
+      font-size: 14px;
+      color: #a1a1aa;
+    }
+    .warning strong { color: #fbbf24; }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 40px 0; }
+    footer { margin-top: 60px; font-size: 12px; color: #52525b; text-align: center; }
+  </style>
 </head>
 <body>
   <div class="wrap">
+    <a class="back" href="/">← heyselam.com</a>
+
     <h1>Terms of Service</h1>
-    <p class="muted">Plain‑English summary: we operate transparently, protect your data, and bill fairly. This page will be updated as our offering evolves.</p>
-    <h3>1) Engagement</h3>
-    <p>Engagements are for clearly scoped deliverables (e.g., campaigns, automation sprints). Unless otherwise stated, work is time‑boxed and outcome‑based.</p>
-    <h3>2) Payment</h3>
-    <p>Fees and payment terms are specified in proposals or order forms. Late payments may pause services.</p>
-    <h3>3) Data & Privacy</h3>
-    <p>We access only the minimum necessary systems and data. You retain ownership of your data. See our <a href="/privacy.html">Privacy Policy</a> for details.</p>
-    <h3>4) Acceptable Use</h3>
-    <p>You agree to use outputs and systems in compliance with applicable laws and platform terms. We do not engage in spam or abuse.</p>
-    <h3>5) Confidentiality</h3>
-    <p>Both parties will keep confidential information private and use it only for the engagement.</p>
-    <h3>6) Warranties & Liability</h3>
-    <p>Services are provided “as is.” Liability is limited to the fees paid for the current engagement.</p>
-    <h3>7) Changes</h3>
-    <p>We may update these terms; material changes will be posted here with an updated date.</p>
-    <p class="muted">Last updated: <span id="d"></span></p>
+    <p class="meta">ATXO Labs · Effective date: May 25, 2026 · Last updated: May 25, 2026</p>
+
+    <div class="callout">
+      <strong>Short version:</strong> You buy a perpetual single-user license for $199. Selam runs on your Mac using API keys you provide. You're responsible for your own API costs and for using the software lawfully. We offer a 14-day refund if it doesn't work for you.
+    </div>
+
+    <p>
+      These Terms of Service ("Terms") govern your purchase and use of Selam, a Mac desktop
+      application ("Software") developed and sold by ATXO Labs ("we", "us", "our"). By purchasing
+      or installing Selam, you agree to these Terms. If you do not agree, do not install or use
+      the Software.
+    </p>
+
+    <h2>1. License grant</h2>
+    <p>
+      Subject to your compliance with these Terms and payment of the applicable fee, ATXO Labs
+      grants you a personal, non-exclusive, non-transferable, perpetual license to install and use
+      one (1) copy of Selam on Mac computers owned or controlled by you, for your personal use.
+    </p>
+    <p>You may not:</p>
+    <ul>
+      <li>Distribute, sublicense, sell, or transfer the Software or your license key to any third party.</li>
+      <li>Modify, decompile, reverse-engineer, or create derivative works of the Software, except to the extent permitted by applicable law.</li>
+      <li>Remove or alter any proprietary notices in the Software.</li>
+      <li>Use the Software to provide services to third parties on a commercial basis (e.g. as a managed AI assistant service).</li>
+    </ul>
+
+    <h2>2. Bring Your Own Key (BYOK)</h2>
+    <p>
+      Selam is a BYOK application. To use it, you must obtain API keys from third-party providers
+      (including Anthropic, ElevenLabs, and Simli) and supply them during setup. You are solely
+      responsible for:
+    </p>
+    <ul>
+      <li>All costs incurred on those third-party accounts as a result of using Selam.</li>
+      <li>Complying with each provider's terms of service and acceptable use policies.</li>
+      <li>Keeping your API keys secure. Do not share your Selam license key or API keys with others.</li>
+    </ul>
+    <p>
+      ATXO Labs is not liable for any charges billed to you by third-party API providers, or for
+      any suspension or termination of your account with those providers.
+    </p>
+
+    <h2>3. Price and payment</h2>
+    <p>
+      Selam is sold as a one-time purchase at a price displayed at checkout. Payments are processed
+      by Stripe. By completing a purchase, you agree to
+      <a href="https://stripe.com/legal/consumer" target="_blank" rel="noopener">Stripe's consumer terms</a>.
+      You are responsible for any taxes applicable to your purchase under the laws of your jurisdiction.
+    </p>
+
+    <h2>4. Refund policy</h2>
+    <p>
+      We offer a full refund within <strong>14 days</strong> of your purchase date, no questions
+      asked, provided that:
+    </p>
+    <ul>
+      <li>You request the refund by emailing <a href="mailto:legal@heyselam.com">legal@heyselam.com</a> with your order number.</li>
+      <li>Your license key will be deactivated upon refund.</li>
+    </ul>
+    <p>
+      Refunds requested after 14 days are at our sole discretion. We will not issue refunds where
+      we have evidence of fraudulent use or abuse of the refund policy.
+    </p>
+
+    <h2>5. License key</h2>
+    <p>
+      Upon successful payment, you will receive a license key by email. This key activates the
+      Software for your personal use. You may not share, resell, or publish your license key.
+      ATXO Labs reserves the right to revoke a license key if it is found to be shared or used
+      in violation of these Terms.
+    </p>
+
+    <h2>6. Updates and support</h2>
+    <p>
+      Your one-time purchase includes all v1.x updates to Selam at no additional charge. We
+      provide support via email at <a href="mailto:legal@heyselam.com">legal@heyselam.com</a>.
+      We aim to respond within 2 business days. We do not guarantee any specific response time
+      or resolution.
+    </p>
+    <p>
+      Major version upgrades (v2.0 and above) may be offered at a separate price, with a
+      discount for existing license holders.
+    </p>
+
+    <h2>7. Acceptable use</h2>
+    <p>You agree not to use Selam to:</p>
+    <ul>
+      <li>Violate any applicable law or regulation.</li>
+      <li>Harass, threaten, or harm any person.</li>
+      <li>Generate, distribute, or act on content that is illegal, defamatory, or fraudulent.</li>
+      <li>Circumvent any access controls on third-party systems without authorisation.</li>
+      <li>Facilitate automated access to third-party services in violation of their terms.</li>
+    </ul>
+    <p>
+      Because Selam can take actions on your behalf (sending messages, running agent tasks),
+      you are fully responsible for all actions it takes at your direction. Review any T3
+      (irreversible) actions carefully before confirming them.
+    </p>
+
+    <h2>8. Privacy</h2>
+    <p>
+      Our collection and use of personal data is described in our
+      <a href="/privacy">Privacy Policy</a>, which forms part of these Terms.
+    </p>
+
+    <h2>9. Disclaimer of warranties</h2>
+    <div class="warning">
+      <strong>The Software is provided "as is" and "as available" without warranties of any kind,
+      express or implied, including but not limited to warranties of merchantability, fitness for
+      a particular purpose, or non-infringement.</strong> We do not warrant that the Software will
+      be uninterrupted, error-free, or that defects will be corrected. Your use of the Software
+      is at your sole risk.
+    </div>
+
+    <h2>10. Limitation of liability</h2>
+    <p>
+      To the maximum extent permitted by applicable law, ATXO Labs and its officers, employees,
+      and agents shall not be liable for any indirect, incidental, special, consequential, or
+      punitive damages, or any loss of profits, data, or goodwill, arising from or in connection
+      with your use of Selam, even if advised of the possibility of such damages.
+    </p>
+    <p>
+      Our total aggregate liability to you for any claims arising from these Terms or your use of
+      Selam shall not exceed the amount you paid for your license.
+    </p>
+
+    <h2>11. Indemnification</h2>
+    <p>
+      You agree to indemnify and hold harmless ATXO Labs from any claims, losses, or expenses
+      (including reasonable legal fees) arising from your breach of these Terms, your use of
+      the Software, or actions Selam takes at your direction.
+    </p>
+
+    <h2>12. Governing law and disputes</h2>
+    <p>
+      These Terms are governed by the laws of England and Wales. Any dispute arising from these
+      Terms shall be subject to the exclusive jurisdiction of the courts of England and Wales,
+      except where mandatory consumer protection laws in your country require otherwise.
+    </p>
+
+    <h2>13. Severability</h2>
+    <p>
+      If any provision of these Terms is found unenforceable, the remaining provisions will
+      continue in full force and effect.
+    </p>
+
+    <h2>14. Changes to these Terms</h2>
+    <p>
+      We may update these Terms from time to time. We will notify active users by email of
+      material changes at least 14 days before they take effect. Continued use of the Software
+      after the effective date constitutes acceptance of the revised Terms.
+    </p>
+
+    <h2>15. Contact</h2>
+    <p>
+      Questions about these Terms: <a href="mailto:legal@heyselam.com">legal@heyselam.com</a>
+    </p>
+
+    <hr />
+    <footer>© 2026 ATXO Labs. All rights reserved.</footer>
   </div>
-  <script>document.getElementById('d').textContent=new Date().toISOString().slice(0,10)</script>
 </body>
 </html>
