@@ -1068,6 +1068,32 @@ input[type=range]::-moz-range-thumb {
   border-top: 1px solid var(--line);
   position: relative;
 }
+.calc-model-tabs { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.calc-model-tab {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: var(--paper-2); border: 1px solid var(--line);
+  border-radius: 6px; padding: 0.65rem 1rem;
+  font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);
+  cursor: pointer; text-align: left; transition: all 0.15s;
+}
+.calc-model-tab:hover { border-color: var(--line-bright); color: var(--ink); }
+.calc-model-tab.active { border-color: var(--ember); color: var(--ink); background: color-mix(in srgb, var(--ember) 6%, var(--paper-2)); }
+.calc-model-badge {
+  margin-left: auto; font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px;
+  background: color-mix(in srgb, var(--ember) 15%, transparent); color: var(--ember);
+}
+.calc-model-badge--cheap {
+  background: color-mix(in srgb, #6fffa1 15%, transparent); color: #6fffa1;
+}
+.calc-payback {
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);
+  margin-top: 1.5rem; padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--ember) 5%, var(--paper-2));
+  border: 1px solid color-mix(in srgb, var(--ember) 20%, transparent);
+  border-radius: 4px; line-height: 1.6;
+}
+.calc-payback strong { color: var(--ember); }
 @media (max-width: 860px) { .calc { grid-template-columns: 1fr; } .calc-input, .calc-output { padding: 2rem; } }
 
 /* Testimonials */
@@ -1388,7 +1414,9 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         </p>
 
         <div class="hero-actions">
-          <a href="selam-onboarding.html" class="btn-primary">
+          <!-- STRIPE_PAYMENT_LINK: replace href with your Stripe Payment Link URL -->
+          <!-- Create at dashboard.stripe.com → Products → Payment Links -->
+          <a href="https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK" class="btn-primary" id="buy-btn">
             Get Selam — $199
             <span class="arrow">→</span>
           </a>
@@ -1644,26 +1672,28 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
           </div>
           <input type="range" id="days" min="0" max="7" step="1" value="5">
         </div>
+
+        <div class="calc-label" style="margin-top:2rem;">Brain model</div>
+        <div class="calc-model-tabs" id="modelTabs">
+          <button class="calc-model-tab active" data-model="haiku">Haiku 4.5<span class="calc-model-badge">default</span></button>
+          <button class="calc-model-tab" data-model="gemini">Gemini 2.5 Flash<span class="calc-model-badge calc-model-badge--cheap">~7× cheaper</span></button>
+          <button class="calc-model-tab" data-model="deepseek">DeepSeek V3<span class="calc-model-badge calc-model-badge--cheap">~10× cheaper</span></button>
+        </div>
       </div>
 
       <div class="calc-output">
         <div>
           <div class="calc-label">Estimated monthly AI costs</div>
           <div class="calc-breakdown">
-            <div class="calc-row"><span class="name">Anthropic Haiku 4.5 (brain)</span><span class="cost" id="anthropicCost">—</span></div>
-            <div class="calc-row"><span class="name">ElevenLabs (voice)</span><span class="cost" id="elevenLabsCost">—</span></div>
-            <div class="calc-row"><span class="name">Simli (avatar)</span><span class="cost" id="simliCost">—</span></div>
+            <div class="calc-row"><span class="name" id="brainLabel">Haiku 4.5 (brain)</span><span class="cost" id="anthropicCost">—</span></div>
+            <div class="calc-row"><span class="name">ElevenLabs Starter (voice)</span><span class="cost" id="elevenLabsCost">—</span></div>
+            <div class="calc-row"><span class="name">Simli Hobby (avatar)</span><span class="cost" id="simliCost">—</span></div>
             <div class="calc-row total"><span class="name">Monthly AI costs</span><span class="cost" id="totalCost">—</span></div>
           </div>
+          <div class="calc-payback" id="paybackLine"></div>
         </div>
         <div class="calc-footnote">
-          Estimates assume Haiku 4.5 ($1/$5 per million tokens with prompt caching),
-          ElevenLabs Starter, and Simli Hobby tier. Selam ships configured for Haiku
-          4.5 in v1.0 — model picker (Gemini 2.5 Flash, DeepSeek V3.2, and others
-          ~10x cheaper for 24/7 use) shipping in v1.1. Simli and ElevenLabs charge
-          monthly subscriptions with minute allowances (Simli Hobby: $10/mo for
-          1,000 min; Pro: $49/mo for 5,500 min). Anthropic is pay-as-you-go. You
-          pay each provider directly.<br><br>
+          Brain cost uses Haiku 4.5 with prompt caching ($0.08/$0.80/$4.00 per million tokens cached/input/output), DeepSeek V3 ($0.014/$0.27/$1.10), or Gemini 2.5 Flash ($0.015/$0.15/$0.60). ElevenLabs Starter: $5/mo flat for 30k chars, then $0.24/1k chars overage — assumes Selam speaks ~25% of session time at 150 chars/min. Simli Hobby: $10/mo for 1,000 min, then $0.01/min overage. You pay each provider directly at their published rates; Selam takes nothing.<br><br>
           <strong style="color:var(--ink-dim);">Selam itself: $199 one-time.</strong> No subscription. No renewal.
         </div>
       </div>
@@ -1718,7 +1748,7 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
       <details class="faq-item">
         <summary class="faq-q">What's the real total cost? <span class="icon">+</span></summary>
         <div class="faq-a">
-          Selam is $199 one-time — that's it from us. On top of that you pay the AI providers directly: Anthropic for the brain, ElevenLabs for the voice, and Simli for the avatar. For a typical user — one hour of voice conversation, five days a week — that's about $129/month in AI costs. Heavier usage scales up, lighter usage scales down. Use the calculator above to see your number.
+          Selam is $199 one-time — that's it from us. On top of that you pay the AI providers directly: your chosen brain model (Haiku 4.5, Gemini 2.5 Flash, or DeepSeek V3), ElevenLabs for the voice, and Simli for the avatar. ElevenLabs Starter is $5/mo; Simli Hobby is $10/mo — both include generous monthly allowances. Brain costs depend heavily on which model you pick and how much you use it. Use the calculator above to dial in your exact number.
         </div>
       </details>
 
@@ -1898,30 +1928,107 @@ tick(); setInterval(tick, 1000);
 // Calculator
 const hrs = document.getElementById('hrs');
 const days = document.getElementById('days');
-const hrsLabel = document.getElementById('hrsLabel');
-const daysLabel = document.getElementById('daysLabel');
-const anthropicEl  = document.getElementById('anthropicCost');
-const elevenLabsEl = document.getElementById('elevenLabsCost');
-const simliEl      = document.getElementById('simliCost');
-const totalEl      = document.getElementById('totalCost');
+const hrsLabel    = document.getElementById('hrsLabel');
+const daysLabel   = document.getElementById('daysLabel');
+const anthropicEl = document.getElementById('anthropicCost');
+const elevenLabsEl= document.getElementById('elevenLabsCost');
+const simliEl     = document.getElementById('simliCost');
+const totalEl     = document.getElementById('totalCost');
+const brainLabel  = document.getElementById('brainLabel');
+const paybackLine = document.getElementById('paybackLine');
+const modelTabs   = document.querySelectorAll('.calc-model-tab');
 
-function fmt(n) { return '$' + Math.round(Math.max(0, n)); }
+// Cost per session-minute of active voice conversation.
+// Brain: tokens/min estimates (500 cached input + 200 uncached input + 300 output, per turn ~30s → 2 turns/min)
+// ElevenLabs: Starter $5/mo includes 30k chars; overage $0.24/1k chars. Selam speaks ~25% of time at 150 chars/min.
+// Simli: Hobby $10/mo for 1000 min; overage $0.01/min.
+const MODELS = {
+  haiku:    { label: 'Haiku 4.5 (brain)',        cachedIn: 0.08,  uncachedIn: 0.80,  out: 4.00  },
+  gemini:   { label: 'Gemini 2.5 Flash (brain)', cachedIn: 0.015, uncachedIn: 0.15,  out: 0.60  },
+  deepseek: { label: 'DeepSeek V3 (brain)',       cachedIn: 0.014, uncachedIn: 0.27,  out: 1.10  },
+};
+
+// tokens per minute of session time (Selam speaks ~25%, user speaks ~25%, idle ~50%)
+const CACHED_IN_PER_MIN  = 500 * 2;   // 500 cached tokens × 2 turns/min
+const UNCACHED_IN_PER_MIN= 200 * 2;
+const OUT_PER_MIN        = 300 * 2;
+
+let selectedModel = 'haiku';
+
+function fmtCost(n) {
+  if (n < 1)   return n < 0.005 ? '$0.00' : '$' + n.toFixed(2);
+  if (n < 10)  return '$' + n.toFixed(1);
+  return '$' + Math.round(n);
+}
+
+function elevenLabsCost(mins) {
+  // chars = 25% of time speaking × 150 chars/min
+  const chars = mins * 0.25 * 150;
+  const base  = 5;
+  const free  = 30000;
+  const over  = Math.max(0, chars - free) / 1000 * 0.24;
+  return base + over;
+}
+
+function simliCost(mins) {
+  const base     = 10;
+  const included = 1000;
+  const over     = Math.max(0, mins - included) * 0.01;
+  return base + over;
+}
+
+function brainCost(mins, model) {
+  const m   = MODELS[model];
+  const perMin = (CACHED_IN_PER_MIN * m.cachedIn + UNCACHED_IN_PER_MIN * m.uncachedIn + OUT_PER_MIN * m.out) / 1_000_000;
+  return perMin * mins;
+}
 
 function recalc() {
-  const h = parseFloat(hrs.value)  || 0;
-  const d = parseInt(days.value)   || 0;
-  const mins = h * 60 * d * 4.3;
-  const anthropic  = mins * 0.08;
-  const elevenlabs = mins * 0.01;
-  const simli      = mins * 0.01;
-  const total      = anthropic + elevenlabs + simli;
-  hrsLabel.textContent  = h === 0 ? '0 hrs' : h === 1 ? '1 hr' : h % 1 === 0 ? h + ' hrs' : h + ' hrs';
+  const h    = parseFloat(hrs.value)  || 0;
+  const d    = parseInt(days.value)   || 0;
+  const mins = h * 60 * d * 4.33;   // 4.33 weeks/month
+
+  hrsLabel.textContent  = h === 0 ? '0 hrs' : h === 1 ? '1 hr' : h + ' hrs';
   daysLabel.textContent = d === 0 ? '0 days' : d === 1 ? '1 day' : d + ' days';
-  anthropicEl.textContent  = fmt(anthropic);
-  elevenLabsEl.textContent = fmt(elevenlabs);
-  simliEl.textContent      = fmt(simli);
-  totalEl.textContent      = fmt(total);
+
+  const brain = brainCost(mins, selectedModel);
+  const el    = elevenLabsCost(mins);
+  const sim   = simliCost(mins);
+  const total = brain + el + sim;
+
+  brainLabel.textContent   = MODELS[selectedModel].label;
+  anthropicEl.textContent  = fmtCost(brain);
+  elevenLabsEl.textContent = fmtCost(el);
+  simliEl.textContent      = fmtCost(sim);
+  totalEl.textContent      = fmtCost(total);
+
+  // Payback vs ChatGPT Plus ($20/mo)
+  if (mins > 0) {
+    const chatgpt = 20;
+    const savings = total - chatgpt;  // how much MORE than chatgpt
+    const payback = 199 / Math.max(0.01, total);  // months until Selam "paid for itself" in AI savings vs a $0 alternative
+    // More useful: months until Selam purchase recouped vs paying same AI costs without Selam (Selam adds $199 upfront)
+    // Better framing: if user would pay $X/month anyway for an AI assistant, Selam costs $199 more upfront
+    if (total > 0) {
+      const monthsPayback = Math.ceil(199 / total * 10) / 10;
+      paybackLine.innerHTML = `At this usage, your AI costs are <strong>${fmtCost(total)}/mo</strong>. Selam's $199 one-time fee is covered by ${monthsPayback <= 2 ? 'less than ' + Math.ceil(monthsPayback) + ' months' : Math.ceil(monthsPayback) + ' months'} of use — after that, you're paying the same API costs whether you use Selam or not.`;
+    } else {
+      paybackLine.innerHTML = '';
+    }
+  } else {
+    paybackLine.innerHTML = '';
+  }
 }
+
+modelTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    modelTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    selectedModel = tab.dataset.model;
+    recalc();
+  });
+});
+
 hrs.addEventListener('input', recalc);
 days.addEventListener('input', recalc);
 recalc();
