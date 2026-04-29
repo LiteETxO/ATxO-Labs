@@ -1635,14 +1635,14 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
             <span class="label">Hours per day</span>
             <span class="hrs" id="hrsLabel">1 hr</span>
           </div>
-          <input type="range" id="hrs" min="0.5" max="8" step="0.5" value="1">
+          <input type="range" id="hrs" min="0" max="8" step="0.5" value="1">
         </div>
         <div class="calc-slider-row">
           <div class="calc-slider-top">
             <span class="label">Days per week</span>
             <span class="hrs" id="daysLabel">5 days</span>
           </div>
-          <input type="range" id="days" min="1" max="7" step="1" value="5">
+          <input type="range" id="days" min="0" max="7" step="1" value="5">
         </div>
       </div>
 
@@ -1710,21 +1710,21 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
       <details class="faq-item" open>
         <summary class="faq-q">Do I need technical skills to set this up? <span class="icon">+</span></summary>
         <div class="faq-a">
-          You need to be comfortable creating accounts on a few services (Anthropic, LiveAvatar) and pasting API keys into a settings screen. We walk you through it in the first-run flow. If you can set up a Gmail account, you can set up Selam.
+          You need to be comfortable creating accounts on a few services (Anthropic, ElevenLabs, Simli) and pasting API keys into a settings screen. We walk you through it in the first-run flow. If you can set up a Gmail account, you can set up Selam.
         </div>
       </details>
 
       <details class="faq-item">
         <summary class="faq-q">What's the real total cost? <span class="icon">+</span></summary>
         <div class="faq-a">
-          Selam is $199 one-time — that's it from us. On top of that you pay the AI providers directly: Anthropic for the brain, LiveAvatar for the face. For a typical user — one hour of voice conversation, five days a week — that's about $20–50/month in AI costs. Heavier usage scales up, lighter usage scales down. Use the calculator above to see your number.
+          Selam is $199 one-time — that's it from us. On top of that you pay the AI providers directly: Anthropic for the brain, ElevenLabs for the voice, and Simli for the avatar. For a typical user — one hour of voice conversation, five days a week — that's about $129/month in AI costs. Heavier usage scales up, lighter usage scales down. Use the calculator above to see your number.
         </div>
       </details>
 
       <details class="faq-item">
         <summary class="faq-q">Can you see my conversations? <span class="icon">+</span></summary>
         <div class="faq-a">
-          No. Your API keys are stored locally in your macOS Keychain. Your conversations go directly from your Mac to Anthropic (for the brain) and LiveAvatar (for the face). We don't have a server in the loop. We never see the content. We don't want to.
+          No. Your API keys are stored locally in your macOS Keychain. Your conversations go directly from your Mac to Anthropic (for the brain), ElevenLabs (for the voice), and Simli (for the avatar). We don't have a server in the loop. We never see the content. We don't want to.
         </div>
       </details>
 
@@ -1914,8 +1914,8 @@ function recalc() {
   const elevenlabs = mins * 0.01;
   const simli      = mins * 0.01;
   const total      = anthropic + elevenlabs + simli;
-  hrsLabel.textContent  = h === 1 ? '1 hr'   : h + ' hrs';
-  daysLabel.textContent = d === 1 ? '1 day'  : d + ' days';
+  hrsLabel.textContent  = h === 0 ? '0 hrs' : h === 1 ? '1 hr' : h % 1 === 0 ? h + ' hrs' : h + ' hrs';
+  daysLabel.textContent = d === 0 ? '0 days' : d === 1 ? '1 day' : d + ' days';
   anthropicEl.textContent  = fmt(anthropic);
   elevenLabsEl.textContent = fmt(elevenlabs);
   simliEl.textContent      = fmt(simli);
