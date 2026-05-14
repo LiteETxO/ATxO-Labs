@@ -431,6 +431,36 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   display: block;
   filter: sepia(0.12) saturate(1.08) brightness(0.97);
 }
+/* Hero screenshot — rendered as-is, no frame chrome. Rounded corners
+   are baked into the image itself with transparent corners (alpha
+   channel on the WebP, dark page-bg matched corners on the JPG
+   fallback). Avoids the "lighter strip showing through CSS clip"
+   issue we hit when border-radius cut through the avatar's bleed.
+   Outer <picture> handles the entrance fade; inner <img> floats
+   continuously — separate elements so the two transforms don't
+   fight on the same node. */
+.hero-screenshot-wrap {
+  display: block;
+  width: 100%;
+  opacity: 0;
+  animation: fadeUp 1.4s 0.4s ease-out forwards;
+}
+.hero-screenshot {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
+  object-fit: contain;
+  margin: 0 auto;
+  animation: heroFloat 6s 1.8s ease-in-out infinite;
+}
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-screenshot { animation: none; }
+}
 .hero-play-btn {
   position: absolute;
   top: 50%;
@@ -550,13 +580,13 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   line-height: 1;
   letter-spacing: -0.025em;
   margin-bottom: 1.5rem;
-  max-width: 20ch;
+  max-width: 32ch;
 }
 .section-head em { font-style: italic; color: var(--ember); }
 .section-sub {
   font-size: 1.15rem;
   color: var(--ink-dim);
-  max-width: 56ch;
+  max-width: 72ch;
   line-height: 1.55;
 }
 
@@ -656,6 +686,54 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 @media (max-width: 960px) { .build-steps { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .build-steps { grid-template-columns: 1fr; } .build-step { min-height: auto; } }
+
+/* Capabilities grid — 6 tiles in a 3×2 grid. Same hairline-divider
+   visual language as build-steps; slightly less tall since these
+   are punchier capability bites, not a guided process. */
+.capability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 4rem;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.capability-tile {
+  background: var(--paper);
+  padding: 2.25rem 2rem;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.3s ease;
+  position: relative;
+}
+.capability-tile:hover { background: var(--paper-2); }
+.capability-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ember);
+  letter-spacing: 0.12em;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+}
+.capability-tile h3 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+.capability-tile p {
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+@media (max-width: 960px) { .capability-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .capability-grid { grid-template-columns: 1fr; } .capability-tile { min-height: auto; } }
 
 /* Gallery trio */
 .gallery-intro { margin-bottom: 5rem; max-width: 780px; }
@@ -1400,23 +1478,25 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
 
       <div>
         <div class="hero-meta">
-          <span><span class="tick"></span>Live on your Mac</span>
+          <span><span class="tick"></span>Autonomous on your Mac</span>
           <span id="timestamp">—</span>
           <span>v1.0 · macOS</span>
         </div>
 
-        <h1>An AI <em>worker</em><br>that lives on<br>your <em>Mac.</em></h1>
+        <h1>An AI <em>operator</em><br>who runs ops<br>while you <em>sleep.</em></h1>
 
         <p class="hero-lede">
-          Selam reads your screen, drafts your messages, and handles your
-          inbox — across WhatsApp, Telegram, and iMessage. You pick the face,
-          the voice, and the name. They ask before doing anything risky.
+          Set the goal once. Selam takes initiative — directs her own
+          sub-agents, runs work overnight, reaches out across WhatsApp,
+          Telegram, iMessage and Email — and reports back what got done.
+          You pick the face, the voice, the name. She asks before anything
+          irreversible.
         </p>
 
         <div class="hero-actions">
           <!-- STRIPE_PAYMENT_LINK: replace href with your Stripe Payment Link URL -->
           <!-- Create at dashboard.stripe.com → Products → Payment Links -->
-          <a href="https://buy.stripe.com/14A00beNYd4c4HC38v8IU0f" class="btn-primary" id="buy-btn">
+          <a href="https://api.heyselam.app/buy" class="btn-primary" id="buy-btn">
             Hire Selam — $199
             <span class="arrow">→</span>
           </a>
@@ -1424,29 +1504,23 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         </div>
       </div>
 
-      <div class="portrait-frame" id="portraitFrame">
-        <div class="portrait-top">
-          <span>/first.run</span>
-          <span class="live">Live</span>
-        </div>
-
-        <!-- TODO: Once demo video is recorded, add:
-             src="assets/selam-demo.mp4"
-             controls
-             autoplay (muted) or loop as appropriate -->
-        <video
-          poster="assets/selam-poster.jpg"
-          muted
-          playsinline
-          preload="none"
-          aria-label="Selam demo — video coming soon"
-          class="hero-video"
-        ></video>
-        <div class="hero-play-btn" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="11,7 27,16 11,25" fill="currentColor"/>
-          </svg>
-        </div>
+      <!-- Real screenshot of Selam in a live session. Rendered as-is,
+           no frame chrome — the screenshot itself already shows the
+           full window. Wrapped in a <picture>-equivalent <div> so the
+           fade-in entrance and the continuous float animation can sit
+           on different elements (browsers conflate multi-transform
+           animations on a single node). -->
+      <div class="hero-screenshot-wrap">
+        <picture>
+          <source srcset="assets/selam-app.webp?v=6" type="image/webp">
+          <img
+            src="assets/selam-app.jpg?v=6"
+            alt="Selam app — 3D avatar rendering on-device, no cloud avatar service in the loop"
+            class="hero-screenshot"
+            loading="eager"
+            decoding="async"
+          >
+        </picture>
       </div>
 
     </div>
@@ -1593,13 +1667,14 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         <h2>Every platform starts with <em>one agent</em>.</h2>
         <p>
           We built Selam for our founder, Mikael, in Addis Ababa. She runs
-          his calendar, drafts his replies, reads his trading dashboards,
-          and tells him when he's pushing too hard.
+          his outreach overnight, watches his inbox for the replies that
+          matter, runs his trading dashboards, and reports each morning on
+          what got done. She doesn't wait to be asked.
         </p>
         <p>
-          She's been in production for over a year. She's why this product
-          exists — and why it's named after her. When you buy Selam, you
-          don't get Selam. You get the tools to build yours.
+          She's been operating autonomously for over a year. She's why
+          this product exists — and why it's named after her. When you buy
+          Selam, you don't get Selam. You get the tools to build yours.
         </p>
       </div>
       <div class="founder-portrait">
@@ -1612,10 +1687,57 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
   </div>
 </section>
 
+<!-- WHAT SHE ACTUALLY DOES -->
+<section class="section" id="capabilities">
+  <div class="container">
+    <div class="section-eyebrow">03 · What she actually does</div>
+    <h2 class="section-head">Not just an assistant.<br>An <em>autonomous operator</em>.</h2>
+    <p class="section-sub">
+      Selam doesn't wait to be asked. She takes initiative on the goals
+      you've set, runs work in the background while you sleep, builds
+      her own team to scale up when needed, and reports back on what got
+      done — not what's possible.
+    </p>
+
+    <div class="capability-grid">
+      <div class="capability-tile">
+        <div class="capability-num">a</div>
+        <h3>Works autonomously</h3>
+        <p>Set the goal once. She takes initiative, makes judgment calls inside your trust boundaries, and keeps moving — overnight, on weekends, between sessions. You ask "what have you been doing?" and she tells you.</p>
+      </div>
+      <div class="capability-tile">
+        <div class="capability-num">b</div>
+        <h3>A team, not just an agent</h3>
+        <p>Selam can spin up specialists — an outreach agent, an inbox agent, a research agent. You talk to her; she directs them.</p>
+      </div>
+      <div class="capability-tile">
+        <div class="capability-num">c</div>
+        <h3>Reaches people where they are</h3>
+        <p>WhatsApp, Telegram, Signal, iMessage, Email. She talks to your contacts on the channels they actually check.</p>
+      </div>
+      <div class="capability-tile">
+        <div class="capability-num">d</div>
+        <h3>Real integrations, not just chat</h3>
+        <p>Stripe revenue, your calendar, browser automation, GitHub PRs. She does work — not just describes it.</p>
+      </div>
+      <div class="capability-tile">
+        <div class="capability-num">e</div>
+        <h3>Asks before anything irreversible</h3>
+        <p>Outbound emails, money movement, public posts — voice confirmation required. Autonomy with guardrails, not without them.</p>
+      </div>
+      <div class="capability-tile">
+        <div class="capability-num">f</div>
+        <h3>Remembers</h3>
+        <p>What worked, what didn't, what you told her never to do again. Each session sharpens the next instead of starting over.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- COMPARISON -->
 <section class="section">
   <div class="container">
-    <div class="section-eyebrow">03 · vs. the alternatives</div>
+    <div class="section-eyebrow">04 · vs. the alternatives</div>
     <h2 class="section-head">Same models.<br><em>Very</em> different relationship.</h2>
     <p class="section-sub">
       Selam uses the same class of AI the rest of the industry uses. What
@@ -1645,7 +1767,7 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
 <!-- PRICING -->
 <section class="section" id="pricing">
   <div class="container">
-    <div class="section-eyebrow">04 · Pricing, without the hiding</div>
+    <div class="section-eyebrow">05 · Pricing, without the hiding</div>
     <h2 class="section-head">You pay us for <em>Selam</em>.<br>You pay the AI <em>directly</em>.</h2>
     <p class="section-sub">
       Selam is a one-time purchase — $199, yours forever. Bring your own keys
@@ -1704,7 +1826,7 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
 <!-- TESTIMONIALS -->
 <section class="section">
   <div class="container">
-    <div class="section-eyebrow">05 · Early users</div>
+    <div class="section-eyebrow">06 · Early users</div>
     <h2 class="section-head">The first ones <em>got it fast</em>.</h2>
     <p class="section-sub">
       Early buyers — operators, founders, and high-agency builders — put their
@@ -1841,7 +1963,7 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
     </p>
 
     <div style="margin-top:2.5rem;display:flex;flex-direction:column;align-items:center;gap:1.25rem;">
-      <a href="https://buy.stripe.com/14A00beNYd4c4HC38v8IU0f" class="btn-primary" id="get-buy-btn" style="font-size:1.05rem;padding:1.1rem 2.2rem;">
+      <a href="https://api.heyselam.app/buy" class="btn-primary" id="get-buy-btn" style="font-size:1.05rem;padding:1.1rem 2.2rem;">
         Hire Selam — $199
         <span class="arrow">→</span>
       </a>
@@ -1890,7 +2012,7 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
       Teach them who you are. $199 one-time for the software.
       You pay the AI providers directly at cost. Yours to keep.
     </p>
-    <a href="https://buy.stripe.com/14A00beNYd4c4HC38v8IU0f" class="btn-primary">
+    <a href="https://api.heyselam.app/buy" class="btn-primary">
       Hire Selam — $199
       <span class="arrow">→</span>
     </a>
