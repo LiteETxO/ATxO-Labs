@@ -452,6 +452,13 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   max-height: 80vh;
   object-fit: contain;
   margin: 0 auto;
+  /* Layered drop-shadow: a tight close-shadow grounds the screenshot,
+     and a softer wider shadow lifts it off the dark page background.
+     filter (not box-shadow) so the shadow respects the JPG's solid
+     rectangle and the WebP's alpha equally. */
+  filter:
+    drop-shadow(0 4px 10px rgba(0, 0, 0, 0.40))
+    drop-shadow(0 30px 60px rgba(0, 0, 0, 0.45));
   animation: heroFloat 6s 1.8s ease-in-out infinite;
 }
 @keyframes heroFloat {
@@ -1512,9 +1519,9 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
            animations on a single node). -->
       <div class="hero-screenshot-wrap">
         <picture>
-          <source srcset="assets/selam-app.webp?v=7" type="image/webp">
+          <source srcset="assets/selam-app.webp?v=8" type="image/webp">
           <img
-            src="assets/selam-app.jpg?v=7"
+            src="assets/selam-app.jpg?v=8"
             alt="Selam app — 3D avatar rendering on-device, no cloud avatar service in the loop"
             class="hero-screenshot"
             loading="eager"
