@@ -425,7 +425,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
     </div>
     <div class="price-grid">
       <div class="price-card reveal">
-        <div class="founder-tag">Founder license · first 100</div>
+        <div class="founder-tag" id="founderTag">Founder license · first 100</div>
         <div class="amt serif">$199<span> once</span></div>
         <div class="next-tier">First 100 licenses. Then $299.</div>
         <ul>
@@ -680,6 +680,21 @@ window.addEventListener('load',function(){
     signupError.style.display='none';
     form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
   });
+})();
+
+/* live founder counter — static "first 100" text stays if the fetch fails */
+(function(){
+  var tag=document.getElementById('founderTag');
+  if(!tag)return;
+  fetch('https://api.heyselam.app/api/founder')
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){
+      if(!d||typeof d.remaining!=='number')return;
+      if(d.founder_open){
+        tag.textContent='Founder license · '+d.remaining+' of '+d.cap+' remaining';
+      }
+    })
+    .catch(function(_){});
 })();
 </script>
 </body>
