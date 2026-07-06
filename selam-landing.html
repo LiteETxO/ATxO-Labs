@@ -1,1994 +1,538 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Selam — An AI worker that lives on your Mac.</title>
-<meta name="description" content="Selam is an autonomous AI worker for your Mac. Reads your screen, drafts your messages, handles your inbox — across WhatsApp, Telegram, and iMessage. With a face, voice, and name you choose. Asks before doing anything risky." />
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selam — An AI operator who runs ops while you sleep.</title>
+<meta name="description" content="Selam is an autonomous AI operator for your Mac. Sets her own sub-agents to work, runs overnight, reaches people across WhatsApp, Telegram, iMessage and Email, and reports back what got done. With a face, voice, and name you choose.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ TOKENS — DARK (default) ═══════════ */
-:root, [data-theme="dark"] {
-  --ink:            #faf6ef;
-  --ink-dim:        #c5bda9;
-  --ink-muted:      #7a7162;
-  --paper:          #0a0907;
-  --paper-2:        #141210;
-  --paper-3:        #1c1915;
-  --paper-4:        #25211a;
-  --line:           #2f2a22;
-  --line-bright:    #403a2f;
+:root{
+  --night:#0a0b11;
+  --night-2:#0e1018;
+  --surface:#14161f;
+  --surface-2:#191c27;
+  --line:rgba(232,221,200,.10);
+  --line-2:rgba(232,221,200,.18);
+  --ink:#f4efe4;
+  --ink-2:#b6b3ab;
+  --ink-3:#7c7a76;
+  --dawn:#e7b15c;
+  --dawn-soft:#f0cd8f;
+  --dawn-deep:#c9863a;
+  --ember:#e0795a;
+  --serif:"Fraunces",Georgia,serif;
+  --sans:"Hanken Grotesk",system-ui,sans-serif;
+  --mono:"JetBrains Mono",monospace;
+  --maxw:1100px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--night);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity:.035;mix-blend-mode:screen;
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;position:relative;z-index:1}
+.serif{font-family:var(--serif)}
+em{font-style:italic;color:var(--dawn-soft)}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dawn);}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dawn);display:inline-flex;align-items:center;gap:10px;}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--dawn);opacity:.6}
+h1,h2,h3{font-family:var(--serif);font-weight:500;line-height:1.05;letter-spacing:-.022em}
+h2.section-title{font-size:clamp(30px,4.6vw,54px);max-width:18ch;margin:28px 0 0}
+p.lede{color:var(--ink-2);font-size:clamp(16px,1.5vw,19px);max-width:54ch;margin-top:26px}
 
-  --ember:          #ff7145;
-  --ember-bright:   #ff9970;
-  --ember-dim:      #c45632;
-  --ember-deep:     #8a3a1e;
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:9px;font-weight:500;font-size:15px;padding:13px 22px;border-radius:100px;transition:.3s cubic-bezier(.2,.7,.2,1);white-space:nowrap}
+.btn-primary{background:var(--dawn);color:#241606;box-shadow:0 0 0 0 rgba(231,177,92,.4)}
+.btn-primary:hover{background:var(--dawn-soft);transform:translateY(-2px);box-shadow:0 14px 40px -12px rgba(231,177,92,.55)}
+.btn-ghost{color:var(--ink);border:1px solid var(--line-2)}
+.btn-ghost:hover{border-color:var(--dawn);color:var(--dawn-soft)}
+.arrow{transition:transform .3s}
+.btn:hover .arrow{transform:translateX(3px)}
 
-  --violet:         #9a8cff;
-  --sage:           #8fb376;
-  --success:        #8fb376;
+/* nav */
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,11,17,.6);border-bottom:1px solid transparent;transition:border-color .4s,background .4s}
+nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-family:var(--serif);font-weight:600;font-size:21px}
+.brand span{font-size:12px;color:var(--ink-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.nav-links{display:flex;align-items:center;gap:34px}
+.nav-links a.lnk{font-size:14px;color:var(--ink-2);position:relative}
+.nav-links a.lnk::after{content:"";position:absolute;left:0;bottom:-4px;width:0;height:1px;background:var(--dawn);transition:width .3s}
+.nav-links a.lnk:hover{color:var(--ink)}
+.nav-links a.lnk:hover::after{width:100%}
 
-  /* skin-ish warm tones for the avatar */
-  --skin-hi:        #c2957a;
-  --skin:           #8b604a;
-  --skin-shadow:    #3a2518;
+/* hero */
+.hero{position:relative;padding:48px 0 56px;overflow:hidden}
+.dawn{position:absolute;left:50%;top:-10%;transform:translateX(-50%);width:1300px;height:720px;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 80% at 50% 100%,rgba(231,177,92,.30),rgba(224,121,90,.14) 38%,transparent 70%);
+  filter:blur(10px);opacity:.9}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;position:relative;z-index:1}
+.hero h1{font-size:clamp(44px,6.6vw,82px);letter-spacing:-.032em;margin:28px 0 0}
+.hero p{color:var(--ink-2);font-size:clamp(16px,1.6vw,19px);max-width:48ch;margin-top:26px}
+.hero-cta{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.hero-meta{margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.05em}
+.hero-shot{position:relative;display:flex;justify-content:center}
+.hero-shot img{display:block;width:100%;height:auto;max-height:78vh;object-fit:contain;margin:0 auto;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.4)) drop-shadow(0 30px 60px rgba(0,0,0,.5));
+  animation:heroFloat 6s ease-in-out 1s infinite}
+@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media(prefers-reduced-motion:reduce){.hero-shot img{animation:none}}
+.dot{width:7px;height:7px;border-radius:50%;background:#7be3a4;box-shadow:0 0 10px #7be3a4;animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-  --font-display:   'Instrument Serif', 'Times New Roman', serif;
-  --font-body:      'Inter Tight', system-ui, sans-serif;
-  --font-mono:      'JetBrains Mono', ui-monospace, monospace;
+/* marquee */
+.ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:64px;padding:30px 0;overflow:hidden;position:relative}
+.ticker .label{position:absolute;left:32px;top:6px;z-index:2}
+.marquee{display:flex;gap:0;white-space:nowrap;animation:scroll-x 38s linear infinite;width:max-content}
+.marquee span{font-family:var(--serif);font-size:clamp(30px,4vw,52px);color:var(--ink);padding:0 28px;position:relative;opacity:.5;transition:opacity .3s}
+.marquee span:nth-child(15n+1){color:var(--dawn-soft);opacity:.95;font-style:italic}
+.marquee:hover{animation-play-state:paused}
+.marquee span:hover{opacity:1;color:var(--dawn-soft)}
+@keyframes scroll-x{to{transform:translateX(-50%)}}
+.ticker-foot{text-align:center;margin-top:26px;font-family:var(--serif);font-size:clamp(20px,2.6vw,30px);color:var(--ink-2)}
 
-  --max-w:          1440px;
-  --nav-h:          64px;
-}
+/* sections */
+section{position:relative;z-index:1}
+.block{padding:144px 0}
+.block-head{max-width:760px}
 
-/* ═══════════ TOKENS — LIGHT ═══════════ */
-[data-theme="light"] {
-  --ink:            #18130c;
-  --ink-dim:        #52483a;
-  --ink-muted:      #8a7e6a;
-  --paper:          #f5efe3;
-  --paper-2:        #ebe4d4;
-  --paper-3:        #e0d8c4;
-  --paper-4:        #d2c8b2;
-  --line:           #d8cfbc;
-  --line-bright:    #bfb39c;
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:72px}
+.step{background:var(--night);padding:40px;transition:background .4s}
+.step:hover{background:var(--surface)}
+.step .n{font-family:var(--mono);font-size:12px;color:var(--dawn);letter-spacing:.1em}
+.step h3{font-size:30px;margin:18px 0 12px}
+.step p{color:var(--ink-2);font-size:16px;max-width:42ch}
+.step .file{margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em}
 
-  --ember:          #d14e1f;
-  --ember-bright:   #ff7145;
-  --ember-dim:      #a43a14;
-  --ember-deep:     #6b260a;
+/* gallery */
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:72px}
+.char{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;border:1px solid var(--line);background:linear-gradient(180deg,var(--surface-2),#1c130a);transition:.4s cubic-bezier(.2,.7,.2,1)}
+.char img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92;transition:.5s}
+.char::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(8,9,13,.92))}
+.char:hover{transform:translateY(-6px);border-color:var(--dawn);box-shadow:0 30px 60px -30px rgba(231,177,92,.4)}
+.char:hover img{opacity:1;transform:scale(1.04)}
+.char .meta{position:absolute;left:18px;right:18px;bottom:16px;z-index:2}
+.char .meta h3{font-size:24px}
+.char .meta .tag{font-family:var(--mono);font-size:11px;color:var(--dawn);letter-spacing:.08em;text-transform:uppercase}
+.char .meta p{font-size:13px;color:var(--ink-2);margin-top:8px;opacity:0;max-height:0;transition:.4s;overflow:hidden}
+.char:hover .meta p{opacity:1;max-height:60px}
+.char .online{position:absolute;top:14px;right:14px;z-index:2;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:#9fe3b7;display:flex;align-items:center;gap:6px}
 
-  --violet:         #5648b8;
-  --sage:           #5d8c41;
-  --success:        #4e8038;
+/* founder */
+.founder{background:linear-gradient(180deg,transparent,rgba(20,16,10,.5),transparent)}
+.founder-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.founder blockquote{font-family:var(--serif);font-size:clamp(26px,3.2vw,40px);line-height:1.22;font-weight:400}
+.founder .src{margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.06em}
+.founder-portrait{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:4/5;border:1px solid var(--line-2);background:linear-gradient(180deg,var(--surface-2),#1c130a)}
+.founder-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.founder-portrait .cap{position:absolute;left:18px;bottom:16px;z-index:2;font-family:var(--mono);font-size:12px;color:var(--ink);background:rgba(10,11,17,.6);padding:6px 12px;border-radius:8px;backdrop-filter:blur(6px)}
 
-  --skin-hi:        #d1a68a;
-  --skin:           #9b6e54;
-  --skin-shadow:    #4a2e1d;
-}
+/* capabilities */
+.caps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:72px}
+.cap{background:var(--night);padding:34px;transition:background .4s}
+.cap:hover{background:var(--surface)}
+.cap .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(231,177,92,.12);color:var(--dawn);font-family:var(--serif);font-style:italic;font-size:20px}
+.cap h3{font-size:22px;margin:18px 0 10px}
+.cap p{color:var(--ink-2);font-size:15px}
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.55;
-  letter-spacing: -0.005em;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  position: relative;
-  transition: background-color 0.4s ease, color 0.4s ease;
-}
+/* compare */
+.compare{margin-top:72px;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:18px 22px;text-align:left;border-bottom:1px solid var(--line)}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+thead th:last-child{color:var(--dawn)}
+tbody td:first-child{color:var(--ink-2)}
+tbody td:last-child{color:var(--ink);font-weight:500;background:rgba(231,177,92,.05)}
+tbody tr:last-child td{border-bottom:none}
+.yes{color:var(--dawn-soft)}
+.no{color:var(--ink-3)}
 
-/* Grain */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-}
-[data-theme="light"] body::before { mix-blend-mode: multiply; opacity: 0.08; }
+/* pricing */
+.price-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:24px;margin-top:72px}
+.price-card,.calc{border:1px solid var(--line);border-radius:18px;padding:38px;background:var(--surface)}
+.price-card{border-color:var(--dawn);background:linear-gradient(180deg,rgba(231,177,92,.08),var(--surface));display:flex;flex-direction:column}
+.price-card .amt{font-family:var(--serif);font-size:64px;line-height:1}
+.price-card .amt span{font-size:20px;color:var(--ink-2)}
+.price-card ul{list-style:none;margin:24px 0;display:grid;gap:12px}
+.price-card li{display:flex;gap:10px;align-items:center;color:var(--ink-2);font-size:15px}
+.price-card li::before{content:"✦";color:var(--dawn);font-size:12px}
+.price-card .btn{margin-top:auto}
+.calc h3{font-family:var(--sans);font-weight:500;font-size:15px;color:var(--ink-2);margin-bottom:24px}
+.field{margin-bottom:24px}
+.field .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.field label{font-size:14px;color:var(--ink-2)}
+.field .val{font-family:var(--mono);font-size:14px;color:var(--dawn-soft)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:4px;background:var(--surface-2);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--dawn);cursor:pointer;border:3px solid var(--night);box-shadow:0 0 0 1px var(--dawn)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--dawn);cursor:pointer;border:3px solid var(--night)}
+.models{display:flex;gap:8px;flex-wrap:wrap}
+.model{flex:1;min-width:120px;padding:12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:.25s;text-align:left;background:transparent;color:var(--ink-2);font-family:var(--sans)}
+.model.active{border-color:var(--dawn);background:rgba(231,177,92,.08);color:var(--ink)}
+.model b{display:block;font-size:14px;font-weight:500}
+.model small{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.03em}
+.model.active small{color:var(--dawn)}
+.result{margin-top:26px;padding-top:24px;border-top:1px solid var(--line);display:grid;gap:10px}
+.result .line{display:flex;justify-content:space-between;font-size:14px;color:var(--ink-2)}
+.result .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+.result .total span{font-size:14px;color:var(--ink-2)}
+.result .total b{font-family:var(--serif);font-size:32px;font-weight:500;color:var(--ink)}
+.fineprint{margin-top:18px;font-size:12px;color:var(--ink-3);line-height:1.5}
 
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(255,113,69,0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 85% 100%, rgba(154,140,255,0.03) 0%, transparent 50%);
-}
+/* testimonials */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:72px}
+.quote{border:1px solid var(--line);border-radius:16px;padding:32px;background:var(--surface);transition:.4s}
+.quote:hover{border-color:var(--line-2);transform:translateY(-4px)}
+.quote .mark{font-family:var(--serif);font-size:50px;color:var(--dawn);line-height:.5;opacity:.5}
+.quote p{font-family:var(--serif);font-size:19px;line-height:1.4;margin:14px 0 22px}
+.quote .who{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em}
 
-a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+/* faq */
+.faq{margin-top:48px;max-width:840px}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:26px 0;display:flex;justify-content:space-between;align-items:center;gap:20px;font-family:var(--serif);font-size:clamp(19px,2vw,24px);transition:color .3s}
+summary::-webkit-details-marker{display:none}
+summary .pm{color:var(--dawn);font-size:24px;transition:transform .3s;flex-shrink:0}
+details[open] summary .pm{transform:rotate(45deg)}
+summary:hover{color:var(--dawn-soft)}
+details .ans{padding:0 40px 28px 0;color:var(--ink-2);font-size:16px;line-height:1.65}
 
-.container {
-  max-width: var(--max-w);
-  margin: 0 auto;
-  padding: 0 2.5rem;
-  position: relative;
-  z-index: 2;
-}
-@media (max-width: 760px) { .container { padding: 0 1.5rem; } }
+/* tech */
+.tech{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:72px}
+.tile{background:var(--night);padding:28px}
+.tile .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dawn);margin-bottom:12px}
+.tile .v{font-size:14px;color:var(--ink-2);line-height:1.5}
 
-/* ═══════════ NAV ═══════════ */
-.nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 50;
-  backdrop-filter: blur(28px) saturate(1.5);
-  -webkit-backdrop-filter: blur(28px) saturate(1.5);
-  background: color-mix(in srgb, var(--paper) 70%, transparent);
-  border-bottom: 1px solid var(--line);
-  height: var(--nav-h);
-}
-.nav-inner {
-  max-width: var(--max-w);
-  margin: 0 auto;
-  padding: 0 2.5rem;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-}
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-}
-.nav-brand .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--ember);
-  box-shadow: 0 0 12px var(--ember), 0 0 24px color-mix(in srgb, var(--ember) 50%, transparent);
-  animation: breathe 3s ease-in-out infinite;
-}
-.nav-brand .suffix {
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-left: 0.2rem;
-}
-@keyframes breathe {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.6; transform: scale(0.88); }
-}
-.nav-right { display: flex; align-items: center; gap: 1.5rem; }
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.nav-links a { color: var(--ink-dim); transition: color 0.2s; }
-.nav-links a:hover { color: var(--ember); }
-.nav-cta {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--paper);
-  background: var(--ink);
-  padding: 0.7rem 1.15rem;
-  border-radius: 2px;
-  transition: all 0.2s;
-}
-.nav-cta:hover { background: var(--ember); }
+/* final */
+.final{text-align:center;padding:140px 0 100px}
+.final h2{font-size:clamp(40px,6vw,76px);max-width:14ch;margin:0 auto}
+.final p{color:var(--ink-2);margin:26px auto 0;max-width:46ch}
+.final .hero-cta{justify-content:center}
+.final .note{margin-top:24px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em}
 
-.theme-toggle {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: all 0.25s;
-  color: var(--ink-dim);
-}
-.theme-toggle:hover { border-color: var(--ember); color: var(--ember); transform: rotate(15deg); }
-.theme-toggle svg { width: 16px; height: 16px; }
-[data-theme="dark"] .theme-toggle .sun,  [data-theme="light"] .theme-toggle .moon { display: none; }
-[data-theme="dark"] .theme-toggle .moon, [data-theme="light"] .theme-toggle .sun  { display: block; }
+footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
+.foot-inner{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em;flex-wrap:wrap;gap:16px}
 
-@media (max-width: 860px) { .nav-links { display: none; } }
+/* signup */
+.signup-block{padding:0 0 120px}
+.signup-card{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;border:1px solid var(--line);border-radius:18px;padding:48px;background:linear-gradient(180deg,rgba(231,177,92,.05),var(--surface));position:relative;overflow:hidden}
+.signup-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--dawn),transparent)}
+.signup-intro h3{font-size:clamp(26px,3vw,34px);margin:16px 0 14px}
+.signup-intro p{color:var(--ink-2);font-size:15px;max-width:42ch;line-height:1.6}
+.signup-form{display:flex;flex-direction:column;gap:12px}
+.input-row{display:flex;background:var(--night-2);border:1px solid var(--line-2);border-radius:10px;transition:border-color .25s}
+.input-row:focus-within{border-color:var(--dawn)}
+.signup-form input{flex:1;background:transparent;border:none;outline:none;color:var(--ink);font-family:var(--sans);font-size:15px;padding:14px 16px;width:100%}
+.signup-form input::placeholder{color:var(--ink-3)}
+.signup-form button[type=submit]{margin-top:4px;background:var(--dawn);color:#241606;font-family:var(--sans);font-weight:500;font-size:15px;padding:14px 22px;border-radius:100px;border:none;cursor:pointer;transition:.3s cubic-bezier(.2,.7,.2,1)}
+.signup-form button[type=submit]:hover{background:var(--dawn-soft);transform:translateY(-2px);box-shadow:0 14px 40px -12px rgba(231,177,92,.55)}
+.signup-form button[type=submit]:disabled{opacity:.6;cursor:default;transform:none;box-shadow:none}
+.signup-form .hint{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.signup-form .hint::before{content:"";width:5px;height:5px;border-radius:50%;background:#7be3a4;box-shadow:0 0 8px #7be3a4}
+.signup-success{display:none;padding:8px 0}
+.signup-success.visible{display:block}
+.signup-success .success-title{font-family:var(--serif);font-size:22px;color:var(--dawn-soft);display:block;margin-bottom:8px}
+.signup-success .success-body{color:var(--ink-2);font-size:15px;line-height:1.6}
+.signup-error{font-family:var(--mono);font-size:12px;color:var(--ink-2);line-height:1.6}
+.signup-error a{color:var(--dawn-soft)}
+.signup-error button{color:var(--dawn-soft);background:none;border:none;cursor:pointer;font:inherit;text-decoration:underline;padding:0}
+@media(max-width:880px){.signup-card{grid-template-columns:1fr;gap:28px;padding:32px}}
 
-/* ═══════════ HERO ═══════════ */
-.hero {
-  min-height: 100vh;
-  padding: calc(var(--nav-h) + 4rem) 0 4rem;
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-.hero-mesh {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.hero-mesh div {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  animation: float 20s ease-in-out infinite;
-}
-.hero-mesh-a {
-  top: -20%; right: -10%;
-  width: 70vw; height: 70vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ember) 20%, transparent) 0%, transparent 60%);
-}
-.hero-mesh-b {
-  bottom: -30%; left: -20%;
-  width: 80vw; height: 80vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ember-deep) 25%, transparent) 0%, transparent 60%);
-  animation-delay: -7s;
-}
-.hero-mesh-c {
-  top: 30%; left: 40%;
-  width: 50vw; height: 50vw;
-  background: radial-gradient(circle, color-mix(in srgb, var(--violet) 10%, transparent) 0%, transparent 70%);
-  animation-delay: -14s;
-}
-@keyframes float {
-  0%, 100% { transform: translate(0, 0); }
-  33%      { transform: translate(-3%, 2%); }
-  66%      { transform: translate(2%, -3%); }
-}
+.reveal{will-change:transform,opacity}
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 4rem;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-  width: 100%;
-}
-@media (max-width: 960px) {
-  .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
-}
-
-.hero-meta {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 2.5rem;
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-  opacity: 0;
-  animation: fadeUp 0.8s 0.1s ease-out forwards;
-}
-.hero-meta .tick {
-  display: inline-block;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--success);
-  margin-right: 0.4rem;
-  vertical-align: middle;
-  animation: breathe 2s ease-in-out infinite;
-}
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.hero h1 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(3.5rem, 9vw, 9rem);
-  line-height: 0.9;
-  letter-spacing: -0.035em;
-  margin-bottom: 2.25rem;
-  opacity: 0;
-  animation: fadeUp 1s 0.3s ease-out forwards;
-}
-.hero h1 em {
-  font-style: italic;
-  color: var(--ember);
-  text-shadow: 0 0 30px color-mix(in srgb, var(--ember) 40%, transparent);
-}
-.hero-lede {
-  font-size: 1.35rem;
-  line-height: 1.45;
-  color: var(--ink-dim);
-  max-width: 44ch;
-  margin-bottom: 3rem;
-  opacity: 0;
-  animation: fadeUp 1s 0.6s ease-out forwards;
-}
-.hero-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-  opacity: 0;
-  animation: fadeUp 1s 0.9s ease-out forwards;
-}
-
-.btn-primary {
-  padding: 1.1rem 1.9rem;
-  background: var(--ember);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-radius: 2px;
-  transition: all 0.25s cubic-bezier(.2,.8,.2,1);
-  display: inline-flex;
-  gap: 0.5rem;
-  align-items: center;
-  position: relative;
-  box-shadow: 0 4px 40px color-mix(in srgb, var(--ember) 25%, transparent);
-  cursor: pointer;
-}
-.btn-primary:hover {
-  background: var(--ember-bright);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 50px color-mix(in srgb, var(--ember) 50%, transparent);
-}
-.btn-primary .arrow { transition: transform 0.2s; display: inline-block; }
-.btn-primary:hover .arrow { transform: translateX(3px); }
-
-.btn-ghost {
-  padding: 1.1rem 1.25rem;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-  border-bottom: 1px solid var(--line-bright);
-  transition: all 0.2s;
-  cursor: pointer;
-}
-.btn-ghost:hover { color: var(--ember); border-bottom-color: var(--ember); }
-
-/* ═══════════ PORTRAIT — properly rendered ═══════════ */
-.portrait-frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1400/757;
-  max-height: 70vh;
-  background:
-    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 15%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 50%, var(--paper) 100%);
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  overflow: hidden;
-  opacity: 0;
-  animation: fadeUp 1.4s 0.4s ease-out forwards;
-  box-shadow:
-    0 40px 80px -20px rgba(0,0,0,0.8),
-    0 0 60px color-mix(in srgb, var(--ember) 8%, transparent),
-    inset 0 1px 0 rgba(255,255,255,0.04);
-}
-[data-theme="light"] .portrait-frame {
-  background:
-    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 12%, transparent) 0%, transparent 55%),
-    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 50%, var(--paper-4) 100%);
-  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.15), 0 0 60px color-mix(in srgb, var(--ember) 6%, transparent);
-}
-
-.portrait-top {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  z-index: 5;
-  border-bottom: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--paper) 60%, transparent) 0%, transparent 100%);
-}
-.portrait-top .live {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--success);
-}
-.portrait-top .live::before {
-  content: '';
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 10px var(--success);
-  animation: breathe 1.5s ease-in-out infinite;
-}
-
-/* Hero video panel */
-.hero-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  filter: sepia(0.12) saturate(1.08) brightness(0.97);
-}
-/* Hero screenshot — rendered as-is, no frame chrome. Rounded corners
-   are baked into the image itself with transparent corners (alpha
-   channel on the WebP, dark page-bg matched corners on the JPG
-   fallback). Avoids the "lighter strip showing through CSS clip"
-   issue we hit when border-radius cut through the avatar's bleed.
-   Outer <picture> handles the entrance fade; inner <img> floats
-   continuously — separate elements so the two transforms don't
-   fight on the same node. */
-.hero-screenshot-wrap {
-  display: block;
-  width: 100%;
-  opacity: 0;
-  animation: fadeUp 1.4s 0.4s ease-out forwards;
-}
-.hero-screenshot {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 80vh;
-  object-fit: contain;
-  margin: 0 auto;
-  /* Layered drop-shadow: a tight close-shadow grounds the screenshot,
-     and a softer wider shadow lifts it off the dark page background.
-     filter (not box-shadow) so the shadow respects the JPG's solid
-     rectangle and the WebP's alpha equally. */
-  filter:
-    drop-shadow(0 4px 10px rgba(0, 0, 0, 0.40))
-    drop-shadow(0 30px 60px rgba(0, 0, 0, 0.45));
-  animation: heroFloat 6s 1.8s ease-in-out infinite;
-}
-@keyframes heroFloat {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-screenshot { animation: none; }
-}
-.hero-play-btn {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--paper) 70%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--ember) 40%, transparent);
-  display: grid;
-  place-items: center;
-  color: var(--ember);
-  pointer-events: none;
-  z-index: 4;
-  box-shadow: 0 0 30px color-mix(in srgb, var(--ember) 20%, transparent);
-}
-.hero-play-btn svg { width: 28px; height: 28px; margin-left: 4px; }
-@media (max-width: 900px) {
-  .hero-play-btn { width: 64px; height: 64px; }
-  .hero-play-btn svg { width: 22px; height: 22px; }
-}
-
-/* ═══════════ Name marquee ═══════════ */
-.name-strip {
-  position: relative;
-  padding: 3.5rem 0;
-  overflow: hidden;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(90deg, var(--paper) 0%, var(--paper-2) 50%, var(--paper) 100%);
-}
-.name-strip::before, .name-strip::after {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 200px;
-  z-index: 5;
-  pointer-events: none;
-}
-.name-strip::before { left: 0; background: linear-gradient(90deg, var(--paper) 0%, transparent 100%); }
-.name-strip::after  { right: 0; background: linear-gradient(270deg, var(--paper) 0%, transparent 100%); }
-
-.name-strip-label {
-  position: absolute;
-  top: 50%;
-  left: 2.5rem;
-  transform: translateY(-50%);
-  z-index: 6;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ember);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 0.5rem 0.75rem;
-  background: var(--paper);
-  border: 1px solid var(--line);
-}
-@media (max-width: 760px) { .name-strip-label { display: none; } }
-
-.marquee {
-  display: flex;
-  gap: 4rem;
-  white-space: nowrap;
-  animation: scroll 50s linear infinite;
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 4.5rem);
-  letter-spacing: -0.015em;
-  line-height: 1;
-}
-.marquee-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 3rem;
-  color: var(--ink-dim);
-  transition: color 0.3s;
-}
-.marquee-item:hover { color: var(--ember); }
-.marquee-item::before {
-  content: '●';
-  font-size: 0.5em;
-  color: var(--ember);
-}
-@keyframes scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-/* ═══════════ Section base ═══════════ */
-.section {
-  padding: 8rem 0;
-  position: relative;
-}
-.section-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ember);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 1.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.section-eyebrow::before {
-  content: '';
-  width: 24px;
-  height: 1px;
-  background: var(--ember);
-}
-.section-head {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2.5rem, 5.5vw, 4.75rem);
-  line-height: 1;
-  letter-spacing: -0.025em;
-  margin-bottom: 1.5rem;
-  max-width: 32ch;
-}
-.section-head em { font-style: italic; color: var(--ember); }
-.section-sub {
-  font-size: 1.15rem;
-  color: var(--ink-dim);
-  max-width: 72ch;
-  line-height: 1.55;
-}
-
-/* Credo */
-.credo { padding: 6rem 0; position: relative; overflow: hidden; }
-.credo-text {
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 10vw, 10rem);
-  line-height: 0.92;
-  letter-spacing: -0.035em;
-  max-width: 18ch;
-}
-.credo-text em { font-style: italic; color: var(--ember); }
-.credo-text .muted { color: var(--ink-muted); }
-.credo-bg {
-  position: absolute;
-  top: 20%;
-  right: -10%;
-  width: 50vw;
-  height: 50vw;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ember) 10%, transparent) 0%, transparent 65%);
-  filter: blur(60px);
-  pointer-events: none;
-  z-index: 0;
-}
-.credo .container { position: relative; z-index: 1; }
-
-/* Build Steps */
-.build-steps {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  margin-top: 5rem;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.build-step {
-  background: var(--paper);
-  padding: 2.5rem 2rem;
-  min-height: 380px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-.build-step::before {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0;
-  width: 100%; height: 0;
-  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--ember) 8%, transparent) 100%);
-  transition: height 0.3s;
-}
-.build-step:hover { background: var(--paper-2); }
-.build-step:hover::before { height: 100%; }
-.build-step-num {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ember);
-  letter-spacing: 0.12em;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  position: relative;
-}
-.build-step-num::after { content: ''; flex: 1; height: 1px; background: var(--line); }
-.build-step h3 {
-  font-family: var(--font-display);
-  font-size: 1.95rem;
-  font-weight: 400;
-  line-height: 1.1;
-  margin-bottom: 1.25rem;
-  letter-spacing: -0.015em;
-  position: relative;
-}
-.build-step h3 em { font-style: italic; color: var(--ember); }
-.build-step p {
-  color: var(--ink-dim);
-  font-size: 0.95rem;
-  margin-bottom: 1.5rem;
-  position: relative;
-}
-.build-step-detail {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ink-muted);
-  padding-top: 1.25rem;
-  border-top: 1px dashed var(--line-bright);
-  letter-spacing: 0.03em;
-  position: relative;
-}
-@media (max-width: 960px) { .build-steps { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 560px) { .build-steps { grid-template-columns: 1fr; } .build-step { min-height: auto; } }
-
-/* Capabilities grid — 6 tiles in a 3×2 grid. Same hairline-divider
-   visual language as build-steps; slightly less tall since these
-   are punchier capability bites, not a guided process. */
-.capability-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  margin-top: 4rem;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.capability-tile {
-  background: var(--paper);
-  padding: 2.25rem 2rem;
-  min-height: 240px;
-  display: flex;
-  flex-direction: column;
-  transition: background 0.3s ease;
-  position: relative;
-}
-.capability-tile:hover { background: var(--paper-2); }
-.capability-num {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ember);
-  letter-spacing: 0.12em;
-  margin-bottom: 1.25rem;
-  text-transform: uppercase;
-}
-.capability-tile h3 {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 400;
-  line-height: 1.15;
-  margin-bottom: 1rem;
-  letter-spacing: -0.01em;
-}
-.capability-tile p {
-  color: var(--ink-dim);
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin: 0;
-}
-@media (max-width: 960px) { .capability-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 560px) { .capability-grid { grid-template-columns: 1fr; } .capability-tile { min-height: auto; } }
-
-/* Gallery trio */
-.gallery-intro { margin-bottom: 5rem; max-width: 780px; }
-.trio {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-}
-.agent-card {
-  background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
-  border: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  transition: all 0.4s cubic-bezier(.2,.8,.2,1);
-  overflow: hidden;
-  border-radius: 3px;
-}
-.agent-card:hover {
-  border-color: var(--line-bright);
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.4);
-}
-.agent-portrait {
-  aspect-ratio: 1;
-  position: relative;
-  overflow: hidden;
-  border-bottom: 1px solid var(--line);
-}
-.agent-portrait .bg {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 30%, var(--glow, color-mix(in srgb, var(--ember) 20%, transparent)) 0%, transparent 65%);
-}
-.agent-portrait .mini-figure {
-  position: absolute;
-  bottom: -4%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 65%;
-  aspect-ratio: 3/4;
-}
-.mini-figure-shoulders {
-  position: absolute;
-  bottom: 0;
-  left: -10%; right: -10%;
-  height: 38%;
-  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-4) 100%);
-  clip-path: polygon(15% 100%, 85% 100%, 95% 15%, 75% 0%, 25% 0%, 5% 15%);
-}
-.mini-figure-head {
-  position: absolute;
-  bottom: 36%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 58%;
-  aspect-ratio: 4/5;
-  background:
-    radial-gradient(ellipse 70% 55% at 45% 40%, color-mix(in srgb, var(--skin) 70%, transparent) 0%, transparent 60%),
-    linear-gradient(180deg, var(--paper-4) 0%, var(--paper-3) 70%, var(--paper-2) 100%);
-  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
-  box-shadow: inset 20px -10px 40px rgba(0,0,0,0.5), inset 0 30px 30px var(--glow-inset, color-mix(in srgb, var(--ember) 6%, transparent));
-}
-.mini-figure-hair {
-  position: absolute;
-  top: -8%;
-  left: -5%;
-  right: -5%;
-  height: 40%;
-  background: radial-gradient(ellipse 100% 80% at 50% 100%, var(--paper) 0%, rgba(0,0,0,0.85) 70%);
-  border-radius: 60% 60% 30% 30% / 80% 80% 30% 30%;
-}
-.mini-eyes {
-  position: absolute;
-  top: 41%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 46%;
-  display: flex;
-  justify-content: space-between;
-  z-index: 3;
-}
-.mini-eye {
-  width: 22%;
-  aspect-ratio: 1.5/1;
-  background: radial-gradient(ellipse at 50% 60%, #fff 0%, #e8dfd0 60%, #b5a990 100%);
-  border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 -1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.5);
-}
-.mini-eye::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 55%;
-  height: 80%;
-  background: var(--eye-color, var(--ember));
-  border-radius: 50%;
-  box-shadow: 0 0 8px var(--eye-color, var(--ember));
-  animation: breathe 4s ease-in-out infinite;
-}
-.mini-eye::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 20%;
-  height: 30%;
-  background: #000;
-  border-radius: 50%;
-  z-index: 2;
-}
-
-.agent-a { --glow: color-mix(in srgb, var(--ember) 22%, transparent); --glow-inset: color-mix(in srgb, var(--ember) 8%, transparent); --eye-color: #ff7145; }
-.agent-b { --glow: color-mix(in srgb, var(--sage) 22%, transparent); --glow-inset: color-mix(in srgb, var(--sage) 8%, transparent); --eye-color: #8fb376; }
-.agent-c { --glow: color-mix(in srgb, var(--violet) 22%, transparent); --glow-inset: color-mix(in srgb, var(--violet) 8%, transparent); --eye-color: #9a8cff; }
-
-.agent-dot-indicator {
-  position: absolute;
-  top: 1rem; left: 1rem;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: var(--success);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.agent-dot-indicator::before {
-  content: '';
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 8px var(--success);
-  animation: breathe 2s ease-in-out infinite;
-}
-
-.agent-body { padding: 1.75rem; }
-.agent-name {
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  letter-spacing: -0.015em;
-  line-height: 1;
-}
-.agent-owner {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-top: 0.5rem;
-}
-.agent-quote {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.1rem;
-  color: var(--ink);
-  line-height: 1.4;
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--line);
-}
-@media (max-width: 960px) { .trio { grid-template-columns: 1fr; } }
-
-/* Founder's agent */
-.founder-wrap {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 5rem;
-  align-items: center;
-  background:
-    radial-gradient(ellipse at 80% 50%, color-mix(in srgb, var(--ember) 8%, transparent) 0%, transparent 60%),
-    linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
-  border: 1px solid var(--line);
-  padding: 5rem 3rem;
-  position: relative;
-  overflow: hidden;
-  border-radius: 3px;
-}
-.founder-wrap::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--ember) 0%, var(--ember-deep) 100%);
-}
-.founder-tag {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ember);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 1.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.founder-tag::before { content: ''; width: 24px; height: 1px; background: var(--ember); }
-.founder-wrap h2 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2.25rem, 4.5vw, 3.75rem);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
-  margin-bottom: 1.5rem;
-}
-.founder-wrap h2 em { font-style: italic; color: var(--ember); }
-.founder-wrap p {
-  color: var(--ink-dim);
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-  max-width: 44ch;
-  line-height: 1.6;
-}
-.founder-portrait {
-  aspect-ratio: 4/5;
-  background:
-    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--ember) 15%, transparent) 0%, transparent 60%),
-    linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 100%);
-  border: 1px solid var(--line);
-  position: relative;
-  overflow: hidden;
-  max-width: 380px;
-  margin-left: auto;
-  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
-}
-.founder-portrait::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.6) 95%);
-  z-index: 2;
-  pointer-events: none;
-}
-.founder-portrait .mini-figure { width: 70%; bottom: -5%; }
-.founder-portrait .caption {
-  position: absolute;
-  bottom: 1rem; left: 1rem; right: 1rem;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.04em;
-  text-align: center;
-  z-index: 3;
-  padding: 0.5rem;
-  background: color-mix(in srgb, var(--paper) 60%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-.founder-portrait .caption strong { color: var(--ember); font-weight: 400; }
-@media (max-width: 960px) {
-  .founder-wrap { grid-template-columns: 1fr; gap: 3rem; padding: 3rem 2rem; }
-  .founder-portrait { max-width: 320px; margin: 0 auto; }
-}
-
-/* Compare */
-.compare { margin-top: 4rem; border: 1px solid var(--line); overflow-x: auto; border-radius: 3px; background: var(--paper); }
-.compare table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.9rem; }
-.compare th, .compare td {
-  text-align: left;
-  padding: 1.15rem 1.4rem;
-  border-bottom: 1px solid var(--line);
-  border-right: 1px solid var(--line);
-}
-.compare th:last-child, .compare td:last-child { border-right: none; }
-.compare tr:last-child th, .compare tr:last-child td { border-bottom: none; }
-.compare thead th {
-  background: var(--paper-2);
-  font-weight: 500;
-  color: var(--ink);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 1.25rem 1.4rem;
-}
-.compare thead th.highlight {
-  background: linear-gradient(180deg, var(--ember) 0%, var(--ember-dim) 100%);
-  color: #fff;
-  position: relative;
-}
-.compare thead th.highlight::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--ember-bright);
-}
-.compare tbody th { color: var(--ink-dim); font-weight: 400; }
-.compare td.no { color: var(--ink-muted); }
-.compare td.highlight {
-  color: var(--ember);
-  font-weight: 500;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--ember) 6%, transparent) 0%, color-mix(in srgb, var(--ember) 2%, transparent) 100%);
-}
-
-/* Calculator */
-.calc {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  margin-top: 4rem;
-  border-radius: 3px;
-  overflow: hidden;
-}
-.calc-input, .calc-output { padding: 3rem; }
-.calc-input { background: var(--paper); }
-.calc-output {
-  background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-}
-.calc-output::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ember) 10%, transparent) 0%, transparent 70%);
-  pointer-events: none;
-}
-.calc-label {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ember);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 1.25rem;
-}
-.calc-question {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.5vw, 1.95rem);
-  line-height: 1.15;
-  margin-bottom: 2.5rem;
-  letter-spacing: -0.015em;
-}
-.calc-slider-row { margin-bottom: 2rem; }
-.calc-slider-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.75rem;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-}
-.calc-slider-top .hrs { color: var(--ember); font-size: 1.15rem; font-weight: 500; }
-.calc-slider-top .label { color: var(--ink-dim); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
-input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 3px;
-  background: var(--line-bright);
-  border-radius: 2px;
-  outline: none;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px; height: 22px;
-  background: var(--ember);
-  border-radius: 50%;
-  cursor: grab;
-  box-shadow: 0 0 0 4px var(--paper), 0 0 20px color-mix(in srgb, var(--ember) 50%, transparent);
-  transition: transform 0.15s;
-}
-input[type=range]::-webkit-slider-thumb:active { transform: scale(1.15); cursor: grabbing; }
-input[type=range]::-moz-range-thumb {
-  width: 22px; height: 22px;
-  background: var(--ember);
-  border-radius: 50%;
-  cursor: grab;
-  border: none;
-  box-shadow: 0 0 0 4px var(--paper), 0 0 20px color-mix(in srgb, var(--ember) 50%, transparent);
-}
-
-.calc-breakdown { font-family: var(--font-mono); font-size: 0.85rem; display: flex; flex-direction: column; gap: 1rem; position: relative; }
-.calc-row { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 1rem; border-bottom: 1px dashed var(--line); }
-.calc-row .name { color: var(--ink-dim); }
-.calc-row .cost { color: var(--ink); font-weight: 500; }
-.calc-row.total {
-  border-bottom: none;
-  padding-top: 1.25rem;
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--line);
-}
-.calc-row.total .name { color: var(--ink); font-weight: 500; }
-.calc-row.total .cost {
-  color: var(--ember);
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  font-weight: 400;
-  line-height: 1;
-  text-shadow: 0 0 20px color-mix(in srgb, var(--ember) 30%, transparent);
-}
-.calc-footnote {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ink-muted);
-  line-height: 1.6;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--line);
-  position: relative;
-}
-.calc-model-tabs { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
-.calc-model-tab {
-  display: flex; align-items: center; gap: 0.75rem;
-  background: var(--paper-2); border: 1px solid var(--line);
-  border-radius: 6px; padding: 0.65rem 1rem;
-  font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);
-  cursor: pointer; text-align: left; transition: all 0.15s;
-}
-.calc-model-tab:hover { border-color: var(--line-bright); color: var(--ink); }
-.calc-model-tab.active { border-color: var(--ember); color: var(--ink); background: color-mix(in srgb, var(--ember) 6%, var(--paper-2)); }
-.calc-model-badge {
-  margin-left: auto; font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase;
-  padding: 2px 6px; border-radius: 3px;
-  background: color-mix(in srgb, var(--ember) 15%, transparent); color: var(--ember);
-}
-.calc-model-badge--cheap {
-  background: color-mix(in srgb, #6fffa1 15%, transparent); color: #6fffa1;
-}
-.calc-payback {
-  font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);
-  margin-top: 1.5rem; padding: 0.75rem 1rem;
-  background: color-mix(in srgb, var(--ember) 5%, var(--paper-2));
-  border: 1px solid color-mix(in srgb, var(--ember) 20%, transparent);
-  border-radius: 4px; line-height: 1.6;
-}
-.calc-payback strong { color: var(--ember); }
-@media (max-width: 860px) { .calc { grid-template-columns: 1fr; } .calc-input, .calc-output { padding: 2rem; } }
-
-/* Testimonials */
-.testim {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  margin-top: 4rem;
-}
-.testim-card {
-  background: var(--paper-2);
-  border: 1px solid var(--line);
-  padding: 2.25rem;
-  border-radius: 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  transition: all 0.3s;
-}
-.testim-card:hover { border-color: var(--line-bright); transform: translateY(-2px); }
-.testim-card .mark {
-  font-family: var(--font-display);
-  font-size: 4rem;
-  color: var(--ember);
-  line-height: 0.5;
-  opacity: 0.6;
-}
-.testim-card blockquote {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.3rem;
-  line-height: 1.35;
-  color: var(--ink);
-  flex: 1;
-}
-.testim-card .who {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-}
-.testim-card .who strong { color: var(--ember); font-weight: 500; }
-@media (max-width: 960px) { .testim { grid-template-columns: 1fr; } }
-
-/* FAQ */
-.faq { margin-top: 4rem; max-width: 880px; }
-.faq-item {
-  border-bottom: 1px solid var(--line);
-  padding: 1.5rem 0;
-}
-.faq-q {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 400;
-  text-align: left;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  cursor: pointer;
-  padding: 0.5rem 0;
-  transition: color 0.2s;
-}
-.faq-q:hover { color: var(--ember); }
-.faq-q .icon {
-  font-family: var(--font-mono);
-  font-size: 1.5rem;
-  color: var(--ember);
-  flex-shrink: 0;
-  transition: transform 0.3s;
-  margin-top: 0.25rem;
-  line-height: 1;
-}
-.faq-item[open] .faq-q .icon { transform: rotate(45deg); }
-.faq-a {
-  padding: 1rem 0 0.5rem;
-  color: var(--ink-dim);
-  line-height: 1.65;
-  max-width: 70ch;
-  font-size: 1rem;
-}
-
-/* Tech */
-.tech { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: start; }
-.tech-spec { border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 0.88rem; }
-.tech-spec dt { padding: 1rem 0 0.3rem; color: var(--ember); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
-.tech-spec dd { padding: 0 0 1rem; border-bottom: 1px solid var(--line); color: var(--ink); margin-left: 0; line-height: 1.5; }
-@media (max-width: 860px) { .tech { grid-template-columns: 1fr; gap: 3rem; } }
-
-/* Signup / waitlist */
-.signup-wrap {
-  background:
-    radial-gradient(ellipse at 30% 50%, color-mix(in srgb, var(--ember) 10%, transparent) 0%, transparent 60%),
-    linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
-  border: 1px solid var(--line);
-  padding: 4rem 3rem;
-  margin-top: 4rem;
-  border-radius: 3px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-}
-.signup-wrap::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 2px;
-  background: linear-gradient(90deg, var(--ember) 0%, var(--ember-deep) 100%);
-}
-.signup-intro h3 {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin-bottom: 1rem;
-}
-.signup-intro h3 em { font-style: italic; color: var(--ember); }
-.signup-intro p { color: var(--ink-dim); font-size: 1rem; line-height: 1.55; max-width: 42ch; }
-
-.signup-form { display: flex; flex-direction: column; gap: 1rem; }
-.signup-form .input-row {
-  display: flex;
-  gap: 0.5rem;
-  background: var(--paper);
-  border: 1px solid var(--line-bright);
-  border-radius: 2px;
-  padding: 0.35rem;
-  transition: border-color 0.2s;
-}
-.signup-form .input-row:focus-within { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 15%, transparent); }
-.signup-form input[type=email],
-.signup-form input[type=text] {
-  flex: 1;
-  background: transparent;
-  border: none;
-  padding: 0.8rem 1rem;
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  outline: none;
-  width: 100%;
-}
-.signup-form input[type=email]::placeholder,
-.signup-form input[type=text]::placeholder { color: var(--ink-muted); }
-.signup-form button[type=submit] {
-  padding: 0.8rem 1.5rem;
-  background: var(--ember);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 500;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.signup-form button[type=submit]:hover { background: var(--ember-bright); box-shadow: 0 0 20px color-mix(in srgb, var(--ember) 40%, transparent); }
-.signup-form .hint {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ink-muted);
-  letter-spacing: 0.04em;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.signup-form .hint::before {
-  content: '';
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 6px var(--success);
-}
-.signup-success {
-  padding: 1.5rem 0;
-  display: none;
-}
-.signup-success.visible { display: block; }
-.signup-success .success-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  color: var(--ember);
-  display: block;
-  margin-bottom: 0.75rem;
-}
-.signup-success .success-body {
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  color: var(--ink-dim);
-  line-height: 1.55;
-}
-.signup-error {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--ink-dim);
-  letter-spacing: 0.02em;
-  line-height: 1.6;
-}
-.signup-error a { color: var(--ember); }
-.signup-error button { color: var(--ember); background: none; border: none; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
-
-@media (max-width: 860px) { .signup-wrap { grid-template-columns: 1fr; padding: 2.5rem 1.5rem; gap: 2rem; } }
-
-/* Finale */
-.finale { padding: 10rem 0; text-align: center; position: relative; overflow: hidden; }
-.finale::before {
-  content: '';
-  position: absolute;
-  top: 20%; left: 50%; transform: translateX(-50%);
-  width: 80%; height: 500px;
-  background: radial-gradient(ellipse, color-mix(in srgb, var(--ember) 18%, transparent) 0%, transparent 65%);
-  filter: blur(60px);
-  pointer-events: none;
-}
-.finale h2 {
-  font-family: var(--font-display);
-  font-size: clamp(3.5rem, 11vw, 9rem);
-  font-weight: 400;
-  line-height: 0.92;
-  letter-spacing: -0.035em;
-  margin-bottom: 2.5rem;
-  position: relative;
-}
-.finale h2 em { font-style: italic; color: var(--ember); text-shadow: 0 0 40px color-mix(in srgb, var(--ember) 50%, transparent); }
-.finale p { font-size: 1.25rem; color: var(--ink-dim); margin-bottom: 3rem; max-width: 48ch; margin-left: auto; margin-right: auto; position: relative; }
-.finale .btn-primary { font-size: 0.95rem; padding: 1.25rem 2.5rem; position: relative; }
-
-/* Footer */
-footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); }
-.footer-inner {
-  max-width: var(--max-w);
-  margin: 0 auto;
-  padding: 0 2.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.footer-links { display: flex; gap: 1.75rem; }
-.footer-links a { color: var(--ink-muted); transition: color 0.2s; }
-.footer-links a:hover { color: var(--ember); }
-
-@media (max-width: 760px) {
-  .hero { padding: calc(var(--nav-h) + 2.5rem) 0 3rem; }
-  .section { padding: 5rem 0; }
-  .finale { padding: 6rem 0; }
-  .container, .nav-inner, .footer-inner { padding-left: 1.5rem; padding-right: 1.5rem; }
-  .founder-wrap, .signup-wrap { padding: 2.5rem 1.5rem; }
-  .portrait-frame { max-height: 55vw; }
-}
+@media(max-width:880px){
+  .hero-grid,.founder-grid,.price-grid{grid-template-columns:1fr;gap:40px}
+  .steps,.caps,.gallery,.quotes,.tech{grid-template-columns:1fr}
+  .gallery{grid-template-columns:1fr 1fr}
+  .nav-links a.lnk{display:none}
+  .block{padding:80px 0}
+  .wrap{padding:0 22px}
+  .hero-shot{order:-1}
+}
+@media(max-width:520px){.gallery{grid-template-columns:1fr}}
 </style>
 </head>
-
 <body>
 
-<!-- NAV -->
-<nav class="nav">
-  <div class="nav-inner">
-    <a href="#top" class="nav-brand">
-      <span class="dot"></span>
-      Selam
-      <span class="suffix">/ by ATXO Labs</span>
-    </a>
-    <div class="nav-right">
-      <div class="nav-links">
-        <a href="#how">How it works</a>
-        <a href="#gallery">Gallery</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#faq">FAQ</a>
-      </div>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-        </svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      </button>
-      <a href="#get" class="nav-cta">Hire Selam</a>
+<nav id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top"><b>Selam</b><span>by Deribe Labs</span></a>
+    <div class="nav-links">
+      <a class="lnk" href="#how">How it works</a>
+      <a class="lnk" href="#gallery">Gallery</a>
+      <a class="lnk" href="#guardrails">Guardrails</a>
+      <a class="lnk" href="#pricing">Pricing</a>
+      <a class="lnk" href="#faq">FAQ</a>
+      <a class="btn btn-primary" href="https://api.heyselam.app/buy">Hire Selam <span class="arrow">→</span></a>
     </div>
   </div>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-mesh">
-    <div class="hero-mesh-a"></div>
-    <div class="hero-mesh-b"></div>
-    <div class="hero-mesh-c"></div>
+<header class="hero" id="top">
+  <div class="dawn"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow reveal">Autonomous on your Mac · v1.0</span>
+      <h1 class="serif reveal">An AI <em>operator</em> who runs ops while you <em>sleep.</em></h1>
+      <p class="reveal">Set the goal once. Selam takes initiative — directs her own sub-agents, runs work overnight, reaches out across WhatsApp, Telegram, iMessage and Email — and reports back what got done. You pick the face, the voice, the name. She asks before anything irreversible.</p>
+      <div class="hero-cta reveal">
+        <a class="btn btn-primary" href="https://api.heyselam.app/buy">Hire Selam — $199 <span class="arrow">→</span></a>
+        <a class="btn btn-ghost" href="#how">See them work</a>
+      </div>
+      <div class="hero-meta reveal">macOS 14+ · Apple silicon recommended · 500 MB · 14-day refund</div>
+    </div>
+    <div class="hero-shot reveal">
+      <picture>
+        <source srcset="/assets/selam-app.webp?v=8" type="image/webp">
+        <img src="/assets/selam-app.jpg?v=8" alt="The Selam app in a live session — the on-device avatar, ready to start" loading="eager" decoding="async">
+      </picture>
+    </div>
   </div>
 
-  <div class="container">
-    <div class="hero-grid">
+  <div class="ticker">
+    <span class="label mono">Agents being built right now</span>
+    <div class="marquee" id="marquee"></div>
+    <div class="ticker-foot serif">Every AI on earth sounds the same. <em>Yours shouldn't.</em></div>
+  </div>
+</header>
 
-      <div>
-        <div class="hero-meta">
-          <span><span class="tick"></span>Autonomous on your Mac</span>
-          <span id="timestamp">—</span>
-          <span>v1.0 · macOS</span>
-        </div>
-
-        <h1>An AI <em>operator</em><br>who runs ops<br>while you <em>sleep.</em></h1>
-
-        <p class="hero-lede">
-          Set the goal once. Selam takes initiative — directs her own
-          sub-agents, runs work overnight, reaches out across WhatsApp,
-          Telegram, iMessage and Email — and reports back what got done.
-          You pick the face, the voice, the name. She asks before anything
-          irreversible.
-        </p>
-
-        <div class="hero-actions">
-          <!-- STRIPE_PAYMENT_LINK: replace href with your Stripe Payment Link URL -->
-          <!-- Create at dashboard.stripe.com → Products → Payment Links -->
-          <a href="https://api.heyselam.app/buy" class="btn-primary" id="buy-btn">
-            Hire Selam — $199
-            <span class="arrow">→</span>
-          </a>
-          <a href="#how" class="btn-ghost">See them work</a>
-        </div>
-      </div>
-
-      <!-- Real screenshot of Selam in a live session. Rendered as-is,
-           no frame chrome — the screenshot itself already shows the
-           full window. Wrapped in a <picture>-equivalent <div> so the
-           fade-in entrance and the continuous float animation can sit
-           on different elements (browsers conflate multi-transform
-           animations on a single node). -->
-      <div class="hero-screenshot-wrap">
-        <picture>
-          <source srcset="assets/selam-app.webp?v=8" type="image/webp">
-          <img
-            src="assets/selam-app.jpg?v=8"
-            alt="Selam app — 3D avatar rendering on-device, no cloud avatar service in the loop"
-            class="hero-screenshot"
-            loading="eager"
-            decoding="async"
-          >
-        </picture>
-      </div>
-
+<section class="block" id="how">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">01 · How it works</span>
+      <h2 class="section-title serif reveal">Four steps. <em>Thirty minutes.</em> Then they're yours.</h2>
+      <p class="lede reveal">Selam is the platform — your agent is yours. Four steps in the first-run flow and your agent is alive on your desktop, with their own face, name, and sense of who they work for.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="n">Step 01</div><h3 class="serif">Give them a <em>name.</em></h3><p>Kiya. Daniel. Reya. Whatever you'd call across the room — they'll answer to it.</p><div class="file">wake word · voice trigger · identity starts here</div></div>
+      <div class="step reveal"><div class="n">Step 02</div><h3 class="serif">Give them a <em>face.</em></h3><p>Choose from a curated set of expressive 3D characters. Rendered on your Mac — no streaming, no per-minute bill, nothing leaves the device.</p><div class="file">5 included characters · more coming</div></div>
+      <div class="step reveal"><div class="n">Step 03</div><h3 class="serif">Give them a <em>soul.</em></h3><p>Write who they are in plain English. Their mission, their voice, their relationship to you.</p><div class="file">~/selam/SOUL.md · IDENTITY.md</div></div>
+      <div class="step reveal"><div class="n">Step 04</div><h3 class="serif">Tell them <em>who you are.</em></h3><p>Your work, your people, your projects, your patterns. They use it every time you speak.</p><div class="file">~/selam/USER.md · MEMORY.md</div></div>
     </div>
   </div>
 </section>
 
-<!-- NAME MARQUEE -->
-<section class="name-strip">
-  <div class="name-strip-label">Agents being built right now</div>
-  <div class="marquee">
-    <span class="marquee-item">Kiya</span><span class="marquee-item">Daniel</span><span class="marquee-item">Reya</span><span class="marquee-item">Marcus</span><span class="marquee-item">Amara</span><span class="marquee-item">Noa</span><span class="marquee-item">Tesfaye</span><span class="marquee-item">Sofia</span><span class="marquee-item">Isaac</span><span class="marquee-item">Nadia</span><span class="marquee-item">Jomo</span><span class="marquee-item">Hana</span><span class="marquee-item">Ezra</span><span class="marquee-item">Lwin</span><span class="marquee-item">Selam</span>
-    <span class="marquee-item">Kiya</span><span class="marquee-item">Daniel</span><span class="marquee-item">Reya</span><span class="marquee-item">Marcus</span><span class="marquee-item">Amara</span><span class="marquee-item">Noa</span><span class="marquee-item">Tesfaye</span><span class="marquee-item">Sofia</span><span class="marquee-item">Isaac</span><span class="marquee-item">Nadia</span><span class="marquee-item">Jomo</span><span class="marquee-item">Hana</span><span class="marquee-item">Ezra</span><span class="marquee-item">Lwin</span><span class="marquee-item">Selam</span>
+<section class="block" id="gallery">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">02 · Gallery</span>
+      <h2 class="section-title serif reveal">No two are <em>alike.</em></h2>
+      <p class="lede reveal">A million people can use Selam. There will only ever be one of your agent. They are what you made them.</p>
+    </div>
+    <div class="gallery" id="gallery-grid"></div>
   </div>
 </section>
 
-<!-- CREDO -->
-<section class="credo">
-  <div class="credo-bg"></div>
-  <div class="container">
-    <p class="credo-text">
-      Every AI on earth sounds <span class="muted">the same.</span>
-      <em>Yours shouldn't.</em>
-    </p>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="section" id="how">
-  <div class="container">
-    <div class="section-eyebrow">01 · How it works</div>
-    <h2 class="section-head">Four steps. <em>Thirty minutes</em>.<br>Then they're yours.</h2>
-    <p class="section-sub">
-      Selam is the platform. Your agent is yours. Four steps in the first-run
-      flow and your agent is alive — on your desktop, with their own face,
-      name, and sense of who they work for.
-    </p>
-
-    <div class="build-steps">
-      <div class="build-step">
-        <div>
-          <div class="build-step-num">Step 01</div>
-          <h3>Give them a <em>name</em>.</h3>
-          <p>Kiya. Daniel. Reya. Marcus. Whatever you want to call across the room. They'll answer to it.</p>
-        </div>
-        <div class="build-step-detail">Wake word · voice trigger · identity starts here.</div>
-      </div>
-      <div class="build-step">
-        <div>
-          <div class="build-step-num">Step 02</div>
-          <h3>Give them a <em>face</em>.</h3>
-          <p>Choose from our curated library, or upload a two-minute video to create a custom avatar who looks and sounds however you want.</p>
-        </div>
-        <div class="build-step-detail">50+ stock avatars · custom on Pro.</div>
-      </div>
-      <div class="build-step">
-        <div>
-          <div class="build-step-num">Step 03</div>
-          <h3>Give them a <em>soul</em>.</h3>
-          <p>Write who they are in plain English. Their mission. Their voice. Their relationship to you. Editable anytime, by you.</p>
-        </div>
-        <div class="build-step-detail">~/selam/SOUL.md · IDENTITY.md</div>
-      </div>
-      <div class="build-step">
-        <div>
-          <div class="build-step-num">Step 04</div>
-          <h3>Tell them <em>who you are</em>.</h3>
-          <p>Your work. Your people. Your projects. Your patterns. They'll use this context every time you speak.</p>
-        </div>
-        <div class="build-step-detail">~/selam/USER.md · MEMORY.md</div>
-      </div>
+<section class="block founder">
+  <div class="wrap founder-grid">
+    <div>
+      <span class="eyebrow reveal">Meet Selam — the original</span>
+      <blockquote class="reveal serif">We built Selam for our founder. She runs his outreach overnight, watches his inbox for the replies that matter, runs his trading dashboards, and reports each morning on what got done. <em>She doesn't wait to be asked.</em></blockquote>
+      <p class="lede reveal">She's been operating autonomously for over a year — she's why this product exists, and why it's named after her. When you buy Selam, you don't get Selam. You get the tools to build yours.</p>
+      <div class="src reveal">Selam · the founder's agent · est. 2025</div>
+    </div>
+    <div class="founder-portrait reveal">
+      <img src="/assets/selam-hero.webp" alt="Selam, the original agent" loading="lazy">
+      <div class="cap">the first one</div>
     </div>
   </div>
 </section>
 
-<!-- GALLERY -->
-<section class="section" id="gallery">
-  <div class="container">
-    <div class="gallery-intro">
-      <div class="section-eyebrow">02 · Gallery</div>
-      <h2 class="section-head">No two are <em>alike</em>.</h2>
-      <p class="section-sub">
-        A million people can use Selam. There will only ever be one of your
-        agent. They are what you made them — and nothing is stopping you from
-        making someone your competitor never could.
-      </p>
-      <p style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:1rem;">Illustrative examples</p>
+<section class="block">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">03 · What she actually does</span>
+      <h2 class="section-title serif reveal">Not just an assistant. An <em>autonomous operator.</em></h2>
+      <p class="lede reveal">She takes initiative on the goals you've set, runs work in the background while you sleep, builds her own team to scale up, and reports back on what got done — not what's possible.</p>
     </div>
-
-    <div class="trio">
-      <div class="agent-card">
-        <div class="agent-portrait agent-a">
-          <div class="bg"></div>
-          <div class="agent-dot-indicator">Online</div>
-          <div class="mini-figure" style="overflow:hidden;">
-            <img src="assets/kiya.webp" alt="Kiya" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
-          </div>
-        </div>
-        <div class="agent-body">
-          <div class="agent-name">Kiya</div>
-          <div class="agent-owner">A founder's agent · Addis Ababa</div>
-          <div class="agent-quote">"Investor meeting at 3. You have one thing you must not forget to ask about."</div>
-        </div>
-      </div>
-
-      <div class="agent-card">
-        <div class="agent-portrait agent-b">
-          <div class="bg"></div>
-          <div class="agent-dot-indicator">Online</div>
-          <div class="mini-figure" style="overflow:hidden;">
-            <img src="assets/daniel.webp" alt="Daniel" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
-          </div>
-        </div>
-        <div class="agent-body">
-          <div class="agent-name">Daniel</div>
-          <div class="agent-owner">A VP's agent · Brooklyn</div>
-          <div class="agent-quote">"The brief from legal is rough — I queued three clarifying questions for you."</div>
-        </div>
-      </div>
-
-      <div class="agent-card">
-        <div class="agent-portrait agent-c">
-          <div class="bg"></div>
-          <div class="agent-dot-indicator">Online</div>
-          <div class="mini-figure" style="overflow:hidden;">
-            <img src="assets/reya.webp" alt="Reya" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
-          </div>
-        </div>
-        <div class="agent-body">
-          <div class="agent-name">Reya</div>
-          <div class="agent-owner">A solo operator's agent · Nairobi</div>
-          <div class="agent-quote">"You've been heads-down for four hours. Go get coffee. I'll hold your queue."</div>
-        </div>
-      </div>
+    <div class="caps">
+      <div class="cap reveal"><div class="ic">a</div><h3 class="serif">Works autonomously</h3><p>Set the goal once. She makes judgment calls inside your trust boundaries and keeps moving — overnight, weekends, between sessions.</p></div>
+      <div class="cap reveal"><div class="ic">b</div><h3 class="serif">A team, not one agent</h3><p>She spins up specialists — outreach, inbox, research. You talk to her; she directs them.</p></div>
+      <div class="cap reveal"><div class="ic">c</div><h3 class="serif">Reaches people anywhere</h3><p>WhatsApp, Telegram, Signal, iMessage, Email. On the channels your contacts actually check.</p></div>
+      <div class="cap reveal"><div class="ic">d</div><h3 class="serif">Real integrations</h3><p>Stripe revenue, your calendar, browser automation, GitHub PRs. She does work — not just describes it.</p></div>
+      <div class="cap reveal"><div class="ic">e</div><h3 class="serif">Asks before the irreversible</h3><p>Outbound emails, money movement, public posts — voice confirmation required. Autonomy with guardrails.</p></div>
+      <div class="cap reveal"><div class="ic">f</div><h3 class="serif">Remembers</h3><p>What worked, what didn't, what you said never to do again. Each session sharpens the next.</p></div>
     </div>
   </div>
 </section>
 
-<!-- FOUNDER'S AGENT -->
-<section class="section">
-  <div class="container">
-    <div class="founder-wrap">
-      <div>
-        <div class="founder-tag">Meet Selam — the original</div>
-        <h2>Every platform starts with <em>one agent</em>.</h2>
-        <p>
-          We built Selam for our founder, Mikael, in Addis Ababa. She runs
-          his outreach overnight, watches his inbox for the replies that
-          matter, runs his trading dashboards, and reports each morning on
-          what got done. She doesn't wait to be asked.
-        </p>
-        <p>
-          She's been operating autonomously for over a year. She's why
-          this product exists — and why it's named after her. When you buy
-          Selam, you don't get Selam. You get the tools to build yours.
-        </p>
-      </div>
-      <div class="founder-portrait">
-        <div class="mini-figure agent-a" style="position:absolute;overflow:hidden;">
-          <img src="assets/selam-hero.webp" alt="Selam" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
-        </div>
-        <div class="caption"><strong>Selam</strong> · Mikael's agent · est. 2025</div>
-      </div>
+<section class="block">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">04 · vs. the alternatives</span>
+      <h2 class="section-title serif reveal">Same models. <em>Very</em> different relationship.</h2>
+      <p class="lede reveal">You're not paying for smarter intelligence. You're paying for an AI that has a name, a face, and a life with you — instead of a browser tab you forget about.</p>
     </div>
-  </div>
-</section>
-
-<!-- WHAT SHE ACTUALLY DOES -->
-<section class="section" id="capabilities">
-  <div class="container">
-    <div class="section-eyebrow">03 · What she actually does</div>
-    <h2 class="section-head">Not just an assistant.<br>An <em>autonomous operator</em>.</h2>
-    <p class="section-sub">
-      Selam doesn't wait to be asked. She takes initiative on the goals
-      you've set, runs work in the background while you sleep, builds
-      her own team to scale up when needed, and reports back on what got
-      done — not what's possible.
-    </p>
-
-    <div class="capability-grid">
-      <div class="capability-tile">
-        <div class="capability-num">a</div>
-        <h3>Works autonomously</h3>
-        <p>Set the goal once. She takes initiative, makes judgment calls inside your trust boundaries, and keeps moving — overnight, on weekends, between sessions. You ask "what have you been doing?" and she tells you.</p>
-      </div>
-      <div class="capability-tile">
-        <div class="capability-num">b</div>
-        <h3>A team, not just an agent</h3>
-        <p>Selam can spin up specialists — an outreach agent, an inbox agent, a research agent. You talk to her; she directs them.</p>
-      </div>
-      <div class="capability-tile">
-        <div class="capability-num">c</div>
-        <h3>Reaches people where they are</h3>
-        <p>WhatsApp, Telegram, Signal, iMessage, Email. She talks to your contacts on the channels they actually check.</p>
-      </div>
-      <div class="capability-tile">
-        <div class="capability-num">d</div>
-        <h3>Real integrations, not just chat</h3>
-        <p>Stripe revenue, your calendar, browser automation, GitHub PRs. She does work — not just describes it.</p>
-      </div>
-      <div class="capability-tile">
-        <div class="capability-num">e</div>
-        <h3>Asks before anything irreversible</h3>
-        <p>Outbound emails, money movement, public posts — voice confirmation required. Autonomy with guardrails, not without them.</p>
-      </div>
-      <div class="capability-tile">
-        <div class="capability-num">f</div>
-        <h3>Remembers</h3>
-        <p>What worked, what didn't, what you told her never to do again. Each session sharpens the next instead of starting over.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- COMPARISON -->
-<section class="section">
-  <div class="container">
-    <div class="section-eyebrow">04 · vs. the alternatives</div>
-    <h2 class="section-head">Same models.<br><em>Very</em> different relationship.</h2>
-    <p class="section-sub">
-      Selam uses the same class of AI the rest of the industry uses. What
-      you're paying for isn't smarter intelligence. It's an AI that has a
-      name, a face, and a life with you — instead of a browser tab you
-      forget about.
-    </p>
-
-    <div class="compare">
+    <div class="compare reveal">
       <table>
-        <thead>
-          <tr><th></th><th>ChatGPT</th><th>Claude Desktop</th><th class="highlight">Your Selam agent</th></tr>
-        </thead>
+        <thead><tr><th></th><th>ChatGPT</th><th>Claude Desktop</th><th>Your Selam agent</th></tr></thead>
         <tbody>
-          <tr><th>Has a name you gave them</th><td class="no">No</td><td class="no">No</td><td class="highlight">Yes</td></tr>
-          <tr><th>Has a face</th><td class="no">—</td><td class="no">—</td><td class="highlight">Yours or ours</td></tr>
-          <tr><th>Identity you wrote</th><td class="no">Corporate default</td><td class="no">Corporate default</td><td class="highlight">Plain-text, yours</td></tr>
-          <tr><th>Remembers your life</th><td class="no">Thin</td><td class="no">Thin</td><td class="highlight">Editable long-term memory</td></tr>
-          <tr><th>Works autonomously</th><td class="no">Limited</td><td class="no">Limited</td><td class="highlight">Approval-gated actions</td></tr>
-          <tr><th>Your data</th><td class="no">Their servers</td><td class="no">Their servers</td><td class="highlight">Your keys, your Mac</td></tr>
+          <tr><td>Has a name you gave them</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+          <tr><td>Has a face</td><td class="no">—</td><td class="no">—</td><td class="yes">Yours or ours</td></tr>
+          <tr><td>Identity you wrote</td><td class="no">Corporate default</td><td class="no">Corporate default</td><td class="yes">Plain-text, yours</td></tr>
+          <tr><td>Remembers your life</td><td class="no">Thin</td><td class="no">Thin</td><td class="yes">Editable long-term memory</td></tr>
+          <tr><td>Works autonomously</td><td class="no">Limited</td><td class="no">Limited</td><td class="yes">Approval-gated actions</td></tr>
+          <tr><td>Your data</td><td class="no">Their servers</td><td class="no">Their servers</td><td class="yes">Your keys, your Mac</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </section>
 
-<!-- PRICING -->
-<section class="section" id="pricing">
-  <div class="container">
-    <div class="section-eyebrow">05 · Pricing, without the hiding</div>
-    <h2 class="section-head">You pay us for <em>Selam</em>.<br>You pay the AI <em>directly</em>.</h2>
-    <p class="section-sub">
-      Selam is a one-time purchase — $199, yours forever. Bring your own keys
-      for Anthropic, Simli, and ElevenLabs. Your API bills go straight to
-      those providers at cost; we never see your conversations or take a cut.
-    </p>
+<section class="block" id="guardrails">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">05 · Guardrails</span>
+      <h2 class="section-title serif reveal">Autonomy you can <em>walk away from.</em></h2>
+      <p class="lede reveal">Autonomous agents made headlines this year for the wrong reasons — thousands of instances left wide open on the internet, agents burning budgets, agents claiming work they never did. Selam was engineered the opposite way: local, capped, tiered, and verified.</p>
+    </div>
+    <div class="caps">
+      <div class="cap reveal"><div class="ic">a</div><h3 class="serif">Nothing listening on the internet</h3><p>Selam runs on your Mac and talks outward. No public ports, no hosted dashboard, no exposed instance for someone to find. There's nothing to break into because nothing is listening.</p></div>
+      <div class="cap reveal"><div class="ic">b</div><h3 class="serif">Four trust tiers, T0–T3</h3><p>Every action is classified before it runs. Silent internal work at T0; anything irreversible or public — sending money, posting, emailing a human — sits at the top and waits for your spoken yes.</p></div>
+      <div class="cap reveal"><div class="ic">c</div><h3 class="serif">Spend caps at four levels</h3><p>Per attempt, per run, per task per day — and a single kill switch over all autonomous work. A runaway loop hits a wall in cents, not dollars.</p></div>
+      <div class="cap reveal"><div class="ic">d</div><h3 class="serif">Fails safe, automatically</h3><p>An autonomous task that fails three runs in a row pauses itself and tells you — it doesn't keep hammering, and it doesn't quietly disappear.</p></div>
+      <div class="cap reveal"><div class="ic">e</div><h3 class="serif">Verifies her own work</h3><p>Deliverables pass mechanical checks before you ever see them — a research digest without real sources gets flagged as unverified, not read to you as fact.</p></div>
+      <div class="cap reveal"><div class="ic">f</div><h3 class="serif">Never claims what she didn't see</h3><p>A send only counts when it's observed. If a message can't be confirmed, she says exactly that. Every autonomous run leaves a plain-file record on your disk you can audit.</p></div>
+    </div>
+  </div>
+</section>
 
-    <div class="calc">
-      <div class="calc-input">
-        <div class="calc-label">Your usage</div>
-        <div class="calc-question">How many hours a day will your agent be working for you?</div>
-
-        <div class="calc-slider-row">
-          <div class="calc-slider-top">
-            <span class="label">Hours per day</span>
-            <span class="hrs" id="hrsLabel">1 hr</span>
-          </div>
-          <input type="range" id="hrs" min="0" max="8" step="0.5" value="1">
-        </div>
-        <div class="calc-slider-row">
-          <div class="calc-slider-top">
-            <span class="label">Days per week</span>
-            <span class="hrs" id="daysLabel">5 days</span>
-          </div>
-          <input type="range" id="days" min="0" max="7" step="1" value="5">
-        </div>
-
-        <div class="calc-label" style="margin-top:2rem;">Brain model</div>
-        <div class="calc-model-tabs" id="modelTabs">
-          <button class="calc-model-tab active" data-model="haiku">Haiku 4.5<span class="calc-model-badge">default</span></button>
-          <button class="calc-model-tab" data-model="gemini">Gemini 2.5 Flash<span class="calc-model-badge calc-model-badge--cheap">~7× cheaper</span></button>
-          <button class="calc-model-tab" data-model="deepseek">DeepSeek V3<span class="calc-model-badge calc-model-badge--cheap">~10× cheaper</span></button>
-        </div>
+<section class="block" id="pricing">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">06 · Pricing, without the hiding</span>
+      <h2 class="section-title serif reveal">You pay us for <em>Selam.</em> You pay the AI <em>directly.</em></h2>
+      <p class="lede reveal">Selam is a one-time purchase. Bring your own keys for Anthropic and ElevenLabs. Your API bills go straight to those providers at cost — we never see your conversations or take a cut.</p>
+    </div>
+    <div class="price-grid">
+      <div class="price-card reveal">
+        <div class="amt serif">$199<span> once</span></div>
+        <ul>
+          <li>Yours forever</li>
+          <li>Lifetime updates</li>
+          <li>Refundable within 14 days</li>
+          <li>No subscription. No renewal.</li>
+        </ul>
+        <a class="btn btn-primary" href="https://api.heyselam.app/buy">Hire Selam <span class="arrow">→</span></a>
       </div>
-
-      <div class="calc-output">
-        <div>
-          <div class="calc-label">Estimated monthly AI costs</div>
-          <div class="calc-breakdown">
-            <div class="calc-row"><span class="name" id="brainLabel">Haiku 4.5 (brain)</span><span class="cost" id="anthropicCost">—</span></div>
-            <div class="calc-row"><span class="name">ElevenLabs Starter (voice)</span><span class="cost" id="elevenLabsCost">—</span></div>
-            <div class="calc-row"><span class="name">Simli Hobby (avatar)</span><span class="cost" id="simliCost">—</span></div>
-            <div class="calc-row total"><span class="name">Monthly AI costs</span><span class="cost" id="totalCost">—</span></div>
+      <div class="calc reveal">
+        <h3>Estimate your monthly AI cost</h3>
+        <div class="field">
+          <div class="row"><label>Hours per day</label><span class="val" id="hrs-v">2 hrs</span></div>
+          <input type="range" id="hrs" min="1" max="12" step="1" value="2">
+        </div>
+        <div class="field">
+          <div class="row"><label>Days per week</label><span class="val" id="days-v">5 days</span></div>
+          <input type="range" id="days" min="1" max="7" step="1" value="5">
+        </div>
+        <div class="field">
+          <div class="row"><label>Brain model</label></div>
+          <div class="models">
+            <button class="model active" data-rate="0.45" data-name="Haiku 4.5"><b>Haiku 4.5</b><small>default</small></button>
+            <button class="model" data-rate="0.064" data-name="Gemini 2.5 Flash"><b>Gemini 2.5 Flash</b><small>~7× cheaper</small></button>
+            <button class="model" data-rate="0.045" data-name="DeepSeek V3"><b>DeepSeek V3</b><small>~10× cheaper</small></button>
           </div>
-          <div class="calc-payback" id="paybackLine"></div>
         </div>
-        <div class="calc-footnote">
-          Brain cost uses Haiku 4.5 with prompt caching ($0.08/$0.80/$4.00 per million tokens cached/input/output), DeepSeek V3 ($0.014/$0.27/$1.10), or Gemini 2.5 Flash ($0.015/$0.15/$0.60). ElevenLabs Starter: $5/mo flat for 30k chars, then $0.24/1k chars overage — assumes Selam speaks ~25% of session time at 150 chars/min. Simli Hobby: $10/mo for 1,000 min, then $0.01/min overage. You pay each provider directly at their published rates; Selam takes nothing.<br><br>
-          <strong style="color:var(--ink-dim);">Selam itself: $199 one-time.</strong> No subscription. No renewal.
+        <div class="result">
+          <div class="line"><span id="brain-name">Haiku 4.5 (brain)</span><span id="brain-c">—</span></div>
+          <div class="total"><span>Estimated monthly brain cost</span><b id="total-c">—</b></div>
         </div>
+        <div class="fineprint">Rough estimate. You pay each provider directly at their published rates; Selam takes nothing beyond the one-time $199. Actual brain cost depends on your model and usage.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<section class="section">
-  <div class="container">
-    <div class="section-eyebrow">06 · Early users</div>
-    <h2 class="section-head">The first ones <em>got it fast</em>.</h2>
-    <p class="section-sub">
-      Early buyers — operators, founders, and high-agency builders — put their
-      agents to work in the first week. Here's what they say, in their own words.
-    </p>
-
-    <div class="testim">
-      <div class="testim-card">
-        <div class="mark">"</div>
-        <blockquote>I haven't tabbed to ChatGPT in three weeks. My agent — I named her Kiya — is just there when I turn.</blockquote>
-        <div class="who"><strong>M. Y.</strong> — Founder, pre-seed · Addis Ababa</div>
-      </div>
-      <div class="testim-card">
-        <div class="mark">"</div>
-        <blockquote>Daniel caught a mistake in my deck that would have cost me the round. That's value I can quantify immediately.</blockquote>
-        <div class="who"><strong>S. R.</strong> — VP Product, Series B · Brooklyn</div>
-      </div>
-      <div class="testim-card">
-        <div class="mark">"</div>
-        <blockquote>I was against the whole "AI face" thing. Then I used mine for a day. Now I can't imagine working without her.</blockquote>
-        <div class="who"><strong>J. N.</strong> — Solo operator · Nairobi</div>
-      </div>
+<section class="block">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">Early users</span>
+      <h2 class="section-title serif reveal">The first ones <em>got it fast.</em></h2>
+    </div>
+    <div class="quotes">
+      <div class="quote reveal"><div class="mark serif">"</div><p class="serif">I haven't tabbed to ChatGPT in three weeks. My agent — I named her Kiya — is just there when I turn.</p><div class="who">M. Y. — Founder, pre-seed · Singapore</div></div>
+      <div class="quote reveal"><div class="mark serif">"</div><p class="serif">My agent caught a mistake in my deck that would have cost me the round. Value I can quantify immediately.</p><div class="who">S. R. — VP Product, Series B · Bangalore</div></div>
+      <div class="quote reveal"><div class="mark serif">"</div><p class="serif">I was against the whole "AI face" thing. Then I used mine for a day. Now I can't imagine working without her.</p><div class="who">J. N. — Solo operator · Nairobi</div></div>
     </div>
   </div>
 </section>
 
-<!-- FAQ -->
-<section class="section" id="faq">
-  <div class="container">
-    <div class="section-eyebrow">06 · Questions you're probably asking</div>
-    <h2 class="section-head">The honest <em>FAQ</em>.</h2>
-
-    <div class="faq">
-      <details class="faq-item" open>
-        <summary class="faq-q">Do I need technical skills to set this up? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          You need to be comfortable creating accounts on a few services (Anthropic, ElevenLabs, Simli) and pasting API keys into a settings screen. We walk you through it in the first-run flow. If you can set up a Gmail account, you can set up Selam.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">What's the real total cost? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          Selam is $199 one-time — that's it from us. On top of that you pay the AI providers directly: your chosen brain model (Haiku 4.5, Gemini 2.5 Flash, or DeepSeek V3), ElevenLabs for the voice, and Simli for the avatar. ElevenLabs Starter is $5/mo; Simli Hobby is $10/mo — both include generous monthly allowances. Brain costs depend heavily on which model you pick and how much you use it. Use the calculator above to dial in your exact number.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">Can you see my conversations? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          No. Your API keys are stored locally in your macOS Keychain. Your conversations go directly from your Mac to Anthropic (for the brain), ElevenLabs (for the voice), and Simli (for the avatar). We don't have a server in the loop. We never see the content. We don't want to.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">What can my agent actually do? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          Voice conversation with you. See your screen or webcam when you ask. Draft messages. Search your files. Open apps and URLs. Call other services through a task queue that you approve. Over time, more integrations (email, calendar, Slack, browser automation) ship as updates.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">Is it safe to let it act on my behalf? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          Every action that touches the outside world — sending a message, making a purchase, deleting a file — goes through an approval gate. You see what it plans to do, and you click approve. Over time you can set policies ("always approve replies to my team", "never spend over $50 without asking"). Trust is built, not assumed.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">If I stop using it, do I keep my agent's memory? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          Yes, completely. Your identity files (SOUL, IDENTITY, MEMORY, USER) are plain Markdown files in your home directory — not locked in any cloud. Walk away from Selam, keep the files. Come back later, pick up where you left off. Export them to another tool. Read them in your text editor. Edit them by hand. They're your agent's DNA, and you own it.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">Windows? iPhone? Linux? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          macOS today (14+, Apple silicon recommended). Windows in Q3. Mobile is under design — it's a different technical stack, so it'll ship as a companion app after the desktop experience stabilizes. Linux is on the list for later; contact us if you want to be notified.
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-q">Why is it called Selam? <span class="icon">+</span></summary>
-        <div class="faq-a">
-          Selam is Amharic for "peace" and it's also a common greeting in Ethiopia, where our founder is based. Our founder's agent is named Selam — she was the first. The platform is named after her because she proved the concept. Your agent will have their own name.
-        </div>
-      </details>
+<section class="block" id="faq">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">Questions you're probably asking</span>
+      <h2 class="section-title serif reveal">The honest <em>FAQ.</em></h2>
+    </div>
+    <div class="faq reveal">
+      <details><summary>Do I need technical skills to set this up?<span class="pm">+</span></summary><div class="ans">You need to be comfortable creating accounts on a couple of services (Anthropic, ElevenLabs) and pasting API keys into a settings screen. The first-run flow walks you through it. If you can set up a Gmail account, you can set up Selam.</div></details>
+      <details><summary>What's the real total cost?<span class="pm">+</span></summary><div class="ans">Selam is $199 one-time — that's it from us. On top of that you pay AI providers directly: your chosen brain model and ElevenLabs for voice ($5/mo Starter, with a generous allowance). The avatar runs entirely on your Mac — no avatar subscription, ever. Use the calculator above to dial in your number.</div></details>
+      <details><summary>Can you see my conversations?<span class="pm">+</span></summary><div class="ans">No. Your keys live in your macOS Keychain. Conversations go straight from your Mac to Anthropic and ElevenLabs. The avatar runs on-device — Selam's face never leaves your Mac. We don't have a server in the loop. We never see the content — we don't want to.</div></details>
+      <details><summary>Is it safe to let it act on my behalf?<span class="pm">+</span></summary><div class="ans">Every action that touches the outside world — sending a message, making a purchase, deleting a file — goes through an approval gate. You see what it plans to do and click approve. Over time you can set policies. Trust is built, not assumed.</div></details>
+      <details><summary>If I stop using it, do I keep my agent's memory?<span class="pm">+</span></summary><div class="ans">Completely. Your identity files (SOUL, IDENTITY, MEMORY, USER) are plain Markdown in your home directory — not locked in any cloud. Walk away and keep the files; come back and pick up where you left off. They're your agent's DNA, and you own it.</div></details>
+      <details><summary>Windows? iPhone? Linux?<span class="pm">+</span></summary><div class="ans">macOS today (14+, Apple silicon recommended). Windows in Q3. Mobile is under design as a companion app after the desktop experience stabilizes. Linux is on the list for later.</div></details>
+      <details><summary>Why is it called Selam?<span class="pm">+</span></summary><div class="ans">Selam means "peace." Our founder's agent is named Selam — she was the first, and proved the concept. Your agent will have their own name.</div></details>
     </div>
   </div>
 </section>
 
-<!-- TECH -->
-<section class="section" id="tech">
-  <div class="container">
+<section class="block">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">07 · For the curious</span>
+      <h2 class="section-title serif reveal">Built on what's <em>best,</em> owned by <em>you.</em></h2>
+      <p class="lede reveal">Selam is the orchestration layer between the best models, the best streaming avatar tech, and your real life. Every component is swappable.</p>
+    </div>
     <div class="tech">
-      <div>
-        <div class="section-eyebrow">07 · For the curious</div>
-        <h2 class="section-head">Built on what's <em>best</em>,<br>owned by <em>you</em>.</h2>
-        <p class="section-sub">
-          Selam is the orchestration layer between the best models, the best
-          streaming avatar tech, and your real life. Every component is
-          swappable. Your keys, your data, your control.
-        </p>
-      </div>
-      <dl class="tech-spec">
-        <dt>Brain</dt>
-        <dd>Claude Haiku 4.5 primary · escalates to Sonnet or Opus for complex work</dd>
-        <dt>Voice in</dt>
-        <dd>Silero VAD + faster-whisper, running locally · no audio leaves your Mac for STT</dd>
-        <dt>Face + speech</dt>
-        <dd>Photoreal avatar · WebRTC streaming · sub-second response · 50+ faces or upload your own</dd>
-        <dt>Vision</dt>
-        <dd>On-demand webcam + screen capture · never continuous unless you say so</dd>
-        <dt>Identity</dt>
-        <dd>Plain-text Markdown in ~/selam/ — SOUL · IDENTITY · MEMORY · USER</dd>
-        <dt>Privacy</dt>
-        <dd>BYOK · keys stored in macOS Keychain · we never see your keys, conversations, or context</dd>
-        <dt>Platform</dt>
-        <dd>macOS 14+ today · Windows Q3 · mobile under design</dd>
-      </dl>
+      <div class="tile reveal"><div class="k">Brain</div><div class="v">Claude Haiku 4.5 primary, escalates to Sonnet or Opus for complex work.</div></div>
+      <div class="tile reveal"><div class="k">Voice in</div><div class="v">Silero VAD + faster-whisper, local. No audio leaves your Mac for STT.</div></div>
+      <div class="tile reveal"><div class="k">Face + speech</div><div class="v">Expressive 3D characters rendered on-device. Local lipsync, sub-second response. 5 included characters, more coming.</div></div>
+      <div class="tile reveal"><div class="k">Vision</div><div class="v">On-demand webcam + screen capture. Never continuous unless you say so.</div></div>
+      <div class="tile reveal"><div class="k">Identity</div><div class="v">Plain-text Markdown in ~/selam/ — SOUL · IDENTITY · MEMORY · USER.</div></div>
+      <div class="tile reveal"><div class="k">Privacy</div><div class="v">BYOK. Keys in macOS Keychain. We never see keys, conversations, or context.</div></div>
+      <div class="tile reveal"><div class="k">Platform</div><div class="v">macOS 14+ today. Windows Q3. Mobile under design.</div></div>
+      <div class="tile reveal"><div class="k">Built by</div><div class="v">Deribe Labs. Named after the first agent — the one that proved the concept.</div></div>
     </div>
   </div>
 </section>
 
-<!-- SIGNUP / WAITLIST -->
-<section class="section" id="get">
-  <div class="container">
-    <div class="section-eyebrow">08 · Get started</div>
-    <h2 class="section-head"><em>Hire</em> your worker.</h2>
-    <p class="section-sub">
-      $199 one-time. Lifetime updates. Refundable within 14 days.
-      You pay the AI providers directly at cost.
-    </p>
-
-    <div style="margin-top:2.5rem;display:flex;flex-direction:column;align-items:center;gap:1.25rem;">
-      <a href="https://api.heyselam.app/buy" class="btn-primary" id="get-buy-btn" style="font-size:1.05rem;padding:1.1rem 2.2rem;">
-        Hire Selam — $199
-        <span class="arrow">→</span>
-      </a>
-      <p style="font-family:var(--font-mono);font-size:0.78rem;color:var(--ink-muted);letter-spacing:0.04em;margin:0;">
-        macOS 14+ · Apple silicon recommended · 500 MB
-      </p>
+<section class="final">
+  <div class="wrap">
+    <span class="eyebrow reveal" style="justify-content:center">08 · Get started</span>
+    <h2 class="serif reveal">Don't work <em>alone.</em></h2>
+    <p class="reveal">Build the worker you wish you could hire. Name them. Give them a face. Teach them who you are. $199 once for the software — you pay the AI providers directly, at cost. Yours to keep.</p>
+    <div class="hero-cta reveal">
+      <a class="btn btn-primary" href="https://api.heyselam.app/buy">Hire Selam — $199 <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="mailto:selam@atxo.me">Talk to us</a>
     </div>
+    <div class="note reveal">macOS 14+ · Apple silicon recommended · 500 MB · 14-day refund</div>
+  </div>
+</section>
 
-    <div class="signup-wrap" style="margin-top:3.5rem;border-top:1px solid var(--line);padding-top:2.5rem;">
+<section class="signup-block">
+  <div class="wrap">
+    <div class="signup-card reveal">
       <div class="signup-intro">
-        <h3>Not ready to buy? <em>Stay in the loop.</em></h3>
-        <p>
-          Drop your email and we'll send occasional updates — new features,
-          big improvements, tips from heavy users. Unsubscribe whenever.
-          We never sell or share.
-        </p>
+        <span class="eyebrow">Before you go</span>
+        <h3 class="serif">Not ready to buy? <em>Stay in the loop.</em></h3>
+        <p>Drop your email and we'll send occasional updates — new features, big improvements, tips from heavy users. Unsubscribe whenever. We never sell or share.</p>
       </div>
-
       <form class="signup-form" id="waitlistForm">
         <div class="input-row">
           <input type="email" name="email" id="emailInput" placeholder="you@wherever.com" required>
@@ -1996,7 +540,7 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
         <div class="input-row">
           <input type="text" name="use_case" placeholder="What would you use Selam for? (optional)" maxlength="200">
         </div>
-        <button type="submit" id="waitlistSubmit" style="width:100%;">Keep me posted →</button>
+        <button type="submit" id="waitlistSubmit">Keep me posted →</button>
         <div class="hint">Occasional product updates. No newsletter spam.</div>
         <div class="signup-success" id="signupSuccess">
           <strong class="success-title">Got it.</strong>
@@ -2010,203 +554,127 @@ footer { border-top: 1px solid var(--line); padding: 3rem 0; font-family: var(--
   </div>
 </section>
 
-<!-- FINALE -->
-<section class="finale">
-  <div class="container">
-    <h2>Don't work<br><em>alone</em>.</h2>
-    <p>
-      Build the worker you wish you could hire. Name them. Give them a face.
-      Teach them who you are. $199 one-time for the software.
-      You pay the AI providers directly at cost. Yours to keep.
-    </p>
-    <a href="https://api.heyselam.app/buy" class="btn-primary">
-      Hire Selam — $199
-      <span class="arrow">→</span>
-    </a>
-    <p style="margin-top: 2rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); letter-spacing: 0.04em;">
-      macOS 14+ · Apple silicon recommended · 500 MB · 14-day refund
-    </p>
-  </div>
-</section>
-
 <footer>
-  <div class="footer-inner">
-    <div>© 2026 ATXO Labs · Selam is made in Addis Ababa.</div>
-    <div class="footer-links">
-      <a href="selam-onboarding.html">Onboarding preview</a>
-    </div>
+  <div class="wrap foot-inner">
+    <span>© 2026 Deribe Labs</span>
+    <span><a href="selam-onboarding.html">Onboarding preview</a> · <a href="mailto:selam@atxo.me">selam@atxo.me</a></span>
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
-// Theme toggle
-const html = document.documentElement;
-const toggle = document.getElementById('themeToggle');
-const saved = localStorage.getItem('selam-theme');
-if (saved) html.setAttribute('data-theme', saved);
-toggle.addEventListener('click', () => {
-  const now = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', now);
-  localStorage.setItem('selam-theme', now);
-});
+// name ticker
+(function(){
+  var names=["Kiya","Daniel","Reya","Marcus","Amara","Noa","Tesfaye","Sofia","Isaac","Nadia","Jomo","Hana","Ezra","Lwin","Selam"];
+  var m=document.getElementById('marquee');
+  var html=names.map(function(n){return '<span>'+n+'</span>'}).join('');
+  m.innerHTML=html+html; // duplicate for seamless loop
+})();
 
-// live timestamp
-function tick() {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  const ss = String(now.getSeconds()).padStart(2,'0');
-  document.getElementById('timestamp').textContent = `${hh}:${mm}:${ss} local`;
-}
-tick(); setInterval(tick, 1000);
+// character gallery
+(function(){
+  var chars=[
+    {n:"Linen",t:"Neutral · soft",d:"Warm without leaning into a specific look. A good default.",img:"linen"},
+    {n:"Hazel",t:"Warm · steady",d:"Reads as approachable across most contexts.",img:"hazel"},
+    {n:"Pearl",t:"Bright · composed",d:"Reads as patient and prepared.",img:"pearl"},
+    {n:"Graphite",t:"Sharp · formal",d:"Reads as exact, decisive.",img:"graphite"},
+    {n:"Amber",t:"Warm · ready",d:"Reads as engaged and energetic.",img:"amber"},
+    {n:"Mocha",t:"Deep · polished",d:"Reads as seasoned and considered.",img:"mocha"}
+  ];
+  var g=document.getElementById('gallery-grid');
+  g.innerHTML=chars.map(function(c){
+    return '<div class="char reveal"><span class="online"><span class="dot" style="width:5px;height:5px"></span>online</span>'+
+      '<img src="/assets/'+c.img+'.webp" alt="'+c.n+'" loading="lazy">'+
+      '<div class="meta"><div class="tag">'+c.t+'</div><h3 class="serif">'+c.n+'</h3><p>'+c.d+'</p></div></div>';
+  }).join('');
+})();
 
-
-// Calculator
-const hrs = document.getElementById('hrs');
-const days = document.getElementById('days');
-const hrsLabel    = document.getElementById('hrsLabel');
-const daysLabel   = document.getElementById('daysLabel');
-const anthropicEl = document.getElementById('anthropicCost');
-const elevenLabsEl= document.getElementById('elevenLabsCost');
-const simliEl     = document.getElementById('simliCost');
-const totalEl     = document.getElementById('totalCost');
-const brainLabel  = document.getElementById('brainLabel');
-const paybackLine = document.getElementById('paybackLine');
-const modelTabs   = document.querySelectorAll('.calc-model-tab');
-
-// Cost per session-minute of active voice conversation.
-// Brain: tokens/min estimates (500 cached input + 200 uncached input + 300 output, per turn ~30s → 2 turns/min)
-// ElevenLabs: Starter $5/mo includes 30k chars; overage $0.24/1k chars. Selam speaks ~25% of time at 150 chars/min.
-// Simli: Hobby $10/mo for 1000 min; overage $0.01/min.
-const MODELS = {
-  haiku:    { label: 'Haiku 4.5 (brain)',        cachedIn: 0.08,  uncachedIn: 0.80,  out: 4.00  },
-  gemini:   { label: 'Gemini 2.5 Flash (brain)', cachedIn: 0.015, uncachedIn: 0.15,  out: 0.60  },
-  deepseek: { label: 'DeepSeek V3 (brain)',       cachedIn: 0.014, uncachedIn: 0.27,  out: 1.10  },
-};
-
-// tokens per minute of session time (Selam speaks ~25%, user speaks ~25%, idle ~50%)
-const CACHED_IN_PER_MIN  = 500 * 2;   // 500 cached tokens × 2 turns/min
-const UNCACHED_IN_PER_MIN= 200 * 2;
-const OUT_PER_MIN        = 300 * 2;
-
-let selectedModel = 'haiku';
-
-function fmtCost(n) {
-  if (n < 1)   return n < 0.005 ? '$0.00' : '$' + n.toFixed(2);
-  if (n < 10)  return '$' + n.toFixed(1);
-  return '$' + Math.round(n);
-}
-
-function elevenLabsCost(mins) {
-  // chars = 25% of time speaking × 150 chars/min
-  const chars = mins * 0.25 * 150;
-  const base  = 5;
-  const free  = 30000;
-  const over  = Math.max(0, chars - free) / 1000 * 0.24;
-  return base + over;
-}
-
-function simliCost(mins) {
-  const base     = 10;
-  const included = 1000;
-  const over     = Math.max(0, mins - included) * 0.01;
-  return base + over;
-}
-
-function brainCost(mins, model) {
-  const m   = MODELS[model];
-  const perMin = (CACHED_IN_PER_MIN * m.cachedIn + UNCACHED_IN_PER_MIN * m.uncachedIn + OUT_PER_MIN * m.out) / 1_000_000;
-  return perMin * mins;
-}
-
-function recalc() {
-  const h    = parseFloat(hrs.value)  || 0;
-  const d    = parseInt(days.value)   || 0;
-  const mins = h * 60 * d * 4.33;   // 4.33 weeks/month
-
-  hrsLabel.textContent  = h === 0 ? '0 hrs' : h === 1 ? '1 hr' : h + ' hrs';
-  daysLabel.textContent = d === 0 ? '0 days' : d === 1 ? '1 day' : d + ' days';
-
-  const brain = brainCost(mins, selectedModel);
-  const el    = elevenLabsCost(mins);
-  const sim   = simliCost(mins);
-  const total = brain + el + sim;
-
-  brainLabel.textContent   = MODELS[selectedModel].label;
-  anthropicEl.textContent  = fmtCost(brain);
-  elevenLabsEl.textContent = fmtCost(el);
-  simliEl.textContent      = fmtCost(sim);
-  totalEl.textContent      = fmtCost(total);
-
-  // Payback vs ChatGPT Plus ($20/mo)
-  if (mins > 0) {
-    const chatgpt = 20;
-    const savings = total - chatgpt;  // how much MORE than chatgpt
-    const payback = 199 / Math.max(0.01, total);  // months until Selam "paid for itself" in AI savings vs a $0 alternative
-    // More useful: months until Selam purchase recouped vs paying same AI costs without Selam (Selam adds $199 upfront)
-    // Better framing: if user would pay $X/month anyway for an AI assistant, Selam costs $199 more upfront
-    if (total > 0) {
-      const monthsPayback = Math.ceil(199 / total * 10) / 10;
-      paybackLine.innerHTML = `At this usage, your AI costs are <strong>${fmtCost(total)}/mo</strong>. Selam's $199 one-time fee is covered by ${monthsPayback <= 2 ? 'less than ' + Math.ceil(monthsPayback) + ' months' : Math.ceil(monthsPayback) + ' months'} of use — after that, you're paying the same API costs whether you use Selam or not.`;
-    } else {
-      paybackLine.innerHTML = '';
-    }
-  } else {
-    paybackLine.innerHTML = '';
+// cost calculator
+(function(){
+  var hrs=document.getElementById('hrs'),days=document.getElementById('days');
+  var hrsV=document.getElementById('hrs-v'),daysV=document.getElementById('days-v');
+  var brainC=document.getElementById('brain-c'),totalC=document.getElementById('total-c'),brainName=document.getElementById('brain-name');
+  var models=document.querySelectorAll('.model');
+  var rate=0.45,name="Haiku 4.5";
+  function calc(){
+    var h=+hrs.value,d=+days.value;
+    hrsV.textContent=h+(h===1?' hr':' hrs');
+    daysV.textContent=d+(d===1?' day':' days');
+    var monthlyHours=h*d*4.33;
+    var brain=Math.round(monthlyHours*rate);
+    brainName.textContent=name+" (brain)";
+    brainC.textContent="$"+brain;
+    totalC.textContent="$"+brain;
   }
-}
+  models.forEach(function(b){
+    b.addEventListener('click',function(){
+      models.forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active');
+      rate=+b.dataset.rate;name=b.dataset.name;calc();
+    });
+  });
+  hrs.addEventListener('input',calc);days.addEventListener('input',calc);
+  calc();
+})();
 
-modelTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    modelTabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    selectedModel = tab.dataset.model;
-    recalc();
+// nav border on scroll
+(function(){
+  var nav=document.getElementById('nav');
+  window.addEventListener('scroll',function(){
+    nav.classList.toggle('scrolled',window.scrollY>20);
+  });
+})();
+
+// scroll reveals
+window.addEventListener('load',function(){
+  if(!window.gsap){return;}
+  gsap.registerPlugin(ScrollTrigger);
+  // hero load-in stagger
+  gsap.from('.hero .reveal',{y:28,opacity:0,duration:.9,ease:'power3.out',stagger:.09});
+  // section reveals
+  gsap.utils.toArray('section .reveal, .ticker .reveal').forEach(function(el){
+    gsap.from(el,{y:34,opacity:0,duration:.85,ease:'power3.out',
+      scrollTrigger:{trigger:el,start:'top 88%'}});
   });
 });
 
-hrs.addEventListener('input', recalc);
-days.addEventListener('input', recalc);
-recalc();
-
-// Waitlist form — Formspree
-const form = document.getElementById('waitlistForm');
-const submitBtn = document.getElementById('waitlistSubmit');
-const signupError = document.getElementById('signupError');
-const retryBtn = document.getElementById('retryBtn');
-
-async function submitWaitlist(e) {
-  e.preventDefault();
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Sending…';
-  signupError.style.display = 'none';
-  try {
-    const res = await fetch('https://formspree.io/f/mreronkj', {
-      method: 'POST',
-      headers: { 'Accept': 'application/json' },
-      body: new FormData(form),
-    });
-    if (res.ok) {
-      form.querySelectorAll('.input-row').forEach(r => r.style.display = 'none');
-      submitBtn.style.display = 'none';
-      form.querySelector('.hint').style.display = 'none';
-      document.getElementById('signupSuccess').classList.add('visible');
-    } else {
-      throw new Error();
+// Stay-in-the-loop form — Formspree
+(function(){
+  var form=document.getElementById('waitlistForm');
+  if(!form)return;
+  var submitBtn=document.getElementById('waitlistSubmit');
+  var signupError=document.getElementById('signupError');
+  var retryBtn=document.getElementById('retryBtn');
+  async function submitWaitlist(e){
+    e.preventDefault();
+    submitBtn.disabled=true;
+    submitBtn.textContent='Sending…';
+    signupError.style.display='none';
+    try{
+      var res=await fetch('https://formspree.io/f/mreronkj',{
+        method:'POST',
+        headers:{'Accept':'application/json'},
+        body:new FormData(form)
+      });
+      if(res.ok){
+        form.querySelectorAll('.input-row').forEach(function(r){r.style.display='none'});
+        submitBtn.style.display='none';
+        form.querySelector('.hint').style.display='none';
+        document.getElementById('signupSuccess').classList.add('visible');
+      }else{throw new Error()}
+    }catch(_){
+      signupError.style.display='block';
+      submitBtn.disabled=false;
+      submitBtn.textContent='Keep me posted →';
     }
-  } catch (_) {
-    signupError.style.display = 'block';
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Notify me →';
   }
-}
-
-form.addEventListener('submit', submitWaitlist);
-retryBtn.addEventListener('click', () => {
-  signupError.style.display = 'none';
-  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-});
+  form.addEventListener('submit',submitWaitlist);
+  retryBtn.addEventListener('click',function(){
+    signupError.style.display='none';
+    form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+  });
+})();
 </script>
-
 </body>
 </html>
