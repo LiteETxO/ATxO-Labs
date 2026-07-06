@@ -1,0 +1,38 @@
+{
+  "name": "selam-license-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "License + recovery + Stripe webhook for api.heyselam.app",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "node --test recover.test.js webhook-logic.test.js validate-logic.test.js",
+    "db:schema": "psql \"$POSTGRES_URL_NON_POOLING\" -f db/schema.sql",
+    "issue-key": "tsx scripts/issue-key.ts",
+    "revoke-key": "tsx scripts/revoke-key.ts",
+    "list-recent": "tsx scripts/list-recent.ts",
+    "send-recovery": "tsx scripts/send-recovery.ts",
+    "send-beta-build": "tsx scripts/send-beta-build.ts",
+    "set-tax-origin": "tsx scripts/set-tax-origin.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "@upstash/redis": "^1.34.3",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "resend": "^4.0.0",
+    "stripe": "^17.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}
