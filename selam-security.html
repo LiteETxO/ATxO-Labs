@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selam — Security model</title>
+<meta name="description" content="How Selam is engineered to be safe to run: no open ports, trust tiers, spend caps, a signed skill catalog, observed sends, and a plain-file audit trail on your own disk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0a0b11;
+  --surface:#14161f;
+  --line:rgba(232,221,200,.10);
+  --line-2:rgba(232,221,200,.18);
+  --ink:#f4efe4;
+  --ink-2:#b6b3ab;
+  --ink-3:#7c7a76;
+  --dawn:#e7b15c;
+  --dawn-soft:#f0cd8f;
+  --serif:"Fraunces",Georgia,serif;
+  --sans:"Hanken Grotesk",system-ui,sans-serif;
+  --mono:"JetBrains Mono",monospace;
+  --maxw:820px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--night);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity:.035;mix-blend-mode:screen;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;position:relative;z-index:1}
+.serif{font-family:var(--serif)}
+em{font-style:italic;color:var(--dawn-soft)}
+code{font-family:var(--mono);font-size:.82em;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dawn);display:inline-flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--dawn);opacity:.6}
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,11,17,.82);border-bottom:1px solid var(--line)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-family:var(--serif);font-weight:600;font-size:21px}
+.brand span{font-size:12px;color:var(--ink-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.nav-back{font-size:14px;color:var(--ink-2)}
+.nav-back:hover{color:var(--dawn-soft)}
+header.doc{padding:88px 0 24px}
+header.doc h1{font-family:var(--serif);font-weight:500;font-size:clamp(36px,5.4vw,58px);line-height:1.05;letter-spacing:-.028em;margin-top:26px;max-width:16ch}
+header.doc p.lede{color:var(--ink-2);font-size:clamp(16px,1.5vw,19px);max-width:58ch;margin-top:24px}
+.updated{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.05em;margin-top:22px}
+section.sec{padding:44px 0;border-top:1px solid var(--line);margin-top:44px}
+section.sec:first-of-type{border-top:0;margin-top:0}
+.sec .n{font-family:var(--mono);font-size:12px;color:var(--dawn);letter-spacing:.1em}
+.sec h2{font-family:var(--serif);font-weight:500;font-size:clamp(24px,3vw,34px);line-height:1.12;letter-spacing:-.02em;margin:14px 0 0;max-width:24ch}
+.sec p{color:var(--ink-2);margin-top:18px;max-width:66ch}
+.sec ul{margin:18px 0 0 2px;list-style:none}
+.sec li{color:var(--ink-2);padding:9px 0 9px 26px;position:relative;max-width:66ch}
+.sec li::before{content:"";position:absolute;left:2px;top:19px;width:12px;height:1px;background:var(--dawn);opacity:.7}
+.sec li b{color:var(--ink);font-weight:600}
+.tiers{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:26px}
+.tier{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:18px 22px;border-top:1px solid var(--line);background:transparent}
+.tier:first-child{border-top:0}
+.tier .t{font-family:var(--mono);font-size:13px;color:var(--dawn);letter-spacing:.08em;padding-top:2px}
+.tier p{margin:0;color:var(--ink-2);font-size:15px}
+.honest{border:1px solid var(--line-2);border-radius:14px;padding:26px 28px;margin-top:26px;background:var(--surface)}
+.honest .h{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dawn)}
+.honest p{margin-top:12px;color:var(--ink-2);font-size:15px;max-width:none}
+footer{border-top:1px solid var(--line);margin-top:80px;padding:34px 0 60px}
+.foot-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+.foot-inner a:hover{color:var(--dawn-soft)}
+@media(max-width:640px){.tier{grid-template-columns:48px 1fr;padding:16px 18px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="brand" href="/"><b>Selam</b><span>Security</span></a>
+    <a class="nav-back" href="/">← heyselam.app</a>
+  </div>
+</nav>
+
+<header class="doc">
+  <div class="wrap">
+    <span class="eyebrow">The security model</span>
+    <h1>Safe to run <em>because of how it's built,</em> not because we promise.</h1>
+    <p class="lede">Selam is an autonomous agent with real reach — messaging, email, your files. That's exactly why every layer below exists. This page is the whole model, stated plainly, for people who read pages like this one.</p>
+    <div class="updated">Last updated · July 2026</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section class="sec">
+  <span class="n">01</span>
+  <h2 class="serif">Nothing is listening on the internet.</h2>
+  <p>Selam runs entirely on your Mac. Her internal server binds to loopback only — there is no public port, no hosted dashboard, no cloud instance with your agent behind a login page. The wave of exposed agent deployments found scanning the internet in 2026 is a category of problem Selam doesn't have: there's nothing to find because nothing is reachable.</p>
+  <ul>
+    <li><b>No inbound connections.</b> Selam only talks outward — to the AI providers you configured, with your keys.</li>
+    <li><b>No server of ours in the loop.</b> Conversations go from your Mac straight to Anthropic and ElevenLabs. We never see content.</li>
+    <li><b>What does phone home:</b> a license check and an update check against our infrastructure. Neither carries conversation content, memory, or keys. That's the complete list.</li>
+  </ul>
+</section>
+
+<section class="sec">
+  <span class="n">02</span>
+  <h2 class="serif">Every action is tiered before it runs.</h2>
+  <p>The brain doesn't get raw tool access. It emits structured actions, and a dispatcher classifies every one of them against a fixed trust table before anything executes:</p>
+  <div class="tiers">
+    <div class="tier"><span class="t">T0</span><p>Silent internal work — reading files she owns, checking her own task list. Runs without ceremony.</p></div>
+    <div class="tier"><span class="t">T1</span><p>Local, reversible effects — writing a note, packaging an export on your own disk.</p></div>
+    <div class="tier"><span class="t">T2</span><p>Outward-facing but recoverable — a message to a contact you've explicitly trusted. Dry-run capable, logged.</p></div>
+    <div class="tier"><span class="t">T3</span><p>Irreversible or public — money movement, email to a human, posting publicly. Waits for your spoken yes. Always.</p></div>
+  </div>
+  <p>Tiering is enforced in the dispatch layer, not suggested in a prompt — a jailbroken model can ask for whatever it wants; the dispatcher still gates it.</p>
+</section>
+
+<section class="sec">
+  <span class="n">03</span>
+  <h2 class="serif">Spend is capped at four levels.</h2>
+  <ul>
+    <li><b>Per attempt</b> — a single model call can't run away.</li>
+    <li><b>Per run</b> — an autonomous work session has a hard budget.</li>
+    <li><b>Per task, per day</b> — a stuck loop can't drain you overnight.</li>
+    <li><b>Kill switch</b> — one setting stops all autonomous work, immediately.</li>
+  </ul>
+  <p>A runaway loop hits a wall measured in cents. And a task that fails three runs in a row pauses itself and tells you — it doesn't keep hammering, and it doesn't quietly disappear.</p>
+</section>
+
+<section class="sec">
+  <span class="n">04</span>
+  <h2 class="serif">Skills are signed, or they don't load.</h2>
+  <p>Agent "skills" are the supply-chain attack surface of this product category — in January 2026, researchers found hundreds of malicious skills on a popular open agent hub, some designed to exfiltrate credentials. Selam's answer is a signed first-party catalog:</p>
+  <ul>
+    <li><b>Every bundled skill is content-hashed and signed</b> (ed25519) at build time. At startup — and again before every agent dispatch — Selam sweeps the writable skill directories and verifies each skill against the signed catalog.</li>
+    <li><b>Fail closed.</b> If the catalog is missing or its signature doesn't verify, nothing loads from writable locations. A tampered catalog can never approve more, only less.</li>
+    <li><b>Quarantine, never delete.</b> An unrecognized or modified skill is moved aside, logged, and recorded in the audit trail — reversible by you in Finder, but it does not run.</li>
+    <li><b>Name shadowing is caught.</b> A dropped-in skill reusing a first-party name fails the content hash and is quarantined like anything else.</li>
+  </ul>
+</section>
+
+<section class="sec">
+  <span class="n">05</span>
+  <h2 class="serif">She never claims what she didn't see.</h2>
+  <p>An agent that reports success it never verified is worse than one that fails loudly. Selam's dispatch layer treats claims as observations:</p>
+  <ul>
+    <li><b>A send only counts when it's observed.</b> If a message can't be confirmed delivered to the channel, she reports exactly that — not "done."</li>
+    <li><b>Deliverables pass mechanical checks</b> before you hear them. A research digest whose sources don't resolve is flagged as unverified, not read to you as fact.</li>
+    <li><b>Every autonomous run leaves a plain-file record</b> on your disk — what ran, what it cost, what it touched, how it ended. Auditable with a text editor, no vendor tool required.</li>
+  </ul>
+</section>
+
+<section class="sec">
+  <span class="n">06</span>
+  <h2 class="serif">Your keys, your data, your exit.</h2>
+  <ul>
+    <li><b>API keys live in the macOS Keychain</b> — not in config files, not on our servers. Exports never include them.</li>
+    <li><b>Memory is plain Markdown</b> in your home directory. Nothing about your agent is locked in a cloud.</li>
+    <li><b>One command takes everything with you.</b> Say "export everything you know" — or click Settings → Data → Export everything — and every memory, conversation and work product lands in a single archive you own.</li>
+  </ul>
+  <div class="honest">
+    <span class="h">The honest part</span>
+    <p>No local agent can be made risk-free, and we won't pretend otherwise. Selam executes real actions with real credentials; the layers above are how we bound the blast radius of a bad model output, a prompt injection, or a malicious skill. If you find a hole in any of them, we want to know — see below.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <span class="n">07</span>
+  <h2 class="serif">Found something? Tell us.</h2>
+  <p>Security reports go to <a href="mailto:selam@atxo.me" style="color:var(--dawn-soft)">selam@atxo.me</a>. We read everything, respond to real findings fast, and credit reporters who want credit. Please give us a reasonable window to ship a fix before publishing.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span>© 2026 Deribe Labs</span>
+    <span><a href="/">heyselam.app</a> · <a href="mailto:selam@atxo.me">selam@atxo.me</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
