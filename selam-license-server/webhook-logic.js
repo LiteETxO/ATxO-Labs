@@ -147,16 +147,46 @@ async function processCheckoutCompleted(session, ctx) {
 //   ctx.logger
 //
 // Behavior:
-//   - Find the checkout-session-id this charge belongs to (try metadata
-//     then fall back to payment_intent — caller usually stamps both)
-//   - Revoke the matching license; if none found, ack with a warning
-//     (could be a manual key with no Stripe session, or already revoked)
+//   - Only a FULL refund revokes (charge.refunded === true). Stripe fires
+//     this event on partial refunds too; a goodwill partial credit must
+//     not kill the buyer's key.
+//   - The DB stores cs_… checkout-session ids, and charge objects don't
+//     carry one: charge.metadata comes from the PaymentIntent (which we
+//     don't stamp), and charge.payment_intent is a pi_… id that can never
+//     match the stripe_session column. So the session id is resolved via
+//     ctx.stripe.findSessionIdByPaymentIntent (Stripe: which checkout
+//     session owns this payment_intent?).
+//   - Lookup failure → retry (5xx): a refund must not silently leave the
+//     license active.
+//   - No session found → ack with a warning (manual key, or a charge that
+//     didn't come from Checkout).
 
 async function processChargeRefunded(charge, ctx) {
   const log = ctx.logger || console;
-  const sessionId = charge?.metadata?.checkout_session_id
-                 || charge?.payment_intent
-                 || null;
+
+  if (charge?.refunded !== true) {
+    log.info?.('[webhook] charge.refunded: partial refund, license kept', charge?.id);
+    return { status: 'ok', body: { received: true, note: 'partial refund; license kept' } };
+  }
+
+  // Accept a stamped session id if a future flow adds one, but never let
+  // a non-cs_ value reach the revoke query.
+  let sessionId = charge?.metadata?.checkout_session_id || null;
+  if (sessionId && !String(sessionId).startsWith('cs_')) sessionId = null;
+
+  if (!sessionId && charge?.payment_intent && ctx.stripe?.findSessionIdByPaymentIntent) {
+    try {
+      sessionId = await ctx.stripe.findSessionIdByPaymentIntent(String(charge.payment_intent));
+    } catch (e) {
+      log.error('[webhook] charge.refunded: session lookup failed:', e?.message || e);
+      return {
+        status: 'error',
+        retry:  true,
+        body:   { error: 'Could not resolve checkout session; will retry.' },
+      };
+    }
+  }
+
   if (!sessionId) {
     log.warn('[webhook] charge.refunded: no checkout-session reference', charge?.id);
     return { status: 'ok', body: { received: true, note: 'no session ref' } };

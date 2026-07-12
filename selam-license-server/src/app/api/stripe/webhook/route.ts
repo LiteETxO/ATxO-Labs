@@ -30,10 +30,21 @@ const webhookLogic = require('../../../../../webhook-logic.js') as {
     charge: Stripe.Charge,
     ctx: {
       db: { revokeLicenseByStripeSession: typeof revokeLicenseByStripeSession };
+      stripe: { findSessionIdByPaymentIntent: (pi: string) => Promise<string | null> };
       logger?: Console;
     },
   ) => Promise<{ status: 'ok' | 'error'; retry?: boolean; body?: Record<string, unknown> }>;
 };
+
+// A Charge carries a pi_… payment_intent, but licenses are keyed by the
+// cs_… checkout session — ask Stripe which session owns the intent.
+async function findSessionIdByPaymentIntent(paymentIntent: string): Promise<string | null> {
+  const sessions = await getStripe().checkout.sessions.list({
+    payment_intent: paymentIntent,
+    limit: 1,
+  });
+  return sessions.data[0]?.id ?? null;
+}
 
 let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
@@ -81,6 +92,7 @@ export async function POST(req: NextRequest) {
         event.data.object as Stripe.Charge,
         {
           db:     { revokeLicenseByStripeSession },
+          stripe: { findSessionIdByPaymentIntent },
           logger: console,
         },
       );

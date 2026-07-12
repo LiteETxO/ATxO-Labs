@@ -21,13 +21,16 @@ function fakeCharge(overrides = {}) {
   return {
     id: 'ch_test_xyz',
     payment_intent: 'pi_test_abc',
-    metadata: { checkout_session_id: 'cs_test_a1b2c3d4' },
+    refunded: true, // full refund — what charge.refunded===true means on the Charge
+    metadata: {},   // real charges carry no checkout_session_id (nothing stamps it)
     ...overrides,
   };
 }
 
-function makeCtx({ insertResult, insertThrows, mailerThrows, revokeResult, revokeThrows } = {}) {
-  const calls = { insertLicense: [], sendPurchaseEmail: [], revokeLicenseByStripeSession: [] };
+function makeCtx({ insertResult, insertThrows, mailerThrows, revokeResult, revokeThrows,
+                   sessionLookupResult, sessionLookupThrows } = {}) {
+  const calls = { insertLicense: [], sendPurchaseEmail: [], revokeLicenseByStripeSession: [],
+                  findSessionIdByPaymentIntent: [] };
   return {
     calls,
     ctx: {
@@ -47,6 +50,13 @@ function makeCtx({ insertResult, insertThrows, mailerThrows, revokeResult, revok
         sendPurchaseEmail: async (msg) => {
           calls.sendPurchaseEmail.push(msg);
           if (mailerThrows) throw mailerThrows;
+        },
+      },
+      stripe: {
+        findSessionIdByPaymentIntent: async (pi) => {
+          calls.findSessionIdByPaymentIntent.push(pi);
+          if (sessionLookupThrows) throw sessionLookupThrows;
+          return sessionLookupResult === undefined ? 'cs_test_a1b2c3d4' : sessionLookupResult;
         },
       },
       logger: { info: () => {}, warn: () => {}, error: () => {} },
@@ -285,29 +295,67 @@ test('pickPurchaseVariant: invalid override falls back to deterministic hash', (
 
 // ── charge.refunded ──────────────────────────────────────────────
 
-test('refund: with checkout_session_id metadata → revokes license', async () => {
+test('refund: real-world charge (pi only, no metadata) → resolves session via Stripe and revokes', async () => {
+  // THE bug this suite previously enshrined: production charges carry only
+  // a pi_… id, and the old code passed it straight to a cs_…-keyed query.
   const { ctx, calls } = makeCtx();
   const r = await processChargeRefunded(fakeCharge(), ctx);
   assert.equal(r.status, 'ok');
+  assert.equal(calls.findSessionIdByPaymentIntent[0], 'pi_test_abc');
   assert.equal(calls.revokeLicenseByStripeSession.length, 1);
   assert.equal(calls.revokeLicenseByStripeSession[0], 'cs_test_a1b2c3d4');
   assert.equal(r.body.revoked, 'SELAM-X');
 });
 
-test('refund: falls back to payment_intent if no metadata', async () => {
+test('refund: stamped cs_ metadata short-circuits the Stripe lookup', async () => {
   const { ctx, calls } = makeCtx();
   const r = await processChargeRefunded(
-    fakeCharge({ metadata: {}, payment_intent: 'pi_fallback' }),
+    fakeCharge({ metadata: { checkout_session_id: 'cs_stamped' } }),
     ctx,
   );
   assert.equal(r.status, 'ok');
-  assert.equal(calls.revokeLicenseByStripeSession[0], 'pi_fallback');
+  assert.equal(calls.findSessionIdByPaymentIntent.length, 0);
+  assert.equal(calls.revokeLicenseByStripeSession[0], 'cs_stamped');
 });
 
-test('refund: no session reference → ok with note, no revoke', async () => {
+test('refund: non-cs_ metadata value is ignored, falls through to lookup', async () => {
   const { ctx, calls } = makeCtx();
   const r = await processChargeRefunded(
-    fakeCharge({ metadata: {}, payment_intent: null }),
+    fakeCharge({ metadata: { checkout_session_id: 'pi_wrongly_stamped' } }),
+    ctx,
+  );
+  assert.equal(r.status, 'ok');
+  assert.equal(calls.revokeLicenseByStripeSession[0], 'cs_test_a1b2c3d4');
+});
+
+test('refund: partial refund → license kept, no revoke', async () => {
+  const { ctx, calls } = makeCtx();
+  const r = await processChargeRefunded(fakeCharge({ refunded: false }), ctx);
+  assert.equal(r.status, 'ok');
+  assert.equal(calls.revokeLicenseByStripeSession.length, 0);
+  assert.match(r.body.note, /partial refund/);
+});
+
+test('refund: session lookup throws → retry=true, no revoke attempted', async () => {
+  const { ctx, calls } = makeCtx({ sessionLookupThrows: new Error('stripe 500') });
+  const r = await processChargeRefunded(fakeCharge(), ctx);
+  assert.equal(r.status, 'error');
+  assert.equal(r.retry, true);
+  assert.equal(calls.revokeLicenseByStripeSession.length, 0);
+});
+
+test('refund: lookup finds no session → ok with note, no revoke', async () => {
+  const { ctx, calls } = makeCtx({ sessionLookupResult: null });
+  const r = await processChargeRefunded(fakeCharge(), ctx);
+  assert.equal(r.status, 'ok');
+  assert.equal(calls.revokeLicenseByStripeSession.length, 0);
+  assert.match(r.body.note, /no session ref/);
+});
+
+test('refund: no payment_intent and no metadata → ok with note, no revoke', async () => {
+  const { ctx, calls } = makeCtx();
+  const r = await processChargeRefunded(
+    fakeCharge({ payment_intent: null }),
     ctx,
   );
   assert.equal(r.status, 'ok');
