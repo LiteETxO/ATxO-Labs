@@ -2,6 +2,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/", "destination": "/selam-landing" },
-    { "source": "/security", "destination": "/selam-security" }
+    { "source": "/security", "destination": "/selam-security" },
+    { "source": "/vs/chatgpt-desktop", "destination": "/selam-vs-chatgpt" },
+    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" }
   ]
 }

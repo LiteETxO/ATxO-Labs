@@ -2,4 +2,6 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://heyselam.app/</loc><lastmod>2026-08-01</lastmod><priority>1.0</priority></url>
   <url><loc>https://heyselam.app/security</loc><lastmod>2026-08-01</lastmod><priority>0.6</priority></url>
+  <url><loc>https://heyselam.app/vs/chatgpt-desktop</loc><lastmod>2026-08-01</lastmod><priority>0.7</priority></url>
+  <url><loc>https://heyselam.app/local-ai-assistant</loc><lastmod>2026-08-01</lastmod><priority>0.7</priority></url>
 </urlset>

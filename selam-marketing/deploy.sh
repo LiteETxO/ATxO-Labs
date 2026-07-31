@@ -15,6 +15,8 @@ echo "Syncing source files from ~/..."
 cp ~/selam-landing.html    "$HERE/selam-landing.html"
 cp ~/selam-onboarding.html "$HERE/selam-onboarding.html"
 cp ~/selam-security.html   "$HERE/selam-security.html"
+cp ~/selam-vs-chatgpt.html "$HERE/selam-vs-chatgpt.html"
+cp ~/selam-local-ai.html   "$HERE/selam-local-ai.html"
 mkdir -p "$HERE/assets"
 rsync -a --delete ~/assets/ "$HERE/assets/"
 
@@ -25,7 +27,9 @@ cat > "$HERE/vercel.json" <<'EOF'
   "cleanUrls": true,
   "rewrites": [
     { "source": "/", "destination": "/selam-landing" },
-    { "source": "/security", "destination": "/selam-security" }
+    { "source": "/security", "destination": "/selam-security" },
+    { "source": "/vs/chatgpt-desktop", "destination": "/selam-vs-chatgpt" },
+    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" }
   ]
 }
 EOF
@@ -43,6 +47,8 @@ cat > "$HERE/sitemap.xml" <<SITEMAP
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://heyselam.app/</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>1.0</priority></url>
   <url><loc>https://heyselam.app/security</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.6</priority></url>
+  <url><loc>https://heyselam.app/vs/chatgpt-desktop</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
+  <url><loc>https://heyselam.app/local-ai-assistant</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
 </urlset>
 SITEMAP
 
