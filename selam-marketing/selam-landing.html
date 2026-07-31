@@ -6,6 +6,7 @@
 <title>Selam — AI Operator for Your Mac. Runs Ops While You Sleep.</title>
 <meta name="description" content="Selam is an autonomous AI operator for your Mac. Sets her own sub-agents to work, runs overnight, reaches people across WhatsApp, Telegram, iMessage and Email, and reports back what got done. With a face, voice, and name you choose.">
 <link rel="canonical" href="https://heyselam.app/">
+<script defer src="/_vercel/insights/script.js"></script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Selam">
 <meta property="og:title" content="Selam — AI Operator for Your Mac">
@@ -688,10 +689,11 @@ window.addEventListener('load',function(){
     submitBtn.textContent='Sending…';
     signupError.style.display='none';
     try{
-      var res=await fetch('https://formspree.io/f/mreronkj',{
+      var fd=new FormData(form);
+      var res=await fetch('https://api.heyselam.app/api/subscribe',{
         method:'POST',
-        headers:{'Accept':'application/json'},
-        body:new FormData(form)
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:fd.get('email'),use_case:fd.get('use_case')||'',source:'landing'})
       });
       if(res.ok){
         form.querySelectorAll('.input-row').forEach(function(r){r.style.display='none'});

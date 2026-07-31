@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/selam-landing" },
+    { "source": "/security", "destination": "/selam-security" }
+  ]
+}

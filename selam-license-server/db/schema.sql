@@ -66,3 +66,12 @@ CREATE TABLE IF NOT EXISTS recovery_requests (
 );
 CREATE INDEX IF NOT EXISTS recovery_requests_email_idx ON recovery_requests (email);
 CREATE INDEX IF NOT EXISTS recovery_requests_created_idx ON recovery_requests (created_at DESC);
+
+-- Marketing email captures ("watch the launch" field on heyselam.app).
+-- Email is the PK — repeat submits are idempotent no-ops.
+CREATE TABLE IF NOT EXISTS subscribers (
+  email      TEXT PRIMARY KEY,
+  source     TEXT,
+  note       TEXT,          -- optional "what would you use Selam for?"
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
