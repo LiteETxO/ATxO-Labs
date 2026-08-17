@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An AI That Answers Your Phone — For You, Not Your Business</title>
+<meta name="description" content="AI receptionists answer business lines for $29–149/mo. Phone screeners mute spam. Selam is different: a personal AI assistant that answers your number, takes real messages, and briefs you — part of an assistant that already knows your life.">
+<link rel="canonical" href="https://heyselam.app/ai-phone-assistant">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Selam">
+<meta property="og:title" content="An AI that answers your phone — for you, not your business">
+<meta property="og:description" content="She picks up when you can't, takes the message, and briefs you the moment you're back.">
+<meta property="og:url" content="https://heyselam.app/ai-phone-assistant">
+<meta property="og:image" content="https://heyselam.app/assets/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"An AI That Answers Your Phone — For You, Not Your Business","author":{"@type":"Organization","name":"Selam"},"publisher":{"@type":"Organization","name":"Deribe Labs"},"datePublished":"2026-08-17","dateModified":"2026-08-17","mainEntityOfPage":"https://heyselam.app/ai-phone-assistant"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does the caller know they're talking to an AI?","acceptedAnswer":{"@type":"Answer","text":"Yes — she answers honestly as your AI assistant, and if asked directly whether she's an AI, she says yes. Calls are announced, never covert."}},{"@type":"Question","name":"Can a caller trick her into revealing my information?","acceptedAnswer":{"@type":"Answer","text":"Callers are treated as untrusted by design. On a call she shares nothing about you — not your schedule, location, or contacts — ignores instructions from the caller, and can only take messages. She has no tool access during inbound calls."}},{"@type":"Question","name":"What number does she answer?","acceptedAnswer":{"@type":"Answer","text":"A phone number you own through Twilio (from about $1/month plus roughly a cent a minute inbound). Selam configures it automatically — you paste two credentials once, and she points the number at herself."}}]}]}</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--night:#0a0b11;--surface:#14161f;--line:rgba(232,221,200,.10);--line-2:rgba(232,221,200,.18);--ink:#f4efe4;--ink-2:#b6b3ab;--ink-3:#7c7a76;--dawn:#e7b15c;--dawn-soft:#f0cd8f;--serif:"Fraunces",Georgia,serif;--sans:"Hanken Grotesk",system-ui,sans-serif;--mono:"JetBrains Mono",monospace;--maxw:880px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--night);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:var(--dawn-soft)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+header{padding:28px 0;border-bottom:1px solid var(--line)}
+header .wrap{display:flex;justify-content:space-between;align-items:center}
+.mark{font-family:var(--serif);font-weight:600;font-size:22px;color:var(--dawn);text-decoration:none}
+.back{font-size:14px;color:var(--ink-2);text-decoration:none}
+main{padding:72px 0 40px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,5vw,52px);line-height:1.15;max-width:22ch}
+h1 em{font-style:italic;color:var(--dawn)}
+.lede{color:var(--ink-2);font-size:19px;margin:24px 0 8px;max-width:60ch}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(22px,3vw,28px);margin:56px 0 16px}
+p{color:var(--ink-2);margin:14px 0;max-width:68ch}
+.tablewrap{overflow-x:auto;margin:40px 0;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th,td{padding:14px 18px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+td:first-child{color:var(--ink-3);font-size:13.5px;font-family:var(--mono);white-space:nowrap}
+td:nth-child(2){color:var(--ink)}
+tr:last-child td{border-bottom:none}
+.script{border:1px solid var(--line-2);border-radius:12px;padding:22px 26px;margin:32px 0;background:var(--surface);font-size:15.5px}
+.script p{margin:8px 0;max-width:none}
+.script .who{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--dawn)}
+.verdict{border:1px solid var(--line-2);border-left:3px solid var(--dawn);border-radius:12px;padding:24px 28px;margin:48px 0;background:var(--surface)}
+.verdict p{margin:6px 0}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin:48px 0 24px}
+.btn{display:inline-block;padding:14px 26px;border-radius:100px;text-decoration:none;font-weight:500;font-size:15.5px}
+.btn-primary{background:var(--dawn);color:#241606}
+.btn-ghost{border:1px solid var(--line-2);color:var(--ink)}
+footer{border-top:1px solid var(--line);padding:36px 0;color:var(--ink-3);font-size:13.5px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="mark" href="/">Selam</a><a class="back" href="/">← heyselam.app</a></div></header>
+<main>
+<div class="wrap">
+  <h1>An AI that answers your phone — <em>for you,</em> not your business.</h1>
+  <p class="lede">Every "AI receptionist" on the market answers a business line, on a monthly subscription. Every phone screener on your iPhone mutes spam and stops there. Nobody built the obvious thing: a personal assistant who picks up when you can't, has a real conversation, takes the message, and briefs you the moment you're free. So we did.</p>
+
+  <h2>What actually happens when someone calls</h2>
+  <div class="script">
+    <p><span class="who">Caller</span><br>"Hi, this is Marcus from Northgate Dental — I'm calling to confirm Tuesday at 2 PM."</p>
+    <p><span class="who">Selam (answering)</span><br>"Hi there — this is his assistant. He can't take the call right now, but I can take a message. Is there anything he should know beyond confirming Tuesday?"</p>
+    <p><span class="who">Later, to you</span><br>"While you were away, I answered a call. Marcus from Northgate Dental confirmed your Tuesday 2 PM appointment — callback 978-555-0142 if anything changes."</p>
+  </div>
+  <p>If you're at your Mac in a session, she tells you the moment the call ends. If you're not, it's the first thing she briefs when you're back. The full transcript is archived on your machine — searchable, exportable, yours.</p>
+
+  <h2>How it compares to what exists</h2>
+  <div class="tablewrap"><table>
+    <tr><th></th><th>Selam</th><th>Business AI receptionists</th><th>Phone screeners (iOS/Android)</th></tr>
+    <tr><td>Who it serves</td><td>You, personally</td><td>Businesses — restaurants, clinics, SMBs</td><td>You, but only against spam</td></tr>
+    <tr><td>Conversation</td><td>Real dialogue: greets, asks, confirms the message back</td><td>Scripted intake flows</td><td>Screen-and-mute; no real message-taking</td></tr>
+    <tr><td>After the call</td><td>Briefs you in her voice; transcript on your Mac</td><td>Dashboard or email into their cloud</td><td>A notification</td></tr>
+    <tr><td>Part of a larger assistant</td><td>Yes — the same assistant that runs your docs, email, meetings</td><td>No — standalone phone product</td><td>No</td></tr>
+    <tr><td>Cost</td><td>Included in Selam ($199 once) + your own number (~$1/mo, ~1¢/min)</td><td>$29–149/mo + per-minute fees</td><td>Free, bundled</td></tr>
+    <tr><td>Where the audio is processed</td><td>Speech-to-text runs locally on your Mac</td><td>Their cloud</td><td>On-device (screening only)</td></tr>
+  </table></div>
+
+  <h2>The safety design</h2>
+  <p>An assistant who answers your phone is talking to strangers on your behalf, so callers are treated as <strong>untrusted input</strong> — a hard rule, not a preference. On an inbound call she shares nothing about you (not your schedule, your location, or who you know), ignores any instruction a caller gives her, and can only do one thing: take a message. She has no access to your files, email, or tools during the call. She's honest that she's an AI when asked, calls are capped in length, and she also announces recording — the same consent-first behavior she uses in <a href="/ai-meeting-notes">meetings</a>.</p>
+
+  <h2>She makes calls too</h2>
+  <p>The same machinery runs outbound: ask her to call a restaurant, confirm an appointment, or chase a delivery, and she holds the conversation in her own voice — locally transcribed, reasoning turn-by-turn on your keys. Outbound calls sit behind an approval gate: she never dials without your explicit yes.</p>
+
+  <div class="verdict">
+    <p><strong>The short version:</strong> the phone-answering market chose businesses and subscriptions. Selam gives the same power to a person — as one capability of an assistant that already knows your life, for a one-time price.</p>
+  </div>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="/#pricing">Get Selam — $199 once</a>
+    <a class="btn btn-ghost" href="/">Everything else she does →</a>
+  </div>
+  <p style="font-size:14px">Related: <a href="/ai-meeting-notes">private meeting notes</a> · <a href="/vs/openworker">Selam vs. OpenWorker</a> · <a href="/security">the security model</a></p>
+</div>
+</main>
+<footer><div class="wrap">© 2026 Deribe Labs · <a href="/">heyselam.app</a></div></footer>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selam vs. OpenWorker — Same Architecture, Different Species</title>
+<meta name="description" content="OpenWorker is Andrew Ng's free, open-source, local-first AI coworker. Selam shares its architecture — local-first, BYOK, MCP — and none of its personality. An honest comparison for people deciding between them.">
+<link rel="canonical" href="https://heyselam.app/vs/openworker">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Selam">
+<meta property="og:title" content="Selam vs. OpenWorker">
+<meta property="og:description" content="Same architecture — local-first, BYOK, MCP. Completely different species. An honest side-by-side.">
+<meta property="og:url" content="https://heyselam.app/vs/openworker">
+<meta property="og:image" content="https://heyselam.app/assets/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Selam vs. OpenWorker — Same Architecture, Different Species","author":{"@type":"Organization","name":"Selam"},"publisher":{"@type":"Organization","name":"Deribe Labs"},"datePublished":"2026-08-17","dateModified":"2026-08-17","mainEntityOfPage":"https://heyselam.app/vs/openworker"}</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--night:#0a0b11;--surface:#14161f;--line:rgba(232,221,200,.10);--line-2:rgba(232,221,200,.18);--ink:#f4efe4;--ink-2:#b6b3ab;--ink-3:#7c7a76;--dawn:#e7b15c;--dawn-soft:#f0cd8f;--serif:"Fraunces",Georgia,serif;--sans:"Hanken Grotesk",system-ui,sans-serif;--mono:"JetBrains Mono",monospace;--maxw:880px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--night);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:var(--dawn-soft)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+header{padding:28px 0;border-bottom:1px solid var(--line)}
+header .wrap{display:flex;justify-content:space-between;align-items:center}
+.mark{font-family:var(--serif);font-weight:600;font-size:22px;color:var(--dawn);text-decoration:none}
+.back{font-size:14px;color:var(--ink-2);text-decoration:none}
+main{padding:72px 0 40px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,5vw,52px);line-height:1.15;max-width:20ch}
+h1 em{font-style:italic;color:var(--dawn)}
+.lede{color:var(--ink-2);font-size:19px;margin:24px 0 8px;max-width:60ch}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(22px,3vw,28px);margin:56px 0 16px}
+p{color:var(--ink-2);margin:14px 0;max-width:68ch}
+.tablewrap{overflow-x:auto;margin:40px 0;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th,td{padding:14px 18px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+td:first-child{color:var(--ink-3);font-size:13.5px;font-family:var(--mono);white-space:nowrap}
+td:nth-child(2){color:var(--ink)}
+tr:last-child td{border-bottom:none}
+.verdict{border:1px solid var(--line-2);border-left:3px solid var(--dawn);border-radius:12px;padding:24px 28px;margin:48px 0;background:var(--surface)}
+.verdict p{margin:6px 0}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin:48px 0 24px}
+.btn{display:inline-block;padding:14px 26px;border-radius:100px;text-decoration:none;font-weight:500;font-size:15.5px}
+.btn-primary{background:var(--dawn);color:#241606}
+.btn-ghost{border:1px solid var(--line-2);color:var(--ink)}
+footer{border-top:1px solid var(--line);padding:36px 0;color:var(--ink-3);font-size:13.5px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="mark" href="/">Selam</a><a class="back" href="/">← heyselam.app</a></div></header>
+<main>
+<div class="wrap">
+  <h1>Selam vs. OpenWorker — same architecture, <em>different species.</em></h1>
+  <p class="lede">OpenWorker is Andrew Ng's open-source desktop AI coworker: free, MIT-licensed, local-first, bring-your-own-keys, MCP-native. We think it's excellent — partly because it validates every architectural bet we made. If you're deciding between them, here's the honest version.</p>
+
+  <h2>Where we agree completely</h2>
+  <p>Both projects reject the same thing: agents that execute in someone else's cloud, on a metered subscription, with your files streamed to their servers. OpenWorker and Selam both run on your machine, both use your own model keys (Anthropic, OpenAI, Gemini — or local models), both speak MCP to connect tools, and both ship finished work instead of chat. If that architecture matters to you, you're choosing between two implementations of the same principle — not two philosophies.</p>
+
+  <div class="tablewrap"><table>
+    <tr><th></th><th>Selam</th><th>OpenWorker</th></tr>
+    <tr><td>What it is</td><td>A persistent companion with a face, voice, and name — that does the work</td><td>A deliverable engine you type at</td></tr>
+    <tr><td>Interface</td><td>Voice-first: talk, interrupt, she talks back. 3D character rendered on-device, six included</td><td>Text in, documents out</td></tr>
+    <tr><td>Mac-native verbs</td><td>Word, Excel, PowerPoint, Pages, Numbers, Keynote, Notes, Reminders, iMessage, Finder — the real apps</td><td>MCP connectors (Slack, GitHub, Jira, Notion, Gmail…) — strong on SaaS, thin on the Mac itself</td></tr>
+    <tr><td>Meetings</td><td>Captures both sides of any call locally, takes notes, absorbs what it learns — no bot joins</td><td>—</td></tr>
+    <tr><td>Phone</td><td>Places real calls and answers your number as a receptionist</td><td>—</td></tr>
+    <tr><td>Sees &amp; hears you</td><td>On-device face and voice recognition, presence awareness, guest mode</td><td>—</td></tr>
+    <tr><td>Autonomy</td><td>Named sub-agent specialists with their own schedules, memory, and channels; runs overnight</td><td>Task-scoped agent runs</td></tr>
+    <tr><td>Setup</td><td>Signed, notarized DMG. Paste a key, talk</td><td>Clone, configure, comfortable-with-a-terminal assumed</td></tr>
+    <tr><td>Price</td><td>$199 once (founder license; $299 after)</td><td>Free, MIT license</td></tr>
+    <tr><td>Who it's for</td><td>People who want an assistant in their life, not just their workflow</td><td>Developers who want a work engine and enjoy assembling it</td></tr>
+  </table></div>
+
+  <h2>The honest part</h2>
+  <p>If you're a developer who lives in a terminal, doesn't care about voice or embodiment, and wants a free deliverable engine — <strong>use OpenWorker.</strong> It's good, it's free, and Andrew Ng's team will keep making it better. We mean that.</p>
+  <p>Selam is for a different person: someone who wants to <em>talk</em> to their assistant while making coffee, have her sit quietly in a meeting and brief them after, answer the phone when they can't, notice when they walk away mid-presentation, and keep every bit of what she knows in plain files on their Mac. OpenWorker has no face, no voice, no phone, no camera, and no ambition to be a presence in your day — by design. That's not a criticism; it's a different species.</p>
+
+  <div class="verdict">
+    <p><strong>The short version:</strong> OpenWorker proved the architecture is right. Selam is what happens when that architecture grows a face, a voice, a phone number, and a personality — shipped as a finished product instead of a repository.</p>
+  </div>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="/#pricing">Get Selam — $199 once</a>
+    <a class="btn btn-ghost" href="/vs/chatgpt-desktop">Selam vs. ChatGPT Desktop →</a>
+  </div>
+  <p style="font-size:14px">Related: <a href="/local-ai-assistant">what "local-first" actually means</a> · <a href="/ai-meeting-notes">private meeting notes</a> · <a href="/ai-phone-assistant">an AI that answers your phone</a> · <a href="/security">the security model</a></p>
+</div>
+</main>
+<footer><div class="wrap">© 2026 Deribe Labs · <a href="/">heyselam.app</a></div></footer>
+</body>
+</html>

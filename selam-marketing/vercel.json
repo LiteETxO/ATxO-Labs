@@ -4,6 +4,9 @@
     { "source": "/", "destination": "/selam-landing" },
     { "source": "/security", "destination": "/selam-security" },
     { "source": "/vs/chatgpt-desktop", "destination": "/selam-vs-chatgpt" },
-    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" }
+    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" },
+    { "source": "/vs/openworker", "destination": "/selam-vs-openworker" },
+    { "source": "/ai-phone-assistant", "destination": "/selam-phone-assistant" },
+    { "source": "/ai-meeting-notes", "destination": "/selam-meeting-notes" }
   ]
 }

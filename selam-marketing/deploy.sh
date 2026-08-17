@@ -17,6 +17,9 @@ cp ~/selam-onboarding.html "$HERE/selam-onboarding.html"
 cp ~/selam-security.html   "$HERE/selam-security.html"
 cp ~/selam-vs-chatgpt.html "$HERE/selam-vs-chatgpt.html"
 cp ~/selam-local-ai.html   "$HERE/selam-local-ai.html"
+cp ~/selam-vs-openworker.html   "$HERE/selam-vs-openworker.html"
+cp ~/selam-phone-assistant.html "$HERE/selam-phone-assistant.html"
+cp ~/selam-meeting-notes.html   "$HERE/selam-meeting-notes.html"
 mkdir -p "$HERE/assets"
 rsync -a --delete ~/assets/ "$HERE/assets/"
 
@@ -29,7 +32,10 @@ cat > "$HERE/vercel.json" <<'EOF'
     { "source": "/", "destination": "/selam-landing" },
     { "source": "/security", "destination": "/selam-security" },
     { "source": "/vs/chatgpt-desktop", "destination": "/selam-vs-chatgpt" },
-    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" }
+    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" },
+    { "source": "/vs/openworker", "destination": "/selam-vs-openworker" },
+    { "source": "/ai-phone-assistant", "destination": "/selam-phone-assistant" },
+    { "source": "/ai-meeting-notes", "destination": "/selam-meeting-notes" }
   ]
 }
 EOF
@@ -49,6 +55,9 @@ cat > "$HERE/sitemap.xml" <<SITEMAP
   <url><loc>https://heyselam.app/security</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.6</priority></url>
   <url><loc>https://heyselam.app/vs/chatgpt-desktop</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
   <url><loc>https://heyselam.app/local-ai-assistant</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
+  <url><loc>https://heyselam.app/vs/openworker</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
+  <url><loc>https://heyselam.app/ai-phone-assistant</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
+  <url><loc>https://heyselam.app/ai-meeting-notes</loc><lastmod>$(date +%Y-%m-%d)</lastmod><priority>0.7</priority></url>
 </urlset>
 SITEMAP
 
