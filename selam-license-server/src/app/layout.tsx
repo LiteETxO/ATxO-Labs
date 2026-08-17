@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Selam — an AI worker that lives on your Mac',
     description: 'Reads your screen, drafts your messages, handles your inbox. Asks before doing anything risky.',
-    creator: '@atxolabs',
   },
   alternates: {
     canonical: 'https://heyselam.app',
