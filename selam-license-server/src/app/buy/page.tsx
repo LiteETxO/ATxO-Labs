@@ -22,7 +22,7 @@ type FounderInfo = {
 // Until /api/founder answers, render the founder state — it matches the
 // server's own fail-open default, so the page and checkout never disagree.
 const DEFAULT_FOUNDER: FounderInfo = {
-  cap: 100, remaining: null, founder_open: true, price_usd: 199,
+  cap: 100, remaining: null, founder_open: true, price_usd: 99,
 };
 
 const BASE_FEATURES = [
@@ -110,6 +110,18 @@ export default function BuyPage() {
               ? 'one-time · lifetime updates'
               : 'one-time · one year of updates'}
           </div>
+        </div>
+
+        {/* Public price ladder — quantity-stepped, pre-announced. Each
+            step-up is real and permanent; the sellout is the marketing. */}
+        <div style={{ fontSize: 13, color: 'rgba(244,239,228,0.55)', margin: '2px 0 4px' }}>
+          $99 for the first {founder.cap} · $149 after that · $199 standard. The price only moves up.
+        </div>
+        <div style={{ fontSize: 13.5, color: 'rgba(244,239,228,0.7)', margin: '10px 0 2px', lineHeight: 1.5 }}>
+          ChatGPT&nbsp;Pro is $200 <em>a month</em>. Selam is ${founder.price_usd} <em>once</em> — she runs on your own
+          API keys at raw cost. And lifetime is honest here for a structural reason: your keys mean our
+          marginal cost is zero. We&apos;re not promising compute we can&apos;t afford — that&apos;s why this
+          price can exist.
         </div>
 
         <ul style={styles.features}>

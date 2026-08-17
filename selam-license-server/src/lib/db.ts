@@ -24,8 +24,8 @@ function db() {
   return _sql;
 }
 
-// Founder cohort: the first 100 licenses sell at $199 with lifetime
-// updates. After that, checkout flips to the standard tier ($299, one
+// Founder cohort: the first 100 licenses sell at $99 with lifetime
+// updates. After that, checkout flips to the standard tier ($149 launch, later $199, one
 // year of updates). Revoked (refunded) licenses free their slot.
 export const FOUNDER_CAP = 100;
 

@@ -21,7 +21,7 @@ export async function GET() {
         active,
         remaining,
         founder_open: remaining > 0,
-        price_usd: remaining > 0 ? 199 : 299,
+        price_usd: remaining > 0 ? 99 : 149,
       },
       {
         headers: {
@@ -35,7 +35,7 @@ export async function GET() {
     // Match checkout's fail-open direction: an infra blip reads as
     // "founder window open" so the two surfaces never disagree.
     return NextResponse.json(
-      { cap: FOUNDER_CAP, active: null, remaining: null, founder_open: true, price_usd: 199 },
+      { cap: FOUNDER_CAP, active: null, remaining: null, founder_open: true, price_usd: 99 },
       { status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' } },
     );
   }

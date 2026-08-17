@@ -102,7 +102,7 @@ export default async function DownloadPage() {
         </div>
 
         <div style={styles.footer}>
-          Don&apos;t have a license yet? <a href="/buy" style={styles.link}>Buy Selam — $199 →</a><br />
+          Don&apos;t have a license yet? <a href="/buy" style={styles.link}>Buy Selam — founder pricing →</a><br />
           Lost your key? <a href="/recover" style={styles.link}>Recover by email →</a>
         </div>
       </div>

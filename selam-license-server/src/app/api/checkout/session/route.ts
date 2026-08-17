@@ -18,8 +18,8 @@ const PRODUCT_NAME = 'Selam';
 const SUCCESS_PATH = '/welcome';
 const CANCEL_PATH  = '/buy?cancelled=1';
 
-// Founder-cap pricing: STRIPE_PRICE_ID is the founder price ($199);
-// STRIPE_PRICE_ID_STANDARD is the post-cap price ($299, one year of
+// Founder-cap pricing: STRIPE_PRICE_ID is the founder price ($99);
+// STRIPE_PRICE_ID_STANDARD is the post-cap price ($149 launch tier, one year of
 // updates). The tier is stamped on the session's metadata so the
 // webhook mints exactly what the buyer was shown.
 async function resolveTier(): Promise<LicenseTier> {
@@ -28,7 +28,7 @@ async function resolveTier(): Promise<LicenseTier> {
     return active < FOUNDER_CAP ? 'founder' : 'standard';
   } catch (e) {
     // DB unreachable: default to founder — undercharging on an infra
-    // blip is acceptable, silently charging $299 during the founder
+    // blip is acceptable, silently charging the standard price during the founder
     // window (or blocking every sale) is not.
     console.error('[checkout/session] countActiveLicenses failed, defaulting to founder:', e);
     return 'founder';
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     : process.env.STRIPE_PRICE_ID_STANDARD;
   if (!priceId) {
     // Fail closed rather than fall back to the founder price after the
-    // cap — selling license #101 at $199 breaks the "first 100" promise.
+    // cap — selling license #101 at the founder price breaks the "first 100" promise.
     const missing = tier === 'founder' ? 'STRIPE_PRICE_ID' : 'STRIPE_PRICE_ID_STANDARD';
     console.error(`[checkout/session] ${missing} missing (tier=${tier})`);
     return NextResponse.json(
