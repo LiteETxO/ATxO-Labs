@@ -48,7 +48,7 @@ async function validateHandler({ key: rawKey, ip }, ctx) {
       return {
         status: 403,
         body: {
-          error: 'Trial expired. Own Selam forever at https://api.heyselam.app/buy',
+          error: 'Trial expired. Own Selam forever for $89 more (your $10 is credited) at https://api.heyselam.app/buy',
           code: 'expired',
           expiresAt: record.expiresAt,
           purchaseType: record.purchaseType || 'trial',

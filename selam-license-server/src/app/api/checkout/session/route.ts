@@ -5,10 +5,12 @@
 // collection, tax calculation (via Stripe Tax), invoice generation, and the webhook
 // to /api/stripe/webhook on success.
 //
-// Supports three checkout flows:
+// Supports four checkout flows:
 //   1. Trial: $10, 30-day trial (full access)
-//   2. Ownership: $89, one-time perpetual license purchase
-//   3. Update pass: $99/year, recurring subscription for annual updates
+//   2. Ownership: $99, one-time perpetual license purchase
+//   3. Upgrade: $89, perpetual license for trial holders (the $10 trial is
+//      credited — $99 total either way). Requires a real trial key.
+//   4. Update pass: $99/year, recurring subscription for annual updates
 //
 // Tax: automatic_tax: { enabled: true } means Stripe collects buyer
 // location and applies VAT/GST/sales tax based on registered jurisdictions.
@@ -17,14 +19,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { countActiveLicenses, FOUNDER_CAP, type LicenseTier, type PurchaseType } from '@/lib/db';
+import { countActiveLicenses, findKeyByValue, FOUNDER_CAP, type LicenseTier, type PurchaseType } from '@/lib/db';
 
 const PRODUCT_NAME = 'Selam';
 const SUCCESS_PATH = '/welcome';
 const CANCEL_PATH  = '/buy?cancelled=1';
 
 // Price ID mapping by purchase type
-type CheckoutFlow = 'trial' | 'ownership' | 'update-pass';
+type CheckoutFlow = 'trial' | 'ownership' | 'upgrade' | 'update-pass';
 
 function resolvePriceId(flow: CheckoutFlow): string {
   switch (flow) {
@@ -32,6 +34,8 @@ function resolvePriceId(flow: CheckoutFlow): string {
       return process.env.STRIPE_PRICE_ID_TRIAL || '';
     case 'ownership':
       return process.env.STRIPE_PRICE_ID_OWNERSHIP || '';
+    case 'upgrade':
+      return process.env.STRIPE_PRICE_ID_UPGRADE || '';
     case 'update-pass':
       return process.env.STRIPE_PRICE_ID_UPDATE_PASS || '';
     default:
@@ -82,7 +86,8 @@ export async function POST(req: NextRequest) {
     email?: string;
     ref?: string;
     campaign?: string;
-    flow?: CheckoutFlow; // 'trial', 'ownership', or 'update-pass'
+    flow?: CheckoutFlow; // 'trial', 'ownership', 'upgrade', or 'update-pass'
+    key?: string;        // upgrade only: the buyer's trial license key
   } = {};
   try {
     if (req.headers.get('content-type')?.includes('application/json')) {
@@ -105,6 +110,26 @@ export async function POST(req: NextRequest) {
   } else if (payload.flow === 'ownership') {
     flow = 'ownership';
     purchaseType = 'perpetual';
+    stripeMode = 'payment';
+  } else if (payload.flow === 'upgrade') {
+    // $89 upgrade is only for real trial holders — verify the key so the
+    // discounted price can't be reached by guessing the API.
+    const key = String(payload.key || '').trim().toUpperCase();
+    let rec = null;
+    try {
+      rec = key ? await findKeyByValue(key) : null;
+    } catch (e) {
+      console.error('[checkout/session] upgrade key lookup failed:', e);
+      return NextResponse.json({ error: 'Could not verify your trial key. Try again.' }, { status: 503 });
+    }
+    if (!rec || rec.status !== 'active' || rec.purchaseType !== 'trial') {
+      return NextResponse.json(
+        { error: 'Upgrade pricing needs a valid trial key. Start a trial first, or buy ownership outright.' },
+        { status: 400 },
+      );
+    }
+    flow = 'upgrade';
+    purchaseType = 'perpetual';   // mints a perpetual key
     stripeMode = 'payment';
   } else if (payload.flow === 'trial') {
     flow = 'trial';

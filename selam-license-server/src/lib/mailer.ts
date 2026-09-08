@@ -94,8 +94,9 @@ export async function sendPurchaseEmail(args: {
   const msg = build({ ...args, from: FROM });
   if (args.purchaseType === 'trial') {
     const until = args.expiresAt ? new Date(args.expiresAt).toDateString() : '30 days from now';
+    const upgradeUrl = `https://api.heyselam.app/buy?key=${encodeURIComponent(args.key)}`;
     const notice = `Your 30-day trial is live — full access until ${until}. ` +
-      `Like her? Own Selam forever for $89: https://api.heyselam.app/buy`;
+      `Like her? Own Selam forever for just $89 more (your $10 is credited — $99 total): ${upgradeUrl}`;
     msg.subject = msg.subject.replace(/^/, '[30-day trial] ');
     msg.text = `${notice}\n\n${msg.text}`;
     msg.html = `<p style="font-weight:600">${notice}</p>` + msg.html;

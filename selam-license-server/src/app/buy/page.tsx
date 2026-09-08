@@ -11,7 +11,7 @@
 import { useEffect, useState } from 'react';
 
 type Status = 'idle' | 'redirecting' | 'error';
-type Flow = 'trial' | 'ownership';
+type Flow = 'trial' | 'ownership' | 'upgrade';
 
 const BASE_FEATURES = [
   'Runs ops overnight and reports back by morning',
@@ -26,6 +26,16 @@ export default function BuyPage() {
   const [error, setError]   = useState('');
   const [cancelled, setCancelled] = useState(false);
   const [busyFlow, setBusyFlow] = useState<Flow | null>(null);
+  const [upgradeKey, setUpgradeKey] = useState('');
+
+  // Trial holders arrive via /buy?key=SELAM-… (from the trial email or the
+  // in-app upgrade link) — they see the $89 upgrade ($10 already credited).
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const k = new URLSearchParams(window.location.search).get('key') || '';
+      if (/^SELAM-[A-Z0-9-]+$/i.test(k.trim())) setUpgradeKey(k.trim().toUpperCase());
+    }
+  }, []);
 
   // Detect ?cancelled=1 — Stripe sends buyers here when they back out
   // of the checkout. Soft-acknowledge so they can try again.
@@ -44,7 +54,7 @@ export default function BuyPage() {
       const res = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flow }),
+        body: JSON.stringify(flow === 'upgrade' ? { flow, key: upgradeKey } : { flow }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
@@ -87,10 +97,10 @@ export default function BuyPage() {
 
         <div style={{ fontSize: 13, color: 'rgba(244,239,228,0.55)', margin: '2px 0 4px' }}>
           One payment of $10. No auto-renewal — it simply expires after 30 days.
-          Like her? Own Selam forever for $89.
+          Like her? Own Selam forever for $89 more — your $10 is credited, so it&apos;s $99 total either way.
         </div>
         <div style={{ fontSize: 13.5, color: 'rgba(244,239,228,0.7)', margin: '10px 0 2px', lineHeight: 1.5 }}>
-          ChatGPT&nbsp;Pro is $200 <em>a month</em>. Selam is $89 <em>once</em> — she runs on your own
+          ChatGPT&nbsp;Pro is $200 <em>a month</em>. Selam is $99 <em>once</em> — she runs on your own
           API keys at raw cost. Forever is honest here for a structural reason: your keys mean our
           marginal cost is zero. We&apos;re not promising compute we can&apos;t afford — that&apos;s why this
           price can exist.
@@ -107,30 +117,46 @@ export default function BuyPage() {
           ))}
         </ul>
 
-        <button
-          onClick={() => startCheckout('trial')}
-          disabled={status === 'redirecting'}
-          style={{
-            ...styles.button,
-            ...(status === 'redirecting' ? styles.buttonDisabled : {}),
-          }}
-        >
-          {busyFlow === 'trial' ? 'Redirecting to Stripe…' : 'Start my 30-day trial — $10 →'}
-        </button>
+        {upgradeKey ? (
+          <button
+            onClick={() => startCheckout('upgrade')}
+            disabled={status === 'redirecting'}
+            style={{
+              ...styles.button,
+              ...(status === 'redirecting' ? styles.buttonDisabled : {}),
+            }}
+          >
+            {busyFlow === 'upgrade' ? 'Redirecting to Stripe…' : 'Own it forever — $89 (your $10 trial is credited) →'}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => startCheckout('trial')}
+              disabled={status === 'redirecting'}
+              style={{
+                ...styles.button,
+                ...(status === 'redirecting' ? styles.buttonDisabled : {}),
+              }}
+            >
+              {busyFlow === 'trial' ? 'Redirecting to Stripe…' : 'Start my 30-day trial — $10 →'}
+            </button>
 
-        <button
-          onClick={() => startCheckout('ownership')}
-          disabled={status === 'redirecting'}
-          style={{
-            ...styles.buttonGhost,
-            ...(status === 'redirecting' ? styles.buttonDisabled : {}),
-          }}
-        >
-          {busyFlow === 'ownership' ? 'Redirecting to Stripe…' : "No trial needed — own it forever, $89"}
-        </button>
+            <button
+              onClick={() => startCheckout('ownership')}
+              disabled={status === 'redirecting'}
+              style={{
+                ...styles.buttonGhost,
+                ...(status === 'redirecting' ? styles.buttonDisabled : {}),
+              }}
+            >
+              {busyFlow === 'ownership' ? 'Redirecting to Stripe…' : "No trial needed — own it forever, $99"}
+            </button>
+          </>
+        )}
 
         <div style={styles.fineprint}>
-          Both are one-time charges — no subscription, nothing renews on its own.
+          One-time charges — no subscription, nothing renews on its own.
+          Tried Selam already? Your upgrade link is in your trial email (your $10 counts toward the $99).
           Tax (VAT/GST/sales) calculated at checkout based on your location.
           Ownership refundable within 14 days.
         </div>
