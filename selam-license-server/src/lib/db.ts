@@ -31,6 +31,10 @@ export const FOUNDER_CAP = 100;
 
 export type LicenseTier = 'founder' | 'standard';
 
+// What the buyer purchased at checkout — stamped into Stripe session metadata
+// (checkout/session route) and read back by the webhook when minting.
+export type PurchaseType = 'trial' | 'perpetual' | 'update_pass';
+
 export type LicenseRecord = {
   key: string;
   email: string;

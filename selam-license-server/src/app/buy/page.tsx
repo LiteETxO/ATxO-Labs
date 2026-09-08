@@ -11,19 +11,7 @@
 import { useEffect, useState } from 'react';
 
 type Status = 'idle' | 'redirecting' | 'error';
-
-type FounderInfo = {
-  cap: number;
-  remaining: number | null;
-  founder_open: boolean;
-  price_usd: number;
-};
-
-// Until /api/founder answers, render the founder state — it matches the
-// server's own fail-open default, so the page and checkout never disagree.
-const DEFAULT_FOUNDER: FounderInfo = {
-  cap: 100, remaining: null, founder_open: true, price_usd: 99,
-};
+type Flow = 'trial' | 'ownership';
 
 const BASE_FEATURES = [
   'Runs ops overnight and reports back by morning',
@@ -37,14 +25,7 @@ export default function BuyPage() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError]   = useState('');
   const [cancelled, setCancelled] = useState(false);
-  const [founder, setFounder] = useState<FounderInfo>(DEFAULT_FOUNDER);
-
-  useEffect(() => {
-    fetch('/api/founder')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: FounderInfo | null) => { if (d && typeof d.price_usd === 'number') setFounder(d); })
-      .catch(() => { /* keep founder default */ });
-  }, []);
+  const [busyFlow, setBusyFlow] = useState<Flow | null>(null);
 
   // Detect ?cancelled=1 — Stripe sends buyers here when they back out
   // of the checkout. Soft-acknowledge so they can try again.
@@ -55,24 +36,27 @@ export default function BuyPage() {
     }
   }, []);
 
-  async function startCheckout() {
+  async function startCheckout(flow: Flow) {
     setStatus('redirecting');
+    setBusyFlow(flow);
     setError('');
     try {
       const res = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ flow }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
         setStatus('error');
+        setBusyFlow(null);
         setError(data.error || `Could not start checkout (status ${res.status}).`);
         return;
       }
       window.location.href = data.url;
     } catch (e) {
       setStatus('error');
+      setBusyFlow(null);
       setError(e instanceof Error ? e.message : 'Network error.');
     }
   }
@@ -94,41 +78,27 @@ export default function BuyPage() {
           the name. She asks before anything irreversible.
         </p>
 
-        {founder.founder_open && (
-          <div style={styles.founderTag}>
-            Founder license
-            {typeof founder.remaining === 'number'
-              ? ` · ${founder.remaining} of ${founder.cap} remaining`
-              : ` · first ${founder.cap}`}
-          </div>
-        )}
+        <div style={styles.founderTag}>30-day trial · full access</div>
 
         <div style={styles.priceRow}>
-          <div style={styles.priceMain}>${founder.price_usd}</div>
-          <div style={styles.priceSub}>
-            {founder.founder_open
-              ? 'one-time · lifetime updates'
-              : 'one-time · one year of updates'}
-          </div>
+          <div style={styles.priceMain}>$10</div>
+          <div style={styles.priceSub}>one-time · 30 days · no subscription</div>
         </div>
 
-        {/* Public price ladder — quantity-stepped, pre-announced. Each
-            step-up is real and permanent; the sellout is the marketing. */}
         <div style={{ fontSize: 13, color: 'rgba(244,239,228,0.55)', margin: '2px 0 4px' }}>
-          $99 for the first {founder.cap} · $149 after that · $199 standard. The price only moves up.
+          One payment of $10. No auto-renewal — it simply expires after 30 days.
+          Like her? Own Selam forever for $89.
         </div>
         <div style={{ fontSize: 13.5, color: 'rgba(244,239,228,0.7)', margin: '10px 0 2px', lineHeight: 1.5 }}>
-          ChatGPT&nbsp;Pro is $200 <em>a month</em>. Selam is ${founder.price_usd} <em>once</em> — she runs on your own
-          API keys at raw cost. And lifetime is honest here for a structural reason: your keys mean our
+          ChatGPT&nbsp;Pro is $200 <em>a month</em>. Selam is $89 <em>once</em> — she runs on your own
+          API keys at raw cost. Forever is honest here for a structural reason: your keys mean our
           marginal cost is zero. We&apos;re not promising compute we can&apos;t afford — that&apos;s why this
           price can exist.
         </div>
 
         <ul style={styles.features}>
           {[...BASE_FEATURES,
-            founder.founder_open
-              ? 'Lifetime updates — founder license, locked in forever'
-              : 'One year of updates included — your version is yours forever',
+            'First 12 months of updates free — after that, an optional $99/yr update pass',
           ].map((f) => (
             <li key={f} style={styles.feature}>
               <span style={styles.dot} />
@@ -138,19 +108,31 @@ export default function BuyPage() {
         </ul>
 
         <button
-          onClick={startCheckout}
+          onClick={() => startCheckout('trial')}
           disabled={status === 'redirecting'}
           style={{
             ...styles.button,
             ...(status === 'redirecting' ? styles.buttonDisabled : {}),
           }}
         >
-          {status === 'redirecting' ? 'Redirecting to Stripe…' : `Hire Selam — $${founder.price_usd} →`}
+          {busyFlow === 'trial' ? 'Redirecting to Stripe…' : 'Start my 30-day trial — $10 →'}
+        </button>
+
+        <button
+          onClick={() => startCheckout('ownership')}
+          disabled={status === 'redirecting'}
+          style={{
+            ...styles.buttonGhost,
+            ...(status === 'redirecting' ? styles.buttonDisabled : {}),
+          }}
+        >
+          {busyFlow === 'ownership' ? 'Redirecting to Stripe…' : "No trial needed — own it forever, $89"}
         </button>
 
         <div style={styles.fineprint}>
+          Both are one-time charges — no subscription, nothing renews on its own.
           Tax (VAT/GST/sales) calculated at checkout based on your location.
-          Refundable within 14 days.
+          Ownership refundable within 14 days.
         </div>
 
         {cancelled && (
@@ -325,6 +307,21 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: '0.005em',
     cursor: 'pointer',
     transition: 'background 0.2s, transform 0.15s',
+  },
+  buttonGhost: {
+    width: '100%',
+    marginTop: 10,
+    background: 'transparent',
+    color: '#e7b15c',
+    border: '1px solid rgba(231,177,92,0.45)',
+    borderRadius: 12,
+    padding: '14px',
+    fontFamily: 'var(--font-sans), system-ui, sans-serif',
+    fontSize: 14.5,
+    fontWeight: 600,
+    letterSpacing: '0.005em',
+    cursor: 'pointer',
+    transition: 'background 0.2s, border-color 0.2s',
   },
   buttonDisabled: {
     opacity: 0.5,
