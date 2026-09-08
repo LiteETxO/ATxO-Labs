@@ -75,3 +75,9 @@ CREATE TABLE IF NOT EXISTS subscribers (
   note       TEXT,          -- optional "what would you use Selam for?"
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- (v4) Trial licensing — purchase_type + expiry. 'trial' keys carry an
+-- expires_at ~30 days out and are rejected by /api/validate once past it.
+-- Pre-existing rows default to 'perpetual' (they were sold as such).
+ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_type TEXT NOT NULL DEFAULT 'perpetual';
+ALTER TABLE licenses ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;

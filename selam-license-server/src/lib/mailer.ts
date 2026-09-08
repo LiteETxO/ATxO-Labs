@@ -86,10 +86,20 @@ export async function sendPurchaseEmail(args: {
   downloadUrl?: string;
   sentAt?: Date;
   variant?: 'a' | 'b';
+  purchaseType?: 'trial' | 'perpetual' | 'update_pass';
+  expiresAt?: string | null;
 }): Promise<void> {
   const variant = args.variant === 'b' ? 'b' : 'a';
   const build = variant === 'b' ? buildPurchaseEmailB : buildPurchaseEmail;
   const msg = build({ ...args, from: FROM });
+  if (args.purchaseType === 'trial') {
+    const until = args.expiresAt ? new Date(args.expiresAt).toDateString() : '30 days from now';
+    const notice = `Your 30-day trial is live — full access until ${until}. ` +
+      `Like her? Own Selam forever for $89: https://api.heyselam.app/buy`;
+    msg.subject = msg.subject.replace(/^/, '[30-day trial] ');
+    msg.text = `${notice}\n\n${msg.text}`;
+    msg.html = `<p style="font-weight:600">${notice}</p>` + msg.html;
+  }
   const r = await getResend().emails.send({
     from: msg.from,
     to: msg.to,

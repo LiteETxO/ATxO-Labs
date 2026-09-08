@@ -35,10 +35,10 @@ function makeCtx({ insertResult, insertThrows, mailerThrows, revokeResult, revok
     calls,
     ctx: {
       db: {
-        insertLicense: async (key, email, sku, sess, tier) => {
-          calls.insertLicense.push({ key, email, sku, sess, tier });
+        insertLicense: async (key, email, sku, sess, tier, purchaseType, expiresAt) => {
+          calls.insertLicense.push({ key, email, sku, sess, tier, purchaseType, expiresAt });
           if (insertThrows) throw insertThrows;
-          return insertResult || { key, email, productSku: sku, status: 'active', stripeSession: sess, tier };
+          return insertResult || { key, email, productSku: sku, status: 'active', stripeSession: sess, tier, purchaseType, expiresAt };
         },
         revokeLicenseByStripeSession: async (sessionId) => {
           calls.revokeLicenseByStripeSession.push(sessionId);
@@ -109,8 +109,7 @@ test('checkout: success → inserts license + sends purchase email', async () =>
     email: 'mike@example.com',
     sku: 'selam-v1',
     sess: 'cs_test_a1b2c3d4',
-    tier: 'founder',
-  });
+    tier: 'founder', purchaseType: 'perpetual', expiresAt: null,});
 
   assert.equal(calls.sendPurchaseEmail.length, 1);
   assert.equal(calls.sendPurchaseEmail[0].to, 'mike@example.com');
@@ -376,4 +375,66 @@ test('refund: DB error → retry=true', async () => {
   const r = await processChargeRefunded(fakeCharge(), ctx);
   assert.equal(r.status, 'error');
   assert.equal(r.retry, true);
+});
+
+// ── Trial licensing (v4) ─────────────────────────────────────────────
+
+test('checkout: trial purchase mints a key with ~30-day expiry', async () => {
+  const { ctx, calls } = makeCtx();
+  const t0 = Date.UTC(2026, 8, 7);
+  ctx.now = () => t0;
+  const session = {
+    id: 'cs_test_trial1',
+    customer_details: { email: 'trial@example.com' },
+    metadata: { product: 'selam-v1', purchase_type: 'trial', tier: 'founder' },
+  };
+  const r = await processCheckoutCompleted(session, ctx);
+  assert.equal(r.status, 'ok');
+  assert.equal(calls.insertLicense.length, 1);
+  const ins = calls.insertLicense[0];
+  assert.equal(ins.purchaseType, 'trial');
+  assert.equal(Date.parse(ins.expiresAt), t0 + 30 * 86400e3);
+  // email got the trial context
+  assert.equal(calls.sendPurchaseEmail[0].purchaseType, 'trial');
+  assert.equal(calls.sendPurchaseEmail[0].expiresAt, ins.expiresAt);
+});
+
+test('checkout: perpetual (ownership) purchase has no expiry', async () => {
+  const { ctx, calls } = makeCtx();
+  const session = {
+    id: 'cs_test_own1',
+    customer_details: { email: 'own@example.com' },
+    metadata: { product: 'selam-v1', purchase_type: 'perpetual', tier: 'founder' },
+  };
+  const r = await processCheckoutCompleted(session, ctx);
+  assert.equal(r.status, 'ok');
+  assert.equal(calls.insertLicense[0].purchaseType, 'perpetual');
+  assert.equal(calls.insertLicense[0].expiresAt, null);
+});
+
+test('checkout: legacy session without purchase_type stamp → perpetual', async () => {
+  const { ctx, calls } = makeCtx();
+  const session = {
+    id: 'cs_test_legacy1',
+    customer_details: { email: 'legacy@example.com' },
+    metadata: { product: 'selam-v1' },
+  };
+  const r = await processCheckoutCompleted(session, ctx);
+  assert.equal(r.status, 'ok');
+  assert.equal(calls.insertLicense[0].purchaseType, 'perpetual');
+  assert.equal(calls.insertLicense[0].expiresAt, null);
+});
+
+test('checkout: update-pass mints NO license, acks ok', async () => {
+  const { ctx, calls } = makeCtx();
+  const session = {
+    id: 'cs_test_pass1',
+    customer_details: { email: 'pass@example.com' },
+    metadata: { product: 'selam-v1', purchase_type: 'update_pass' },
+  };
+  const r = await processCheckoutCompleted(session, ctx);
+  assert.equal(r.status, 'ok');
+  assert.equal(r.body.updatePass, true);
+  assert.equal(calls.insertLicense.length, 0);
+  assert.equal(calls.sendPurchaseEmail.length, 0);
 });

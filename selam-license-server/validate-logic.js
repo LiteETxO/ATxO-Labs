@@ -35,7 +35,26 @@ async function validateHandler({ key: rawKey, ip }, ctx) {
     return { status: 404, body: { error: 'License not found.' } };
   }
   if (record.status === 'revoked') {
-    return { status: 403, body: { error: 'License revoked.' } };
+    return { status: 403, body: { error: 'License revoked.', code: 'revoked' } };
+  }
+
+  // Trial expiry — a trial key past its expires_at is rejected with a
+  // distinct code so the app can show "trial ended — own it for $89"
+  // instead of "revoked".
+  if (record.expiresAt) {
+    const expiresMs = Date.parse(record.expiresAt);
+    const nowMs = ctx.now ? ctx.now() : Date.now();
+    if (Number.isFinite(expiresMs) && nowMs >= expiresMs) {
+      return {
+        status: 403,
+        body: {
+          error: 'Trial expired. Own Selam forever at https://api.heyselam.app/buy',
+          code: 'expired',
+          expiresAt: record.expiresAt,
+          purchaseType: record.purchaseType || 'trial',
+        },
+      };
+    }
   }
 
   return {
@@ -44,6 +63,8 @@ async function validateHandler({ key: rawKey, ip }, ctx) {
       ok: true,
       productSku: record.productSku,
       issuedAt:   record.issuedAt,
+      purchaseType: record.purchaseType || 'perpetual',
+      expiresAt: record.expiresAt || null,
     },
     headers: { 'Cache-Control': 'no-store' },
   };

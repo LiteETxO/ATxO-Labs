@@ -41,6 +41,8 @@ export type LicenseRecord = {
   productSku: string;
   status: 'active' | 'revoked';
   tier: LicenseTier;
+  purchaseType: PurchaseType;
+  expiresAt: string | null; // ISO — set for trials (~30 days), null = never
   stripeSession: string | null;
   issuedAt: string;        // ISO
   revokedAt: string | null; // ISO
@@ -52,6 +54,8 @@ type RawRow = {
   product_sku: string;
   status: 'active' | 'revoked';
   tier: LicenseTier;
+  purchase_type: PurchaseType;
+  expires_at: string | null;
   stripe_session: string | null;
   issued_at: string;
   revoked_at: string | null;
@@ -64,6 +68,8 @@ function fromRow(r: RawRow): LicenseRecord {
     productSku: r.product_sku,
     status: r.status,
     tier: r.tier,
+    purchaseType: r.purchase_type ?? 'perpetual',
+    expiresAt: r.expires_at,
     stripeSession: r.stripe_session,
     issuedAt: r.issued_at,
     revokedAt: r.revoked_at,
@@ -90,6 +96,8 @@ export async function findKeysByEmail(email: string): Promise<LicenseRecord[]> {
       product_sku,
       status,
       tier,
+      purchase_type,
+      to_char(expires_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as expires_at,
       stripe_session,
       to_char(issued_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as issued_at,
       to_char(revoked_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as revoked_at
@@ -105,7 +113,9 @@ export async function findKeysByEmail(email: string): Promise<LicenseRecord[]> {
 export async function findKeyByValue(key: string): Promise<LicenseRecord | null> {
   const rows = await db()`
     SELECT
-      key, email, product_sku, status, tier, stripe_session,
+      key, email, product_sku, status, tier, purchase_type,
+      to_char(expires_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as expires_at,
+      stripe_session,
       to_char(issued_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as issued_at,
       to_char(revoked_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as revoked_at
     FROM licenses
@@ -124,14 +134,18 @@ export async function insertLicense(
   productSku: string,
   stripeSession: string,
   tier: LicenseTier = 'founder',
+  purchaseType: PurchaseType = 'perpetual',
+  expiresAt: string | null = null,   // ISO — trials pass now+30d
 ): Promise<LicenseRecord> {
   const rows = await db()`
-    INSERT INTO licenses (key, email, product_sku, stripe_session, status, tier)
-    VALUES (${key}, ${email.toLowerCase()}, ${productSku}, ${stripeSession}, 'active', ${tier})
+    INSERT INTO licenses (key, email, product_sku, stripe_session, status, tier, purchase_type, expires_at)
+    VALUES (${key}, ${email.toLowerCase()}, ${productSku}, ${stripeSession}, 'active', ${tier}, ${purchaseType}, ${expiresAt})
     ON CONFLICT (stripe_session) DO UPDATE SET
       stripe_session = EXCLUDED.stripe_session
     RETURNING
-      key, email, product_sku, status, tier, stripe_session,
+      key, email, product_sku, status, tier, purchase_type,
+      to_char(expires_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as expires_at,
+      stripe_session,
       to_char(issued_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as issued_at,
       to_char(revoked_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as revoked_at
   ` as RawRow[];

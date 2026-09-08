@@ -149,3 +149,40 @@ test('validate: key gets uppercased before lookup', async () => {
   );
   assert.equal(calls.findKeyByValue[0], 'SELAM-AAAAA-BBBBB-CCCCC');
 });
+
+// ── Trial expiry (v4) ────────────────────────────────────────────────
+
+test('validate: trial key before expiry → 200 with expiresAt', async () => {
+  const future = new Date(Date.now() + 10 * 86400e3).toISOString();
+  const { ctx } = makeCtx({ findResult: { ...ACTIVE_RECORD, purchaseType: 'trial', expiresAt: future } });
+  const r = await validateHandler({ key: ACTIVE_RECORD.key, ip: '1.2.3.4' }, ctx);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ok, true);
+  assert.equal(r.body.purchaseType, 'trial');
+  assert.equal(r.body.expiresAt, future);
+});
+
+test('validate: trial key past expiry → 403 code=expired', async () => {
+  const past = new Date(Date.now() - 86400e3).toISOString();
+  const { ctx } = makeCtx({ findResult: { ...ACTIVE_RECORD, purchaseType: 'trial', expiresAt: past } });
+  const r = await validateHandler({ key: ACTIVE_RECORD.key, ip: '1.2.3.4' }, ctx);
+  assert.equal(r.status, 403);
+  assert.equal(r.body.code, 'expired');
+  assert.equal(r.body.expiresAt, past);
+});
+
+test('validate: perpetual key (no expiresAt) stays valid', async () => {
+  const { ctx } = makeCtx({ findResult: { ...ACTIVE_RECORD, purchaseType: 'perpetual', expiresAt: null } });
+  const r = await validateHandler({ key: ACTIVE_RECORD.key, ip: '1.2.3.4' }, ctx);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.purchaseType, 'perpetual');
+  assert.equal(r.body.expiresAt, null);
+});
+
+test('validate: revoked beats expired (revoked checked first)', async () => {
+  const past = new Date(Date.now() - 86400e3).toISOString();
+  const { ctx } = makeCtx({ findResult: { ...ACTIVE_RECORD, status: 'revoked', purchaseType: 'trial', expiresAt: past } });
+  const r = await validateHandler({ key: ACTIVE_RECORD.key, ip: '1.2.3.4' }, ctx);
+  assert.equal(r.status, 403);
+  assert.equal(r.body.code, 'revoked');
+});

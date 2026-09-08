@@ -86,6 +86,23 @@ async function processCheckoutCompleted(session, ctx) {
   // Sessions without the stamp predate the cap → founder ($199 lifetime
   // promise).
   const tier = session?.metadata?.tier === 'standard' ? 'standard' : 'founder';
+  // Purchase type is stamped by /api/checkout/session. Older sessions have
+  // no stamp → perpetual (they were sold as such).
+  const rawType = session?.metadata?.purchase_type;
+  const purchaseType = rawType === 'trial' || rawType === 'update_pass' ? rawType : 'perpetual';
+
+  // Update-pass is an updates entitlement (subscription), not a Selam key —
+  // don't mint a license for it. Ack so Stripe doesn't retry.
+  if (purchaseType === 'update_pass') {
+    log.info('[webhook] update-pass checkout — no license minted', stripeSession);
+    return { status: 'ok', body: { updatePass: true, sessionId: stripeSession } };
+  }
+
+  // Trials expire 30 days after purchase; /api/validate enforces it.
+  const TRIAL_DAYS = 30;
+  const expiresAt = purchaseType === 'trial'
+    ? new Date((ctx.now ? ctx.now() : Date.now()) + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    : null;
 
   if (!email) {
     log.error('[webhook] checkout.session.completed: no email on session', stripeSession);
@@ -107,7 +124,7 @@ async function processCheckoutCompleted(session, ctx) {
   const key = (ctx.mintKey || mintLicenseKey)();
   let record;
   try {
-    record = await ctx.db.insertLicense(key, email, productSku, stripeSession, tier);
+    record = await ctx.db.insertLicense(key, email, productSku, stripeSession, tier, purchaseType, expiresAt);
   } catch (e) {
     log.error('[webhook] insertLicense failed:', e?.message || e);
     return {
@@ -123,6 +140,8 @@ async function processCheckoutCompleted(session, ctx) {
   try {
     await ctx.mailer.sendPurchaseEmail({
       to: email,
+      purchaseType,
+      expiresAt,
       key: record.key,
       productSku: record.productSku,
       variant,
