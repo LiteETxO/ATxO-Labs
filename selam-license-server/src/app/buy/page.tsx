@@ -95,11 +95,11 @@ export default function BuyPage() {
           <div style={styles.priceSub}>one-time · 30 days · no subscription</div>
         </div>
 
-        <div style={{ fontSize: 13, color: 'rgba(244,239,228,0.55)', margin: '2px 0 4px' }}>
+        <div style={{ fontSize: 13, color: 'rgba(242,244,251,0.55)', margin: '2px 0 4px' }}>
           One payment of $10. No auto-renewal — it simply expires after 30 days.
           Like her? Own Selam forever for $89 more — your $10 is credited, so it&apos;s $99 total either way.
         </div>
-        <div style={{ fontSize: 13.5, color: 'rgba(244,239,228,0.7)', margin: '10px 0 2px', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13.5, color: 'rgba(242,244,251,0.7)', margin: '10px 0 2px', lineHeight: 1.5 }}>
           ChatGPT&nbsp;Pro is $200 <em>a month</em>. Selam is $99 <em>once</em> — she runs on your own
           API keys at raw cost. Forever is honest here for a structural reason: your keys mean our
           marginal cost is zero. We&apos;re not promising compute we can&apos;t afford — that&apos;s why this
@@ -189,8 +189,8 @@ const styles: Record<string, React.CSSProperties> = {
   main: {
     position: 'relative',
     minHeight: '100vh',
-    background: '#0a0b11',
-    color: '#f4efe4',
+    background: '#0a0b14',
+    color: '#f2f4fb',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -208,7 +208,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 680,
     height: 680,
     transform: 'translateX(-50%)',
-    background: 'radial-gradient(circle, rgba(231,177,92,0.10), transparent 62%)',
+    background: 'radial-gradient(circle, rgba(138,164,234,0.10), transparent 62%)',
     pointerEvents: 'none',
   },
   card: {
@@ -216,8 +216,8 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1,
     width: '100%',
     maxWidth: 540,
-    background: 'linear-gradient(180deg, #14161f, #0e1018)',
-    border: '1px solid rgba(232,221,200,0.18)',
+    background: 'linear-gradient(180deg, #141726, #0e1019)',
+    border: '1px solid rgba(202,210,240,0.18)',
     borderRadius: 18,
     padding: '44px 38px',
     boxShadow: '0 40px 120px -40px rgba(0,0,0,0.7)',
@@ -230,8 +230,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     letterSpacing: '0.08em',
     textTransform: 'uppercase',
-    color: '#e7b15c',
-    border: '1px solid rgba(231,177,92,0.55)',
+    color: '#8aa4ea',
+    border: '1px solid rgba(138,164,234,0.55)',
     borderRadius: 100,
     padding: '5px 12px',
     marginBottom: 16,
@@ -244,14 +244,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 500,
     letterSpacing: '0.14em',
-    color: '#e7b15c',
+    color: '#8aa4ea',
     textTransform: 'uppercase',
     marginBottom: 22,
   },
   brandDash: {
     width: 26,
     height: 1,
-    background: '#e7b15c',
+    background: '#8aa4ea',
     opacity: 0.6,
   },
   h1: {
@@ -264,11 +264,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   em: {
     fontStyle: 'italic',
-    color: '#f0cd8f',
+    color: '#c1c7e7',
   },
   sub: {
     fontSize: 15.5,
-    color: '#b6b3ab',
+    color: '#b6bbd2',
     lineHeight: 1.62,
     margin: '0 0 30px',
     maxWidth: '46ch',
@@ -279,21 +279,21 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
     margin: '0 0 26px',
     paddingBottom: 24,
-    borderBottom: '1px solid rgba(232,221,200,0.10)',
+    borderBottom: '1px solid rgba(202,210,240,0.10)',
   },
   priceMain: {
     fontFamily: 'var(--font-serif), Georgia, serif',
     fontSize: 42,
     fontWeight: 500,
     letterSpacing: '-0.02em',
-    color: '#f4efe4',
+    color: '#f2f4fb',
   },
   priceSub: {
     fontFamily: 'var(--font-mono), monospace',
     fontSize: 11.5,
     letterSpacing: '0.05em',
     textTransform: 'uppercase',
-    color: '#7c7a76',
+    color: '#7d829e',
   },
   features: {
     listStyle: 'none',
@@ -309,7 +309,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 13,
     fontSize: 14.5,
     lineHeight: 1.5,
-    color: '#b6b3ab',
+    color: '#b6bbd2',
   },
   dot: {
     flex: 'none',
@@ -317,13 +317,13 @@ const styles: Record<string, React.CSSProperties> = {
     width: 7,
     height: 7,
     borderRadius: '50%',
-    background: '#e7b15c',
-    boxShadow: '0 0 10px rgba(231,177,92,0.5)',
+    background: '#8aa4ea',
+    boxShadow: '0 0 10px rgba(138,164,234,0.5)',
   },
   button: {
     width: '100%',
-    background: '#e7b15c',
-    color: '#241606',
+    background: '#8aa4ea',
+    color: '#0c1024',
     border: 'none',
     borderRadius: 12,
     padding: '16px',
@@ -338,8 +338,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     marginTop: 10,
     background: 'transparent',
-    color: '#e7b15c',
-    border: '1px solid rgba(231,177,92,0.45)',
+    color: '#8aa4ea',
+    border: '1px solid rgba(138,164,234,0.45)',
     borderRadius: 12,
     padding: '14px',
     fontFamily: 'var(--font-sans), system-ui, sans-serif',
@@ -356,39 +356,39 @@ const styles: Record<string, React.CSSProperties> = {
   fineprint: {
     marginTop: 14,
     fontSize: 12,
-    color: '#7c7a76',
+    color: '#7d829e',
     lineHeight: 1.55,
   },
   cancelled: {
     marginTop: 18,
-    background: 'rgba(231,177,92,0.07)',
-    border: '1px solid rgba(231,177,92,0.22)',
+    background: 'rgba(138,164,234,0.07)',
+    border: '1px solid rgba(138,164,234,0.22)',
     borderRadius: 10,
     padding: '11px 14px',
     fontSize: 12.5,
     lineHeight: 1.55,
-    color: '#f0cd8f',
+    color: '#c1c7e7',
   },
   error: {
     marginTop: 14,
-    background: 'rgba(224,121,90,0.08)',
-    border: '1px solid rgba(224,121,90,0.25)',
+    background: 'rgba(169,156,242,0.08)',
+    border: '1px solid rgba(169,156,242,0.25)',
     borderRadius: 10,
     padding: '11px 14px',
     fontSize: 12.5,
     lineHeight: 1.55,
-    color: '#e0795a',
+    color: '#a99cf2',
   },
   footer: {
     marginTop: 28,
     paddingTop: 20,
-    borderTop: '1px solid rgba(232,221,200,0.10)',
+    borderTop: '1px solid rgba(202,210,240,0.10)',
     fontSize: 12,
-    color: '#7c7a76',
+    color: '#7d829e',
     lineHeight: 1.75,
   },
   link: {
-    color: '#e7b15c',
+    color: '#8aa4ea',
     textDecoration: 'none',
   },
   brandfoot: {
@@ -397,6 +397,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10.5,
     letterSpacing: '0.16em',
     textTransform: 'uppercase',
-    color: '#7c7a76',
+    color: '#7d829e',
   },
 };

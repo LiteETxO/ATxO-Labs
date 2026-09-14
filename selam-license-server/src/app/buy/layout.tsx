@@ -22,17 +22,17 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Buy Selam — $199',
+  title: 'Buy Selam — $10 trial, $99 to own',
   description:
-    'Selam — an autonomous AI operator for your Mac. $199 one-time, lifetime updates. Runs ops overnight, reaches people across WhatsApp, Telegram & iMessage. Bring your own AI keys.',
+    'Selam — an autonomous AI operator for your Mac. Try it for $10 (30 days), then $99 to own forever — no subscription. Runs ops overnight, reaches people across WhatsApp, Telegram & iMessage. Bring your own AI keys.',
   openGraph: {
-    title: 'Buy Selam — $199',
-    description: 'One-time. Lifetime updates. Bring your own AI keys.',
+    title: 'Buy Selam — $10 trial, $99 to own',
+    description: '$10 trial (credited), then $99 once to own forever. No subscription. Bring your own AI keys.',
     url: 'https://api.heyselam.app/buy',
   },
   twitter: {
-    title: 'Buy Selam — $199',
-    description: 'One-time. Lifetime updates. Bring your own AI keys.',
+    title: 'Buy Selam — $10 trial, $99 to own',
+    description: '$10 trial (credited), then $99 once to own forever. No subscription. Bring your own AI keys.',
   },
 };
 
