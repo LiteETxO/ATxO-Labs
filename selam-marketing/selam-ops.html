@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ask Selam · Ops</title>
+<style>
+:root{
+  --bg:#0a0b14; --bg2:#0e1019; --card:#141726; --card2:#191d2e;
+  --line:rgba(202,210,240,.10); --line2:rgba(202,210,240,.18);
+  --ink:#f2f4fb; --ink2:#b6bbd2; --ink3:#7d829e;
+  --iris:#8aa4ea; --iris-soft:#c1c7e7; --iris-deep:#5f7ac6;
+  --good:#7be3a4; --warn:#f2c65c; --bad:#f28a9e;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  min-height:100vh;padding:24px;line-height:1.5}
+.wrap{max-width:960px;margin:0 auto}
+a{color:var(--iris)}
+.mono{font-family:var(--mono)}
+/* gate */
+.gate{max-width:380px;margin:16vh auto 0;background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:28px}
+.gate h1{font-size:19px;margin-bottom:6px}
+.gate p{color:var(--ink3);font-size:14px;margin-bottom:18px}
+.gate input{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:11px 13px;
+  color:var(--ink);font-family:var(--mono);font-size:13px;outline:none}
+.gate input:focus{border-color:var(--iris)}
+.gate button{width:100%;margin-top:12px;background:linear-gradient(135deg,var(--iris),var(--iris-deep));color:#0c1024;
+  border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer}
+.gate .err{color:var(--bad);font-size:13px;margin-top:10px;min-height:18px}
+/* header */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+header h1{font-size:20px;letter-spacing:.01em}
+header h1 span{color:var(--iris)}
+.meta{font-family:var(--mono);font-size:12px;color:var(--ink3);display:flex;gap:14px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good);display:inline-block}
+.meta button{background:none;border:1px solid var(--line2);color:var(--ink2);border-radius:8px;padding:5px 10px;
+  font-family:var(--mono);font-size:11px;cursor:pointer}
+/* banner */
+.banner{border-radius:14px;padding:16px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;
+  border:1px solid var(--line2);background:var(--card)}
+.banner .icon{font-size:22px;line-height:1}
+.banner .msg{flex:1}
+.banner .msg b{display:block;font-size:15px}
+.banner .msg small{color:var(--ink3);font-size:12.5px}
+.banner.good{border-color:rgba(123,227,164,.35);background:rgba(123,227,164,.07)}
+.banner.warn{border-color:rgba(242,198,92,.4);background:rgba(242,198,92,.09)}
+.banner.bad{border-color:rgba(242,138,158,.45);background:rgba(242,138,158,.1)}
+/* kpi grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+.kpi .k{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.kpi .v{font-size:26px;font-weight:700;margin-top:8px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:14px;color:var(--ink3);font-weight:500}
+.kpi .sub{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-top:4px}
+.kpi.wide{grid-column:1 / -1}
+/* budget bar */
+.bar{height:9px;border-radius:6px;background:var(--card2);overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--iris),var(--iris-soft));transition:width .5s}
+.bar.warn i{background:linear-gradient(90deg,var(--warn),#f7d79a)}
+.bar.bad i{background:linear-gradient(90deg,var(--bad),#f7b3c0)}
+/* chart */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:20px}
+.panel h2{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:16px;font-weight:500}
+.chart{display:flex;align-items:flex-end;gap:10px;height:130px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.col .barwrap{width:100%;flex:1;display:flex;align-items:flex-end}
+.col .b{width:100%;background:linear-gradient(180deg,var(--iris),var(--iris-deep));border-radius:6px 6px 0 0;min-height:3px;transition:height .5s}
+.col .n{font-family:var(--mono);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.col .d{font-family:var(--mono);font-size:10px;color:var(--ink3)}
+.col.today .b{background:linear-gradient(180deg,var(--iris-soft),var(--iris))}
+.col.today .d{color:var(--iris-soft)}
+/* recent */
+.feed{display:flex;flex-direction:column;gap:2px;max-height:340px;overflow:auto}
+.q{display:flex;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.q:last-child{border-bottom:none}
+.q .t{font-family:var(--mono);font-size:11px;color:var(--ink3);white-space:nowrap;padding-top:2px;min-width:62px}
+.q .txt{color:var(--ink2);font-size:14px}
+.empty{color:var(--ink3);font-size:13px;padding:8px 0}
+.hidden{display:none}
+@media(max-width:520px){body{padding:14px}.kpi .v{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- token gate -->
+  <div id="gate" class="gate hidden">
+    <h1>Ask Selam · Ops</h1>
+    <p>Enter the ops token to view live usage.</p>
+    <input id="tok" type="password" placeholder="ops token" autocomplete="off" spellcheck="false">
+    <button id="tokgo">Unlock</button>
+    <div id="gateerr" class="err"></div>
+  </div>
+
+  <!-- dashboard -->
+  <div id="dash" class="hidden">
+    <header>
+      <h1>Ask <span>Selam</span> · Ops</h1>
+      <div class="meta">
+        <span><span class="dot" id="live"></span> <span id="updated">—</span></span>
+        <span id="month" class="mono"></span>
+        <button id="notif" title="Enable browser alerts">🔔 alerts</button>
+        <button id="signout">sign out</button>
+      </div>
+    </header>
+
+    <div id="banner" class="banner good">
+      <div class="icon" id="bicon">✓</div>
+      <div class="msg"><b id="btitle">Healthy</b><small id="bsub"></small></div>
+    </div>
+
+    <div class="grid" id="kpis"></div>
+
+    <div class="panel">
+      <h2>Questions · last 7 days</h2>
+      <div class="chart" id="chart"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent questions</h2>
+      <div class="feed" id="feed"><div class="empty">No questions yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var LS="askselam:ops:key";
+  var gate=document.getElementById("gate"), dash=document.getElementById("dash");
+  var token = new URLSearchParams(location.search).get("key") || localStorage.getItem(LS) || "";
+  var lastHealth=null, timer=null;
+
+  function show(el){el.classList.remove("hidden");}
+  function hide(el){el.classList.add("hidden");}
+  function usd(n){n=Number(n)||0;return "$"+(n<1?n.toFixed(4):n.toFixed(2));}
+  function kfmt(n){n=Number(n)||0;return n>=1000?(n/1000).toFixed(n>=10000?0:1)+"k":String(n);}
+  function ago(ts){var s=(Date.now()-ts)/1000;if(s<60)return Math.max(1,s|0)+"s";if(s<3600)return (s/60|0)+"m";if(s<86400)return (s/3600|0)+"h";return (s/86400|0)+"d";}
+
+  function health(spend,cap,warn){
+    if(spend>=cap) return {k:"bad",icon:"⛔",title:"Budget reached — live answers paused",};
+    if(spend>=cap*warn) return {k:"warn",icon:"⚠️",title:"Approaching budget"};
+    return {k:"good",icon:"✓",title:"Healthy"};
+  }
+
+  function render(d){
+    if(!d.configured){ banner("warn","⚠️","Upstash not connected","Logging falls back to in-memory; the dashboard needs Upstash."); document.getElementById("kpis").innerHTML=""; return; }
+    document.getElementById("month").textContent=d.month;
+    document.getElementById("updated").textContent="updated "+new Date().toLocaleTimeString();
+
+    var spend=d.monthSpend||0, cap=d.cap||25, warn=d.warnAt||0.8;
+    var h=health(spend,cap,warn);
+    banner(h.k,h.icon,h.title, "$"+spend.toFixed(2)+" of $"+cap.toFixed(2)+" this month ("+Math.round(spend/cap*100)+"%)");
+    // browser notification when health worsens
+    if(lastHealth && lastHealth!=="bad" && h.k!=="good" && h.k!==lastHealth) notify(h.title, "$"+spend.toFixed(2)+" of $"+cap.toFixed(2));
+    lastHealth=h.k;
+
+    var s=d.series||[];
+    var today=s[s.length-1]||{ask:0,tts:0,rl:0};
+    var wkAsk=s.reduce(function(a,x){return a+(x.ask||0);},0);
+    var wkSpend=s.reduce(function(a,x){return a+(x.spend||0);},0);
+    var avg = wkAsk? wkSpend/wkAsk : 0;
+
+    var barCls = h.k==="bad"?"bad":h.k==="warn"?"warn":"";
+    var pct=Math.min(100,Math.round(spend/cap*100));
+    document.getElementById("kpis").innerHTML =
+      card("wide","Spend this month", "$"+spend.toFixed(2)+" <small>/ $"+cap.toFixed(2)+"</small>",
+        '<div class="bar '+barCls+'"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="sub">'+pct+'% used · warn at '+Math.round(warn*100)+'%'+(d.warned?" · alert sent":"")+'</div>') +
+      card("","Questions today", today.ask||0, (today.tts||0)+" voiced") +
+      card("","Questions · 7d", wkAsk, "$"+wkSpend.toFixed(3)+" spent") +
+      card("","Avg $/answer", usd(avg), "7-day") +
+      card("","Rate-limited today", today.rl||0, "429s") +
+      card("","Tokens this month", kfmt(d.tokIn)+" / "+kfmt(d.tokOut), "in / out") +
+      card("","TTS characters", kfmt(d.ttsChars), "this month");
+
+    // chart
+    var max=Math.max(1,Math.max.apply(null,s.map(function(x){return x.ask||0;})));
+    document.getElementById("chart").innerHTML = s.map(function(x,idx){
+      var hpx=Math.round((x.ask||0)/max*100);
+      var dd=x.day.slice(5);
+      var isToday=idx===s.length-1;
+      return '<div class="col'+(isToday?" today":"")+'">'+
+        '<div class="n">'+(x.ask||0)+'</div>'+
+        '<div class="barwrap"><div class="b" style="height:'+hpx+'%"></div></div>'+
+        '<div class="d">'+dd+'</div></div>';
+    }).join("");
+
+    // feed
+    var feed=document.getElementById("feed");
+    if(!d.recent || !d.recent.length){ feed.innerHTML='<div class="empty">No questions yet.</div>'; }
+    else feed.innerHTML=d.recent.map(function(r){
+      return '<div class="q"><div class="t">'+ago(r.t)+' ago</div><div class="txt">'+esc(r.q)+'</div></div>';
+    }).join("");
+  }
+
+  function card(cls,k,v,sub){
+    return '<div class="kpi '+cls+'"><div class="k">'+k+'</div><div class="v">'+v+'</div>'+(sub?'<div class="sub">'+sub+'</div>':'')+'</div>';
+  }
+  function banner(k,icon,title,sub){
+    var b=document.getElementById("banner"); b.className="banner "+k;
+    document.getElementById("bicon").textContent=icon;
+    document.getElementById("btitle").textContent=title;
+    document.getElementById("bsub").textContent=sub||"";
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+  function notify(title,body){
+    try{ if(window.Notification && Notification.permission==="granted") new Notification("Ask Selam · "+title,{body:body}); }catch(e){}
+  }
+
+  async function load(){
+    try{
+      var r=await fetch("/api/usage?key="+encodeURIComponent(token),{cache:"no-store"});
+      if(r.status===401){ signout("Wrong token."); return; }
+      var d=await r.json();
+      document.getElementById("live").style.background="var(--good)";
+      render(d);
+    }catch(e){
+      document.getElementById("live").style.background="var(--bad)";
+      document.getElementById("updated").textContent="offline — retrying";
+    }
+  }
+  function start(){
+    hide(gate); show(dash);
+    load(); if(timer)clearInterval(timer); timer=setInterval(load,15000);
+  }
+  function signout(msg){
+    localStorage.removeItem(LS); token=""; if(timer)clearInterval(timer);
+    hide(dash); show(gate);
+    document.getElementById("gateerr").textContent=msg||"";
+    // strip ?key from the URL bar
+    try{history.replaceState({},"",location.pathname);}catch(e){}
+  }
+
+  document.getElementById("tokgo").addEventListener("click",function(){
+    var v=document.getElementById("tok").value.trim();
+    if(!v)return; token=v; localStorage.setItem(LS,v);
+    document.getElementById("gateerr").textContent=""; start();
+  });
+  document.getElementById("tok").addEventListener("keydown",function(e){ if(e.key==="Enter")document.getElementById("tokgo").click(); });
+  document.getElementById("signout").addEventListener("click",function(){signout("");});
+  document.getElementById("notif").addEventListener("click",function(){
+    try{ Notification.requestPermission().then(function(p){ if(p==="granted") notify("alerts on","You'll be pinged when spend crosses the warn threshold."); }); }catch(e){}
+  });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden && token) load(); });
+
+  if(token){ localStorage.setItem(LS,token); try{history.replaceState({},"",location.pathname);}catch(e){} start(); }
+  else show(gate);
+})();
+</script>
+</body>
+</html>
