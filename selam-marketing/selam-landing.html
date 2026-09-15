@@ -771,19 +771,20 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
 
 // character gallery
 (function(){
-  // The bundled characters a buyer picks — same set the app's setup shows.
+  // The six bundled characters a buyer picks — same names, portraits and
+  // taglines the app's setup shows (renderer/setup.js WIZARD_CHARACTERS).
   var chars=[
-    {n:"Linen",t:"Neutral · soft",d:"Warm without leaning into a specific look. A good default.",img:"linen"},
-    {n:"Hazel",t:"Warm · steady",d:"Reads as approachable across most contexts.",img:"hazel"},
-    {n:"Pearl",t:"Bright · composed",d:"Reads as patient and prepared.",img:"pearl"},
-    {n:"Amber",t:"Warm · ready",d:"Reads as engaged and energetic.",img:"amber"},
-    {n:"Mocha",t:"Deep · polished",d:"Reads as seasoned and considered.",img:"mocha"},
-    {n:"Jade",t:"Calm · precise",d:"Reads as focused and quietly confident.",img:"jade"}
+    {n:"Kiya",t:"Bright · capable",d:"Warm and quick — reads as switched-on and ready.",img:"char-kiya.jpg"},
+    {n:"Keen",t:"Calm · attentive",d:"Steady and observant — catches what you didn't say.",img:"char-keen.jpg"},
+    {n:"Hope",t:"Warm · reassuring",d:"Gentle and grounding — easy to have around.",img:"char-hope.jpg"},
+    {n:"Mei",t:"Bright · precise",d:"Clear and crisp — sharp, and quietly confident.",img:"char-mei.jpg"},
+    {n:"Naima",t:"Grounded · kind",d:"Down-to-earth and caring — a calm presence.",img:"char-naima.jpg"},
+    {n:"Selam",t:"Warm · capable",d:"The original. Friendly, and gets things done.",img:"char-selam.jpg"}
   ];
   var g=document.getElementById('gallery-grid');
   g.innerHTML=chars.map(function(c){
     return '<div class="char reveal"><span class="online"><span class="dot" style="width:5px;height:5px"></span>online</span>'+
-      '<img src="/assets/'+c.img+'.webp" alt="'+c.n+'" loading="lazy">'+
+      '<img src="/assets/'+c.img+'" alt="'+c.n+'" loading="lazy">'+
       '<div class="meta"><div class="tag">'+c.t+'</div><h3 class="serif">'+c.n+'</h3><p>'+c.d+'</p></div></div>';
   }).join('');
 })();
