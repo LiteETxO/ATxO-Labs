@@ -362,6 +362,14 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
   .hero-shot{order:-1}
 }
 @media(max-width:520px){.gallery{grid-template-columns:1fr}}
+/* voice input mic for the Ask-Selam widget */
+.sv-mic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border:none;border-radius:50%;background:rgba(232,221,200,.09);color:var(--ink-2);cursor:pointer;margin:0 6px;padding:0;transition:background .25s,color .25s,transform .18s}
+.sv-mic svg{width:19px;height:19px;display:block}
+.sv-mic:hover{background:rgba(231,177,92,.16);color:var(--dawn-soft)}
+.sv-mic:active{transform:scale(.94)}
+.sv-mic.on{background:var(--dawn);color:#241606;animation:sv-mic-pulse 1.3s ease-in-out infinite}
+.sv-mic.sending{background:rgba(231,177,92,.18);color:var(--dawn-soft);box-shadow:0 0 0 2px rgba(231,177,92,.45)}
+@keyframes sv-mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(231,177,92,.55)}50%{box-shadow:0 0 0 11px rgba(231,177,92,0)}}
 </style>
 </head>
 <body>
@@ -993,6 +1001,66 @@ window.addEventListener('load',function(){
             .catch(function(err){ console.warn("selam-games load failed", err); });
   });
   document.addEventListener("keydown", function(e){ if(e.key==="Escape" && mod && mod.closeSelamGame) mod.closeSelamGame(); });
+})();
+
+// Voice input: speak your question to Ask-Selam. Uses the browser's built-in
+// speech recognition (free, on-device/vendor) — the transcript is submitted to
+// the SAME /api/ask + /api/tts pipeline as a typed question, so it costs the same.
+(function(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return;               // unsupported → typing still works, no mic shown
+  var P = "stour";              // Ask-Selam widget class prefix
+  function injectMic(form){
+    if(!form || form.querySelector(".sv-mic")) return;
+    var input = form.querySelector("."+P+"-askin");
+    if(!input) return;
+    var mic = document.createElement("button");
+    mic.type = "button"; mic.className = "sv-mic";
+    mic.setAttribute("aria-label","Speak your question");
+    mic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor" stroke="none"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>';
+    var send = form.querySelector("."+P+"-asksend");
+    if(send && send.parentNode===form) form.insertBefore(mic, send); else form.appendChild(mic);
+    var rec=null, listening=false, pendingSend=null, ph=input.getAttribute("placeholder")||"";
+    function reset(){ listening=false; mic.classList.remove("on"); input.setAttribute("placeholder", ph); }
+    function cancelPending(){ if(pendingSend){ clearTimeout(pendingSend); pendingSend=null; } mic.classList.remove("sending"); }
+    function submitForm(){ try{ form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit",{cancelable:true,bubbles:true})); }catch(e){} }
+    form.addEventListener("submit", cancelPending); // a real send cancels any queued auto-send
+    mic.addEventListener("click", function(){
+      cancelPending();                 // tapping the mic cancels a queued send and lets you redo
+      if(listening){ try{ rec && rec.stop(); }catch(e){} return; }
+      try{ window.SelamVoice && window.SelamVoice.claim && window.SelamVoice.claim("mic"); }catch(e){} // barge-in
+      rec = new SR();
+      try{ rec.lang = navigator.language || "en-US"; }catch(e){}
+      rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+      var finalTxt = "";
+      rec.onstart = function(){ listening=true; mic.classList.add("on"); input.value=""; input.setAttribute("placeholder","Listening…"); try{ input.focus(); }catch(e){} };
+      rec.onresult = function(ev){
+        var interim="";
+        for(var i=ev.resultIndex; i<ev.results.length; i++){
+          var t = ev.results[i][0].transcript;
+          if(ev.results[i].isFinal) finalTxt += t; else interim += t;
+        }
+        input.value = (finalTxt + interim).replace(/\s+/g," ").trim();
+        try{ input.dispatchEvent(new Event("input",{bubbles:true})); }catch(e){}
+      };
+      rec.onerror = function(){ reset(); };
+      rec.onend = function(){
+        reset();
+        var q = (input.value||"").trim(); input.value = q;
+        if(q.length > 1){
+          // She heard it — it's in the box and sends on its own (so it isn't manual).
+          // Misheard? Tap the mic to say it again, or edit before it goes.
+          mic.classList.add("sending");
+          try{ input.focus(); }catch(e){}
+          pendingSend = setTimeout(function(){ pendingSend=null; mic.classList.remove("sending"); submitForm(); }, 1500);
+        }
+      };
+      try{ rec.start(); }catch(e){ reset(); }
+    });
+  }
+  var found = document.querySelector("."+P+"-ask"); if(found) injectMic(found);
+  var mo = new MutationObserver(function(){ var f=document.querySelector("."+P+"-ask"); if(f) injectMic(f); });
+  mo.observe(document.body, {childList:true, subtree:true});
 })();
 </script>
 <!-- Guided app-setup tour — she walks a new user through setup (lazy-loaded on click) -->
