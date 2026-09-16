@@ -6,6 +6,9 @@
 <title>Selam — AI Operator for Your Mac. Runs Ops While You Sleep.</title>
 <meta name="description" content="Selam is an autonomous AI operator for your Mac. Sets her own sub-agents to work, runs overnight, reaches people across WhatsApp, Telegram, iMessage and Email, and reports back what got done. With a face, voice, and name you choose.">
 <link rel="canonical" href="https://heyselam.ai/">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/selam-mark-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/selam-mark-192.png">
+<link rel="apple-touch-icon" href="/assets/selam-mark-180.png">
 <script defer src="/_vercel/insights/script.js"></script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Selam">
@@ -85,7 +88,9 @@ p.lede{color:var(--ink-2);font-size:clamp(16px,1.5vw,19px);max-width:54ch;margin
 nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,11,17,.6);border-bottom:1px solid transparent;transition:border-color .4s,background .4s}
 nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px}
-.brand{display:flex;align-items:baseline;gap:10px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-mark{width:30px;height:30px;border-radius:9px;flex:none;display:block}
+.brand b,.brand span{align-self:baseline}
 .brand b{font-family:var(--serif);font-weight:600;font-size:21px}
 .brand span{font-size:12px;color:var(--ink-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
 .nav-links{display:flex;align-items:center;gap:34px}
@@ -376,7 +381,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
 
 <nav id="nav">
   <div class="wrap nav-inner">
-    <a class="brand" href="#top"><b>Selam</b><span>by Deribe Labs</span></a>
+    <a class="brand" href="#top"><img class="brand-mark" src="/assets/selam-mark.png" alt="Selam" width="30" height="30"><b>Selam</b><span>by Deribe Labs</span></a>
     <div class="nav-links">
       <a class="lnk" href="#how">How it works</a>
       <a class="lnk" href="#gallery">Gallery</a>
