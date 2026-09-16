@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9db3ef"/>
+      <stop offset="1" stop-color="#5f7ac6"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="118" fill="url(#bg)"/>
+  <!-- bang sweep -->
+  <path d="M120 176 C170 118 342 118 392 176 C392 150 356 120 256 120 C156 120 120 150 120 176 Z" fill="#ffffff" opacity="0.92"/>
+  <!-- glasses -->
+  <g fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round">
+    <circle cx="186" cy="282" r="66"/>
+    <circle cx="326" cy="282" r="66"/>
+    <path d="M252 282 h8"/>
+    <path d="M120 268 l-2 -6"/>
+    <path d="M392 268 l2 -6"/>
+  </g>
+</svg>
