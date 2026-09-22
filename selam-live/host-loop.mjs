@@ -12,6 +12,7 @@
 import fs from "fs";
 import crypto from "crypto";
 import path from "path";
+import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import pkg from "/opt/homebrew/lib/node_modules/openclaw/dist/extensions/diffs/node_modules/playwright-core/index.js";
 const { chromium } = pkg;
@@ -30,6 +31,21 @@ const GV = "v21.0";
 const seenIds = new Set();
 let fbPrimed = false, seen = 0;
 let COMMENT_TOKEN = FB_TOKEN;
+
+// Which chat she reads: "youtube" (via Composio-managed OAuth + proxy) or
+// "facebook" (Graph API). Defaults to facebook when an FB token is present.
+const PLATFORM = (process.env.SELAM_CHAT_PLATFORM || (process.env.SELAM_FB_TOKEN ? "facebook" : "mock")).toLowerCase();
+// Composio API key (macOS Keychain selam.byok, or the secrets file) — used to
+// call YouTube's live-chat API through Composio's authenticated proxy so the
+// OAuth token stays server-side.
+function _composioKey() {
+  try { const f = fs.readFileSync(path.join(process.env.HOME, ".openclaw/secrets/composio_api_key"), "utf8").trim(); if (f) return f; } catch (_) {}
+  try { return execSync("security find-generic-password -s selam.byok -a composio_api_key -w", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch (_) {}
+  return "";
+}
+const CKEY = PLATFORM === "youtube" ? _composioKey() : "";
+let YT_CID = process.env.SELAM_YT_CID || "";   // Composio connected-account id (auto-looked-up)
+let YT_CHAT_ID = "", YT_PAGE = "", ytPrimed = false;
 
 const proofHash = (tok) => (APP_SECRET && !NOPROOF) ? crypto.createHmac("sha256", APP_SECRET).update(tok).digest("hex") : "";
 const appProof = (tok) => { const h = proofHash(tok); return h ? `&appsecret_proof=${h}` : ""; };
@@ -81,7 +97,10 @@ function fetchCommentsMock() {
   const fresh = lines.slice(seen); seen = lines.length;
   return fresh.map((l) => { const i = l.indexOf("|"); return i > 0 ? { id: null, name: l.slice(0, i).trim(), text: l.slice(i + 1).trim() } : { id: null, name: null, text: l.trim() }; });
 }
-async function fetchComments() { return FB_TOKEN ? await fetchCommentsFB() : fetchCommentsMock(); }
+async function fetchComments() {
+  if (PLATFORM === "youtube") return await fetchCommentsYT();
+  return FB_TOKEN ? await fetchCommentsFB() : fetchCommentsMock();
+}
 async function fbReply(commentId, message) {
   if (!commentId || !message || !COMMENT_TOKEN || !FB_TOKEN) return;
   const msg = message.length > 600 ? message.slice(0, 597).replace(/\s+\S*$/, "") + "…" : message;
@@ -92,6 +111,81 @@ async function fbReply(commentId, message) {
     const j = await r.json();
     if (j.error) console.log("   ✗ thread reply:", j.error.message); else console.log("   ✍  replied in thread");
   } catch (e) { console.log("   ✗ thread reply:", e.message); }
+}
+
+// ── YouTube live chat (read-only for now; she replies VERBALLY on-air) ──────
+// Reads chat through Composio's authenticated proxy using the already-connected
+// YouTube OAuth (scope youtube.force-ssl). No token leaves Composio. Posting
+// back to chat (liveChatMessages.insert) is deferred — replies are spoken.
+async function ytProxy(endpoint, method = "GET", body) {
+  const b = { connected_account_id: YT_CID, endpoint, method };
+  if (body !== undefined) b.body = body;
+  const r = await fetch("https://backend.composio.dev/api/v3/tools/execute/proxy", {
+    method: "POST",
+    headers: { "x-api-key": CKEY, "Content-Type": "application/json" },
+    body: JSON.stringify(b),
+  });
+  const j = await r.json();
+  return (j && j.data !== undefined) ? j.data : j;   // proxy wraps the YT response in .data
+}
+async function ytFindCID() {
+  if (YT_CID) return YT_CID;
+  try {
+    const r = await fetch("https://backend.composio.dev/api/v3/connected_accounts?limit=50", { headers: { "x-api-key": CKEY } });
+    const j = await r.json();
+    const a = (j.items || []).find((i) => ((i.toolkit || {}).slug) === "youtube" && i.status === "ACTIVE");
+    if (a) { YT_CID = a.id; console.log("📺 YouTube account:", YT_CID); }
+  } catch (e) { console.log("  (yt cid:", e.message + ")"); }
+  return YT_CID;
+}
+async function ytFindLiveChatId() {
+  // Prefer a live broadcast; fall back to a ready/testing one so she attaches
+  // to the chat the moment a broadcast exists (even before it flips to active).
+  const LIVEISH = new Set(["live", "liveStarting", "testing", "testStarting", "ready"]);
+  for (const status of ["active", "all"]) {
+    let d; try { d = await ytProxy(`https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&broadcastStatus=${status}&broadcastType=all&maxResults=5`); } catch (_) { continue; }
+    const items = (d && d.items) || [];
+    const cand = items.find((i) => status === "active" || LIVEISH.has((i.status || {}).lifeCycleStatus));
+    if (cand && cand.snippet && cand.snippet.liveChatId) return cand.snippet.liveChatId;
+  }
+  return "";
+}
+async function fetchCommentsYT() {
+  if (!CKEY) { return []; }
+  if (!YT_CID) { await ytFindCID(); if (!YT_CID) return []; }
+  if (!YT_CHAT_ID) {
+    try { YT_CHAT_ID = await ytFindLiveChatId(); } catch (e) { console.log("⚠ YT broadcast:", e.message); }
+    if (!YT_CHAT_ID) return [];
+    console.log("📺 YouTube liveChatId:", YT_CHAT_ID.slice(0, 20) + "…");
+  }
+  const ep = "https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet,authorDetails&maxResults=200&liveChatId="
+    + encodeURIComponent(YT_CHAT_ID) + (YT_PAGE ? "&pageToken=" + encodeURIComponent(YT_PAGE) : "");
+  let d;
+  try { d = await ytProxy(ep); } catch (e) { console.log("⚠ YT chat error:", e.message); return []; }
+  if (!d || d.error) {
+    // liveChatId expires when the broadcast ends/restarts → re-resolve next tick
+    if (d && d.error) { console.log("⚠ YT chat:", String(d.error.message || "").slice(0, 80)); YT_CHAT_ID = ""; YT_PAGE = ""; }
+    return [];
+  }
+  YT_PAGE = d.nextPageToken || YT_PAGE;
+  const fresh = [];
+  for (const m of (d.items || [])) {
+    if (seenIds.has(m.id)) continue;
+    seenIds.add(m.id);
+    if (!ytPrimed) continue;   // skip the backlog on first poll — only answer NEW chat
+    const sn = m.snippet || {};
+    const text = sn.displayMessage || (sn.textMessageDetails && sn.textMessageDetails.messageText) || "";
+    const name = (m.authorDetails && m.authorDetails.displayName) || null;
+    if (text) fresh.push({ id: m.id, name, text });
+  }
+  ytPrimed = true;
+  return fresh;
+}
+// Post a reply back into chat. Facebook: writes the thread reply. YouTube:
+// no-op for now (she answers verbally on-air); wire liveChatMessages.insert later.
+async function postReply(id, text) {
+  if (PLATFORM === "youtube") return;
+  return fbReply(id, text);
 }
 
 // ── Current news (PUBLISHER RSS feeds — real headlines + real article images) ──
@@ -120,8 +214,18 @@ const NEWS_FEEDS = {
 // round-robin) — AI and crypto lead for this audience.
 const CAT_WEIGHT = { AI: 4, crypto: 4, tech: 2, world: 2, business: 1, interesting: 1 };
 const _catCursor = {};   // per-category round-robin index into the pool
+let _topicBoost = null, _topicBoostN = 0;   // operator "more crypto/AI" bias for the next few beats
 function nextNews() {
   if (!newsItems.length) return null;
+  if (_topicBoost && _topicBoostN > 0) {
+    const items = newsItems.filter((n) => n.cat === _topicBoost);
+    if (items.length) {
+      _topicBoostN--;
+      const j = (_catCursor[_topicBoost] || 0) % items.length;
+      _catCursor[_topicBoost] = j + 1;
+      return items[j];
+    }
+  }
   const cats = [...new Set(newsItems.map((n) => n.cat))];
   const bag = [];
   for (const c of cats) for (let i = 0; i < (CAT_WEIGHT[c] || 1); i++) bag.push(c);
@@ -521,10 +625,16 @@ async function hideNewsImage() {
 async function setupStageLayout() {
   try {
     await pg.evaluate(() => {
-      // The avatar's 3D scene renders an opaque near-black backdrop the render loop
-      // keeps re-asserting (can't override its clear color/scene.background from
-      // outside while she animates), so match the painted areas to it → uniform.
-      const DARK = "#080b13";
+      // The avatar's 3D scene renders an opaque near-black backdrop, so paint the
+      // surrounding stage to the EXACT same colour → seamless, no split. Read the
+      // live scene.background instead of hard-coding it (it differs by theme /
+      // character — e.g. #0e0e14 vs #0e1116 — and a guess leaves a visible seam).
+      let DARK = "#0e0e14";
+      try {
+        const _bg = window.__selamAdapter && window.__selamAdapter.avatar
+          && window.__selamAdapter.avatar.scene && window.__selamAdapter.avatar.scene.background;
+        if (_bg && _bg.getHexString) DARK = "#" + _bg.getHexString();
+      } catch (_) {}
       if (window.__sloBgTimer) { clearInterval(window.__sloBgTimer); window.__sloBgTimer = null; }
       ["stage-row", "session-content", "app"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.background = DARK; });
       const ac = document.getElementById("avatar-container");
@@ -533,10 +643,56 @@ async function setupStageLayout() {
   } catch (_) {}
 }
 
+// ── Operator talkback (mode A: steer the show) ──────────────────────────
+// The core writes ~/selam-live/control.json when the owner sends a steering
+// directive from the private Talkback window; we consume + clear it at the top
+// of each loop tick and act ON-AIR (the resulting content IS the intended
+// result). Private Q&A (mode B) never comes here — that stays silent in core.
+const CONTROL = path.join(ROOT, "control.json");
+const CATS = ["AI", "crypto", "tech", "business", "world", "interesting"];
+function readControl() {
+  try {
+    if (!fs.existsSync(CONTROL)) return null;
+    const c = JSON.parse(fs.readFileSync(CONTROL, "utf8"));
+    try { fs.unlinkSync(CONTROL); } catch (_) {}
+    return c;
+  } catch (_) { try { fs.unlinkSync(CONTROL); } catch (_) {} return null; }
+}
+async function newsBeatOf(n) {
+  if (!n) return;
+  let img = null; try { img = await fetchNewsImage(n); } catch (_) {}
+  if (img) await showNewsImage(img, n.cat.toUpperCase() + " · IN THE NEWS", n.title);
+  await sayAndCapture(newsPrompt(n));
+}
+async function handleControl(c) {
+  const cmd = (c.cmd || "").toLowerCase();
+  const arg = (c.arg || c.text || "").trim();
+  console.log(`🎛 operator: ${cmd}${arg ? " " + arg : ""}`);
+  if (cmd === "deepdive") { await deepDive(); }
+  else if (cmd === "tour") { await runTour(); }
+  else if (cmd === "news") { await newsBeatOf(nextNews()); }
+  else if (cmd === "product") {
+    const line = nextLine();
+    try { const f = featureImage(line); const fu = await fetchFeatureImage(f); if (fu) await showNewsImage(fu, "SELAM · " + f.label, ""); } catch (_) {}
+    await speakLine(line);
+  } else if (cmd === "topic" && arg) {
+    const want = CATS.find((k) => k.toLowerCase() === arg.toLowerCase())
+      || CATS.find((k) => k.toLowerCase().startsWith(arg.toLowerCase()));
+    if (want) { _topicBoost = want; _topicBoostN = 5; await newsBeatOf(newsItems.find((x) => x.cat === want) || nextNews()); }
+  } else if (cmd === "wrap") {
+    await speakLine("We're going to start wrapping up here — thank you so much for spending part of your day with me. If you're just discovering what I can do, it's all at heyselam dot ai. Take care, everyone.");
+  } else if (cmd === "say" && arg) {
+    await speakLine(arg);
+  }
+}
+
 await setupStageLayout();   // shift her to the presenter position ONCE (no sliding per beat)
 console.log("LIVE HOST v3 running —", FB_TOKEN ? "Facebook Live" : "mock", "· verbatim host lines + CURRENT news (with images) + brain-answered comments w/ written replies");
 refreshNews(true).catch(() => {});   // seed current headlines (non-blocking)
 for (;;) {
+  // Operator steering first — act on it immediately, then resume the show.
+  const _ctl = readControl();
+  if (_ctl) { try { await handleControl(_ctl); } catch (e) { console.log("ctl err:", e.message); } await sleep(1500); continue; }
   let fresh = [];
   try { fresh = await fetchComments(); } catch (e) { console.log("fetch err:", e.message); }
   if (fresh.length) {
@@ -548,21 +704,21 @@ for (;;) {
         const named = c.name && c.name !== "Viewer" && c.name !== "(name hidden)";
         console.log(`🎉 trivia win: ${c.name || "viewer"}`);
         await speakLine(named ? `Yes! ${c.name}, that's exactly right — beautifully done! Round of applause for ${c.name}, everyone.` : `Yes! That's exactly right — beautifully done, whoever got that!`);
-        if (c.id) await fbReply(c.id, `🎉 Correct${named ? ", " + c.name : ""}! Beautifully done. 👏`);
+        if (c.id) await postReply(c.id, `🎉 Correct${named ? ", " + c.name : ""}! Beautifully done. 👏`);
         await sleep(800);
         continue;
       }
       // a viewer asked for a tour → run the guided walkthrough (rate-limited)
       if (isTourRequest(c.text) && Date.now() - lastTourAt > 3 * 60 * 1000) {
         lastTourAt = Date.now();
-        if (c.id) await fbReply(c.id, "Starting a quick tour now — enjoy! 🎬  (heyselam.ai)");
+        if (c.id) await postReply(c.id, "Starting a quick tour now — enjoy! 🎬  (heyselam.ai)");
         await runTour();
         await sleep(800);
         continue;
       }
       const raw = await sayAndCapture(commentPrompt(c));
       const clean = cleanSpoken(raw);
-      if (c.id && clean) await fbReply(c.id, clean);
+      if (c.id && clean) await postReply(c.id, clean);
       await sleep(1000);
     }
   } else {
