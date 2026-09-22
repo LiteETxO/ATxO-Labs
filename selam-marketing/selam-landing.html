@@ -6,6 +6,10 @@
 <title>Selam — AI Operator for Your Mac. Runs Ops While You Sleep.</title>
 <meta name="description" content="Selam is an autonomous AI operator for your Mac. Sets her own sub-agents to work, runs overnight, reaches people across WhatsApp, Telegram, iMessage and Email, and reports back what got done. With a face, voice, and name you choose.">
 <link rel="canonical" href="https://heyselam.ai/">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/selam-mark-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/selam-mark-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/selam-mark-192.png">
+<link rel="apple-touch-icon" href="/assets/selam-mark-180.png">
 <script defer src="/_vercel/insights/script.js"></script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Selam">
@@ -45,7 +49,7 @@
   --maxw:1100px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
 body{
   background:var(--night);
   color:var(--ink);
@@ -85,7 +89,9 @@ p.lede{color:var(--ink-2);font-size:clamp(16px,1.5vw,19px);max-width:54ch;margin
 nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,11,17,.6);border-bottom:1px solid transparent;transition:border-color .4s,background .4s}
 nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px}
-.brand{display:flex;align-items:baseline;gap:10px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-mark{width:30px;height:30px;border-radius:9px;flex:none;display:block}
+.brand b,.brand span{align-self:baseline}
 .brand b{font-family:var(--serif);font-weight:600;font-size:21px}
 .brand span{font-size:12px;color:var(--ink-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
 .nav-links{display:flex;align-items:center;gap:34px}
@@ -93,6 +99,9 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .nav-links a.lnk::after{content:"";position:absolute;left:0;bottom:-4px;width:0;height:1px;background:var(--dawn);transition:width .3s}
 .nav-links a.lnk:hover{color:var(--ink)}
 .nav-links a.lnk:hover::after{width:100%}
+.lnk-games{display:inline-flex;align-items:center;gap:6px}
+.lnk-games .nf{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:#0c1024;background:var(--dawn-soft);padding:2px 6px;border-radius:999px;line-height:1}
 
 /* hero */
 .hero{position:relative;padding:48px 0 56px;overflow:hidden}
@@ -103,6 +112,14 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .hero h1{font-size:clamp(44px,6.6vw,82px);letter-spacing:-.032em;margin:28px 0 0}
 .hero p{color:var(--ink-2);font-size:clamp(16px,1.6vw,19px);max-width:48ch;margin-top:26px}
 .hero-cta{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.hero-play{display:inline-flex;align-items:center;gap:13px;margin-top:18px;padding:13px 18px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(138,164,234,.17),rgba(122,196,240,.09));border:1px solid var(--line-2);
+  color:var(--ink-2);font-size:14px;line-height:1.4;transition:.25s cubic-bezier(.2,.7,.2,1);max-width:min(100%,540px)}
+.hero-play:hover{border-color:var(--dawn-soft);transform:translateY(-2px);
+  background:linear-gradient(135deg,rgba(138,164,234,.26),rgba(122,196,240,.15))}
+.hero-play b{color:var(--ink)}
+.hero-play .hp-ico{font-size:21px;line-height:1}
+.hero-play .arrow{margin-left:auto;color:var(--dawn-soft)}
 .hero-meta{margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.05em}
 .hero-shot{position:relative;display:flex;justify-content:center}
 .hero-shot img{display:block;--bleed:calc(max(0px,(100vw - var(--maxw))/4) + 32px);width:calc(100% + var(--bleed));max-width:none;height:auto;max-height:86vh;object-fit:contain;margin:0 calc(-1*var(--bleed)) 0 auto;
@@ -173,11 +190,14 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 /* marquee */
 .ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:64px;padding:30px 0;overflow:hidden;position:relative}
 .ticker .label{position:absolute;left:32px;top:6px;z-index:2}
-.marquee{display:flex;gap:0;white-space:nowrap;animation:scroll-x 38s linear infinite;width:max-content}
-.marquee span{font-family:var(--serif);font-size:clamp(30px,4vw,52px);color:var(--ink);padding:0 28px;position:relative;opacity:.5;transition:opacity .3s}
-.marquee span:nth-child(15n+1){color:var(--dawn-soft);opacity:.95;font-style:italic}
+.marquee{display:flex;gap:0;white-space:nowrap;animation:scroll-x 46s linear infinite;width:max-content;align-items:center}
+.marquee .logo{display:inline-flex;align-items:center;gap:11px;padding:0 30px;color:var(--ink-2);opacity:.46;transition:opacity .35s,color .35s}
+.marquee .logo svg{width:37px;height:37px;fill:currentColor;display:block;flex:none}
+.marquee .logo .nm{font-family:var(--mono);font-size:14px;letter-spacing:.01em;white-space:nowrap}
+.marquee .logo:hover{opacity:1;color:var(--brand,var(--dawn-soft))}
+.marquee .logo.mcp{opacity:.62}
+.marquee .logo.mcp .nm{font-style:italic;color:var(--dawn-soft)}
 .marquee:hover{animation-play-state:paused}
-.marquee span:hover{opacity:1;color:var(--dawn-soft)}
 @keyframes scroll-x{to{transform:translateX(-50%)}}
 .ticker-foot{text-align:center;margin-top:26px;font-family:var(--serif);font-size:clamp(20px,2.6vw,30px);color:var(--ink-2)}
 
@@ -233,6 +253,15 @@ section{position:relative;z-index:1}
 .gp-btn:hover{transform:translateY(-2px);border-color:var(--dawn-soft);background:linear-gradient(135deg,rgba(138,164,234,.34),rgba(122,196,240,.2))}
 .gp-btn .gp-ico{font-size:16px}
 .gp-note{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:100%;margin-top:2px}
+.games-party{margin-top:20px;display:flex;flex-direction:column;gap:8px}
+.gp-party{display:inline-flex;align-items:center;gap:11px;align-self:flex-start;max-width:100%;font-family:inherit;
+  font-size:15px;color:var(--ink);cursor:pointer;padding:15px 22px;border-radius:14px;text-align:left;
+  background:linear-gradient(135deg,rgba(169,156,242,.26),rgba(122,196,240,.14));border:1px solid var(--line-2);
+  transition:.25s cubic-bezier(.2,.7,.2,1)}
+.gp-party b{font-weight:700}
+.gp-party:hover{transform:translateY(-2px);border-color:var(--dawn-soft);
+  background:linear-gradient(135deg,rgba(169,156,242,.36),rgba(122,196,240,.2))}
+.gp-party .gp-ico{font-size:20px}
 
 .game-chip{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 15px;transition:color .25s,border-color .25s}
 .game-chip:hover{color:var(--dawn-soft);border-color:var(--line-2)}
@@ -359,17 +388,25 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
   .hero-shot{order:-1}
 }
 @media(max-width:520px){.gallery{grid-template-columns:1fr}}
+/* voice input mic for the Ask-Selam widget */
+.sv-mic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border:none;border-radius:50%;background:rgba(232,221,200,.09);color:var(--ink-2);cursor:pointer;margin:0 6px;padding:0;transition:background .25s,color .25s,transform .18s}
+.sv-mic svg{width:19px;height:19px;display:block}
+.sv-mic:hover{background:rgba(231,177,92,.16);color:var(--dawn-soft)}
+.sv-mic:active{transform:scale(.94)}
+.sv-mic.on{background:var(--dawn);color:#241606;animation:sv-mic-pulse 1.3s ease-in-out infinite}
+.sv-mic.sending{background:rgba(231,177,92,.18);color:var(--dawn-soft);box-shadow:0 0 0 2px rgba(231,177,92,.45)}
+@keyframes sv-mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(231,177,92,.55)}50%{box-shadow:0 0 0 11px rgba(231,177,92,0)}}
 </style>
 </head>
 <body>
 
 <nav id="nav">
   <div class="wrap nav-inner">
-    <a class="brand" href="#top"><b>Selam</b><span>by Deribe Labs</span></a>
+    <a class="brand" href="#top"><img class="brand-mark" src="/assets/selam-mark.png" alt="Selam" width="30" height="30"><b>Selam</b><span>by Deribe Labs</span></a>
     <div class="nav-links">
       <a class="lnk" href="#how">How it works</a>
       <a class="lnk" href="#gallery">Gallery</a>
-      <a class="lnk" href="#games">Games</a>
+      <a class="lnk lnk-games" href="#games">Games<span class="nf">free</span></a>
       <a class="lnk" href="#guardrails">Guardrails</a>
       <a class="lnk" href="#pricing">Pricing</a>
       <a class="lnk" href="#faq">FAQ</a>
@@ -389,6 +426,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
         <a class="btn btn-primary" href="https://api.heyselam.app/buy">$10 trial. Own forever — $99 total <span class="arrow">→</span></a>
         <button class="btn btn-ghost" id="watch-setup" type="button">▸ Watch her set up</button>
       </div>
+      <a class="hero-play reveal" href="#play"><span class="hp-ico">🎮</span><span><b>Play against her right now — free.</b> Chess, poker, Four in a Row or Word Guess, right in your browser. No download.</span><span class="arrow">→</span></a>
       <div class="hero-meta reveal">macOS 14+ · Apple silicon recommended · 500 MB · 14-day refund · $10 30-day trial, credited when you buy</div>
     </div>
     <div class="hero-shot reveal">
@@ -424,11 +462,108 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
   </div>
 
   <div class="ticker">
-    <span class="label mono">Agents being built right now</span>
+    <span class="label mono">Tools she operates</span>
     <div class="marquee" id="marquee"></div>
-    <div class="ticker-foot serif">Every AI on earth sounds the same. <em>Yours shouldn't.</em></div>
+    <div class="ticker-foot serif">She works where you already work — <em>and any tool you add.</em></div>
   </div>
 </header>
+
+<style>
+  #tour-video .tour-frame{max-width:900px;margin:44px auto 0;border-radius:18px;overflow:hidden;
+    border:1px solid var(--line-2);background:#05060c;box-shadow:0 34px 90px -34px rgba(0,0,0,.62)}
+  #tour-video .tour-frame video{width:100%;display:block;aspect-ratio:16/9;background:#05060c;outline:none}
+  #tour-video .tour-cap{margin:16px auto 0;max-width:900px;font-family:var(--mono);font-size:12px;
+    letter-spacing:.05em;color:var(--ink-3);text-align:center}
+</style>
+<section class="block" id="tour-video">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">▸ The tour</span>
+      <h2 class="section-title serif reveal">Watch her <em>give you the tour.</em></h2>
+      <p class="lede reveal">No script, no editing — she recorded this herself. A few minutes of Selam opening her own settings and walking you around, narrated in her own voice.</p>
+    </div>
+    <div class="tour-frame reveal">
+      <video controls preload="none" playsinline poster="/assets/selam-tour-poster.jpg">
+        <source src="/assets/selam-tour.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="/assets/selam-tour.mp4">Download it here.</a>
+      </video>
+    </div>
+    <p class="tour-cap reveal">Recorded live on a Mac · her voice, her screen · no edits</p>
+  </div>
+</section>
+
+<style>
+  #studio-news .news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1120px;margin:42px auto 0}
+  #studio-news .news-cell{position:relative;border:1px solid var(--line-2);border-radius:14px;overflow:hidden;background:#05060c;
+    box-shadow:0 26px 64px -32px rgba(0,0,0,.6)}
+  #studio-news .news-cell video{width:100%;display:block;aspect-ratio:16/9;background:#05060c;outline:none;cursor:pointer}
+  #studio-news .sound-btn{position:absolute;top:12px;right:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;
+    background:rgba(10,12,19,.72);border:1px solid rgba(180,190,225,.28);color:#eef2f8;border-radius:100px;
+    padding:6px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.03em;cursor:pointer;backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);transition:border-color .2s,color .2s}
+  #studio-news .sound-btn.on{border-color:var(--accent,#7ec4ff);color:#cfe6ff}
+  #studio-news .news-cell .lbl{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;
+    font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em;border-top:1px solid var(--line-2)}
+  #studio-news .news-cell .lbl b{color:var(--ink-2);font-weight:600}
+  #studio-news .made{display:flex;justify-content:center;gap:8px;margin:22px auto 0;font-family:var(--mono);
+    font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+  #studio-news .made .pill{border:1px solid var(--line-2);border-radius:100px;padding:5px 14px;color:var(--ink-2)}
+  #studio-news .disc{margin:12px auto 0;max-width:780px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+    text-align:center;opacity:.85;line-height:1.5}
+  @media (max-width:820px){#studio-news .news-grid{grid-template-columns:1fr;max-width:420px}}
+</style>
+<section class="block" id="studio-news">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow reveal">▸ Selam Studio · broadcast</span>
+      <h2 class="section-title serif reveal">One prompt → a <em>newsroom in six languages.</em></h2>
+      <p class="lede reveal">Hand Selam a topic, a script, or a PDF and she anchors a full news segment — lower-thirds, a live ticker, your channel's branding — then hands you the clips. She does it in English, French, Arabic, Russian, German, or Chinese. Here's the same bulletin, performed by Selam in three of them.</p>
+    </div>
+    <div class="news-grid reveal">
+      <div class="news-cell">
+        <button class="sound-btn" type="button">🔊 <span>tap for sound</span></button>
+        <video src="/assets/selam-studio-news-en.mp4" poster="/assets/selam-studio-news-en.jpg" autoplay muted loop playsinline preload="metadata"></video>
+        <div class="lbl"><b>English</b><span>voiced &amp; performed by Selam</span></div>
+      </div>
+      <div class="news-cell">
+        <button class="sound-btn" type="button">🔊 <span>tap for sound</span></button>
+        <video src="/assets/selam-studio-news-ar.mp4" poster="/assets/selam-studio-news-ar.jpg" autoplay muted loop playsinline preload="metadata"></video>
+        <div class="lbl"><b>العربية</b><span>right-to-left, natively</span></div>
+      </div>
+      <div class="news-cell">
+        <button class="sound-btn" type="button">🔊 <span>tap for sound</span></button>
+        <video src="/assets/selam-studio-news-fr.mp4" poster="/assets/selam-studio-news-fr.jpg" autoplay muted loop playsinline preload="metadata"></video>
+        <div class="lbl"><b>Français</b><span>same segment, translated</span></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var cells = Array.prototype.slice.call(document.querySelectorAll('#studio-news .news-cell'));
+        function paint(btn, on) {
+          btn.classList.toggle('on', on);
+          btn.innerHTML = on ? '🔊 <span>sound on</span>' : '🔊 <span>tap for sound</span>';
+        }
+        cells.forEach(function (cell) {
+          var v = cell.querySelector('video'), btn = cell.querySelector('.sound-btn');
+          function toggle() {
+            var turnOn = v.muted;
+            cells.forEach(function (c) {           // solo: mute the others
+              var ov = c.querySelector('video'), ob = c.querySelector('.sound-btn');
+              if (c !== cell) { ov.muted = true; paint(ob, false); }
+            });
+            v.muted = !turnOn;
+            if (turnOn) { try { v.currentTime = 0; v.play(); } catch (e) {} }
+            paint(btn, turnOn);
+          }
+          btn.addEventListener('click', toggle);
+          v.addEventListener('click', toggle);
+        });
+      })();
+    </script>
+    <div class="made reveal"><span class="pill">✦ Made with Selam Studio</span><span class="pill">rendered on-device</span></div>
+    <p class="disc reveal">Sample segment for demonstration — an AI-generated example produced with Selam Studio, not a live news broadcast.</p>
+  </div>
+</section>
 
 <section class="block" id="how">
   <div class="wrap">
@@ -454,21 +589,6 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
       <p class="lede reveal">A million people can use Selam. There will only ever be one of your agent. They are what you made them.</p>
     </div>
     <div class="gallery" id="gallery-grid"></div>
-  </div>
-</section>
-
-<section class="block founder">
-  <div class="wrap founder-grid">
-    <div>
-      <span class="eyebrow reveal">Meet Selam — the original</span>
-      <blockquote class="reveal serif">We built Selam for our founder. She runs his outreach overnight, watches his inbox for the replies that matter, runs his trading dashboards, and reports each morning on what got done. <em>She doesn't wait to be asked.</em></blockquote>
-      <p class="lede reveal">She's been operating autonomously for over a year — she's why this product exists, and why it's named after her. When you buy Selam, you don't get Selam. You get the tools to build yours.</p>
-      <div class="src reveal">Selam · the founder's agent · est. 2025</div>
-    </div>
-    <div class="founder-portrait reveal">
-      <img src="/assets/selam-hero.webp" alt="Selam, the original agent" loading="lazy">
-      <div class="cap">the first one</div>
-    </div>
   </div>
 </section>
 
@@ -508,13 +628,17 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
       <div class="cap reveal"><div class="ic">c</div><h3 class="serif">Talks trash</h3><p>A cocky, competitive opponent — not a polite coach. Expect a jab when she takes your piece and a victory lap when she wins.</p></div>
       <div class="cap reveal"><div class="ic">d</div><h3 class="serif">One tap, or just ask</h3><p>Open the game menu or say "let's play chess." Click, drag, or play entirely by voice — the board sits right beside her.</p></div>
     </div>
-    <div class="games-play reveal">
+    <div class="games-play reveal" id="play">
       <div class="gp-lead">Play four of them free — right here, no download</div>
       <button class="gp-btn" data-selam-game="chess"><span class="gp-ico">♟️</span> Chess</button>
       <button class="gp-btn" data-selam-game="poker"><span class="gp-ico">🂡</span> Poker</button>
       <button class="gp-btn" data-selam-game="connect4"><span class="gp-ico">🔴</span> Four in a Row</button>
       <button class="gp-btn" data-selam-game="wordle"><span class="gp-ico">🔤</span> Word Guess</button>
       <div class="gp-note">You vs. Aria — she thinks a few moves ahead. Press Esc or × to close.</div>
+    </div>
+    <div class="games-party reveal">
+      <button class="gp-party" data-selam-game="trivia_host"><span class="gp-ico">🎉</span> <b>Host a Party Trivia night</b> — she's the game-show host</button>
+      <div class="gp-note">Set up your teams, she asks the questions aloud and keeps a live scoreboard. Great for a room full of people.</div>
     </div>
     <div class="game-cloud reveal"><span class="game-chip">Chess</span><span class="game-chip">Checkers</span><span class="game-chip">Four in a Row</span><span class="game-chip">Tic-Tac-Toe</span><span class="game-chip">Reversi</span><span class="game-chip">Gomoku</span><span class="game-chip">Dots and Boxes</span><span class="game-chip">Poker</span><span class="game-chip">Blackjack</span><span class="game-chip">Liar's Dice</span><span class="game-chip">Yatzy</span><span class="game-chip">Sea Battle</span><span class="game-chip">Code Breaker</span><span class="game-chip">Hangman</span><span class="game-chip">Word Guess</span><span class="game-chip">Rock-Paper-Scissors</span><span class="game-chip">20 Questions</span><span class="game-chip">Trivia</span><span class="game-chip">Would You Rather</span><span class="game-chip">Two Truths & a Lie</span><span class="game-chip">Never Have I Ever</span><span class="game-chip">This or That</span></div>
 
@@ -761,11 +885,12 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
-// name ticker
+// tools marquee — logos of the apps Selam operates (works-with row)
 (function(){
-  var names=["Kiya","Daniel","Reya","Marcus","Amara","Noa","Tesfaye","Sofia","Isaac","Nadia","Jomo","Hana","Ezra","Lwin","Selam"];
+  var L=[{"t": "Gmail", "c": "#EA4335", "d": "M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"}, {"t": "Outlook", "c": "#0078D4", "d": "M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.5V2.55q0-.44.3-.75.3-.3.75-.3h12.9q.44 0 .75.3.3.3.3.75V10.85l1.24.72h.01q.1.07.18.18.07.12.07.25zm-6-8.25v3h3v-3zm0 4.5v3h3v-3zm0 4.5v1.83l3.05-1.83zm-5.25-9v3h3.75v-3zm0 4.5v3h3.75v-3zm0 4.5v2.03l2.41 1.5 1.34-.8v-2.73zM9 3.75V6h2l.13.01.12.04v-2.3zM5.98 15.98q.9 0 1.6-.3.7-.32 1.19-.86.48-.55.73-1.28.25-.74.25-1.61 0-.83-.25-1.55-.24-.71-.71-1.24t-1.15-.83q-.68-.3-1.55-.3-.92 0-1.64.3-.71.3-1.2.85-.5.54-.75 1.3-.25.74-.25 1.63 0 .85.26 1.56.26.72.74 1.23.48.52 1.17.81.69.3 1.56.3zM7.5 21h12.39L12 16.08V17q0 .41-.3.7-.29.3-.7.3H7.5zm15-.13v-7.24l-5.9 3.54Z"}, {"t": "Slack", "c": "#EDE6D8", "d": "M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"}, {"t": "WhatsApp", "c": "#25D366", "d": "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"}, {"t": "Telegram", "c": "#26A5E4", "d": "M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"}, {"t": "Apple", "c": "#EDE6D8", "d": "M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"}, {"t": "Word", "c": "#2B7CD3", "d": "M23.004 1.5q.41 0 .703.293t.293.703v19.008q0 .41-.293.703t-.703.293H6.996q-.41 0-.703-.293T6 21.504V18H.996q-.41 0-.703-.293T0 17.004V6.996q0-.41.293-.703T.996 6H6V2.496q0-.41.293-.703t.703-.293zM6.035 11.203l1.442 4.735h1.64l1.57-7.876H9.036l-.937 4.653-1.325-4.5H5.38l-1.406 4.523-.938-4.675H1.312l1.57 7.874h1.641zM22.5 21v-3h-15v3zm0-4.5v-3.75H12v3.75zm0-5.25V7.5H12v3.75zm0-5.25V3h-15v3Z"}, {"t": "Excel", "c": "#21A366", "d": "M23 1.5q.41 0 .7.3.3.29.3.7v19q0 .41-.3.7-.29.3-.7.3H7q-.41 0-.7-.3-.3-.29-.3-.7V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h5V2.5q0-.41.3-.7.29-.3.7-.3zM6 13.28l1.42 2.66h2.14l-2.38-3.87 2.34-3.8H7.46l-1.3 2.4-.05.08-.04.09-.64-1.28-.66-1.29H2.59l2.27 3.82-2.48 3.85h2.16zM14.25 21v-3H7.5v3zm0-4.5v-3.75H12v3.75zm0-5.25V7.5H12v3.75zm0-5.25V3H7.5v3zm8.25 15v-3h-6.75v3zm0-4.5v-3.75h-6.75v3.75zm0-5.25V7.5h-6.75v3.75zm0-5.25V3h-6.75v3Z"}, {"t": "PowerPoint", "c": "#D24726", "d": "M13.5 1.5q1.453 0 2.795.375 1.342.375 2.508 1.06 1.166.686 2.12 1.641.956.955 1.641 2.121.686 1.166 1.061 2.508Q24 10.547 24 12q0 1.453-.375 2.795-.375 1.342-1.06 2.508-.686 1.166-1.641 2.12-.955.956-2.121 1.641-1.166.686-2.508 1.061-1.342.375-2.795.375-1.29 0-2.52-.305-1.23-.304-2.337-.884-1.108-.58-2.063-1.418-.955-.838-1.693-1.893H.997q-.411 0-.704-.293T0 17.004V6.996q0-.41.293-.703T.996 6h3.89q.739-1.055 1.694-1.893.955-.837 2.063-1.418 1.107-.58 2.337-.884Q12.21 1.5 13.5 1.5zm.75 1.535v8.215h8.215q-.14-1.64-.826-3.076-.686-1.436-1.782-2.531-1.095-1.096-2.537-1.782-1.441-.685-3.07-.826zm-5.262 7.57q0-.68-.228-1.166-.229-.486-.627-.79-.399-.305-.938-.446-.539-.14-1.172-.14H2.848v7.863h1.84v-2.742H5.93q.574 0 1.119-.17t.978-.493q.434-.322.698-.802.263-.48.263-1.114zM13.5 21q1.172 0 2.262-.287t2.056-.82q.967-.534 1.776-1.278.808-.744 1.418-1.664.61-.92.984-1.986.375-1.067.469-2.227h-9.703V3.035q-1.735.14-3.27.908T6.797 6h4.207q.41 0 .703.293t.293.703v10.008q0 .41-.293.703t-.703.293H6.797q.644.715 1.412 1.271.768.557 1.623.944.855.387 1.781.586Q12.54 21 13.5 21zM5.812 9.598q.575 0 .915.228.34.229.34.838 0 .27-.124.44-.123.17-.31.275-.188.105-.422.146-.234.041-.445.041H4.687V9.598Z"}, {"t": "Notion", "c": "#EDE6D8", "d": "M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"}, {"t": "Google Drive", "c": "#4285F4", "d": "M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.708 3.001 3.774 6.62l3.76 6.574h3.76c2.081 0 3.753-.02 3.742-.047-.005-.02-1.708-3.001-3.775-6.62l-3.76-6.574zm-4.76 1.73a789.828 789.861 0 0 0-3.63 6.319L0 15.868l1.89 3.298 1.885 3.297 3.62-6.335 3.618-6.33-1.88-3.287C8.1 4.704 7.255 3.22 7.25 3.214zm2.259 12.653-.203.348c-.114.198-.96 1.672-1.88 3.287a423.93 423.948 0 0 1-1.698 2.97c-.01.026 3.24.042 7.222.042h7.244l1.796-3.157c.992-1.734 1.85-3.23 1.906-3.323l.104-.167h-7.249z"}, {"t": "Google Calendar", "c": "#4285F4", "d": "M18.316 5.684H24v12.632h-5.684V5.684zM5.684 24h12.632v-5.684H5.684V24zM18.316 5.684V0H1.895A1.894 1.894 0 0 0 0 1.895v16.421h5.684V5.684h12.632zm-7.207 6.25v-.065c.272-.144.5-.349.687-.617s.279-.595.279-.982c0-.379-.099-.72-.3-1.025a2.05 2.05 0 0 0-.832-.714 2.703 2.703 0 0 0-1.197-.257c-.6 0-1.094.156-1.481.467-.386.311-.65.671-.793 1.078l1.085.452c.086-.249.224-.461.413-.633.189-.172.445-.257.767-.257.33 0 .602.088.816.264a.86.86 0 0 1 .322.703c0 .33-.12.589-.36.778-.24.19-.535.284-.886.284h-.567v1.085h.633c.407 0 .748.109 1.02.327.272.218.407.499.407.843 0 .336-.129.614-.387.832s-.565.327-.924.327c-.351 0-.651-.103-.897-.311-.248-.208-.422-.502-.521-.881l-1.096.452c.178.616.505 1.082.977 1.401.472.319.984.478 1.538.477a2.84 2.84 0 0 0 1.293-.291c.382-.193.684-.458.902-.794.218-.336.327-.72.327-1.149 0-.429-.115-.797-.344-1.105a2.067 2.067 0 0 0-.881-.689zm2.093-1.931l.602.913L15 10.045v5.744h1.187V8.446h-.827l-2.158 1.557zM22.105 0h-3.289v5.184H24V1.895A1.894 1.894 0 0 0 22.105 0zm-3.289 23.5l4.684-4.684h-4.684V23.5zM0 22.105C0 23.152.848 24 1.895 24h3.289v-5.184H0v3.289z"}, {"t": "GitHub", "c": "#EDE6D8", "d": "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"}, {"t": "Linear", "c": "#5E6AD2", "d": "M2.886 4.18A11.982 11.982 0 0 1 11.99 0C18.624 0 24 5.376 24 12.009c0 3.64-1.62 6.903-4.18 9.105L2.887 4.18ZM1.817 5.626l16.556 16.556c-.524.33-1.075.62-1.65.866L.951 7.277c.247-.575.537-1.126.866-1.65ZM.322 9.163l14.515 14.515c-.71.172-1.443.282-2.195.322L0 11.358a12 12 0 0 1 .322-2.195Zm-.17 4.862 9.823 9.824a12.02 12.02 0 0 1-9.824-9.824Z"}, {"t": "Jira", "c": "#0052CC", "d": "M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z"}, {"t": "Apple Music", "c": "#FA243C", "d": "M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726 10.496 10.496 0 00-1.564-.15c-.04-.003-.083-.01-.124-.013H5.986c-.152.01-.303.017-.455.026-.747.043-1.49.123-2.193.4-1.336.53-2.3 1.452-2.865 2.78-.192.448-.292.925-.363 1.408-.056.392-.088.785-.1 1.18 0 .032-.007.062-.01.093v12.223c.01.14.017.283.027.424.05.815.154 1.624.497 2.373.65 1.42 1.738 2.353 3.234 2.801.42.127.856.187 1.293.228.555.053 1.11.06 1.667.06h11.03a12.5 12.5 0 001.57-.1c.822-.106 1.596-.35 2.295-.81a5.046 5.046 0 001.88-2.207c.186-.42.293-.87.37-1.324.113-.675.138-1.358.137-2.04-.002-3.8 0-7.595-.003-11.393zm-6.423 3.99v5.712c0 .417-.058.827-.244 1.206-.29.59-.76.962-1.388 1.14-.35.1-.706.157-1.07.173-.95.045-1.773-.6-1.943-1.536a1.88 1.88 0 011.038-2.022c.323-.16.67-.25 1.018-.324.378-.082.758-.153 1.134-.24.274-.063.457-.23.51-.516a.904.904 0 00.02-.193c0-1.815 0-3.63-.002-5.443a.725.725 0 00-.026-.185c-.04-.15-.15-.243-.304-.234-.16.01-.318.035-.475.066-.76.15-1.52.303-2.28.456l-2.325.47-1.374.278c-.016.003-.032.01-.048.013-.277.077-.377.203-.39.49-.002.042 0 .086 0 .13-.002 2.602 0 5.204-.003 7.805 0 .42-.047.836-.215 1.227-.278.64-.77 1.04-1.434 1.233-.35.1-.71.16-1.075.172-.96.036-1.755-.6-1.92-1.544-.14-.812.23-1.685 1.154-2.075.357-.15.73-.232 1.108-.31.287-.06.575-.116.86-.177.383-.083.583-.323.6-.714v-.15c0-2.96 0-5.922.002-8.882 0-.123.013-.25.042-.37.07-.285.273-.448.546-.518.255-.066.515-.112.774-.165.733-.15 1.466-.296 2.2-.444l2.27-.46c.67-.134 1.34-.27 2.01-.403.22-.043.442-.088.663-.106.31-.025.523.17.554.482.008.073.012.148.012.223.002 1.91.002 3.822 0 5.732z"}, {"t": "Spotify", "c": "#1ED760", "d": "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"}];
   var m=document.getElementById('marquee');
-  var html=names.map(function(n){return '<span>'+n+'</span>'}).join('');
+  function item(o){return '<span class="logo" style="--brand:'+o.c+'" title="'+o.t+'">'+'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+o.d+'"/></svg>'+'<span class="nm">'+o.t+'</span></span>';}
+  var html=L.map(item).join('')+'<span class="logo mcp"><span class="nm">+ any MCP tool</span></span>';
   m.innerHTML=html+html; // duplicate for seamless loop
 })();
 
@@ -892,7 +1017,7 @@ window.addEventListener('load',function(){
     var startBtn = frame.querySelector(".af-start");
     var endBtn   = frame.querySelector(".af-end");
     var TRIAL = "https://api.heyselam.app/buy";
-    var HERO_LINE = "Hey — I'm Selam. I'm an AI operator, and I live right here on your Mac. Tell me a goal and I run with it: I draft your documents, sort your files, stay on top of email and calendar — I'll even take your calls. And I handle the tedious things overnight, so you wake up to them already done. You choose my face, my voice, my name. And I always check with you before anything I can't undo. This is me. Let's get to work.";
+    var HERO_LINE = "Hey — I'm Selam. I'm an AI operator, and I live right here on your Mac. Tell me a goal and I run with it: I draft your documents, sort your files, stay on top of email and calendar — I'll even take your calls. And I handle the tedious things overnight, so you wake up to them already done. You choose my face, my voice, my name. And I always check with you before anything I can't undo. This is me — let's get to work. And if you have any questions, or need more information, just tap Ask Selam below, and I'll be happy to help.";
     // Shared voice coordinator: only one Selam (hero intro vs. the Ask-Selam
     // tour) speaks at a time. Whoever claims the mic stops the others.
     var SelamVoice = (window.SelamVoice = window.SelamVoice || {
@@ -902,6 +1027,37 @@ window.addEventListener('load',function(){
     });
 
     var api = null, mounting = null;
+
+    // Ambient life: at idle the rig already breathes, sways and blinks, but the
+    // power-saver renders idle at ~15 fps and the default sway is subtle, so on
+    // a small first-impression close-up she can read as static. Nudge her
+    // livelier — a bit more head sway + slightly more frequent blinks — and keep
+    // the render at 30 fps while she's actually on screen (the rig's autonomous
+    // gaze saccades + head-turns only read as "alive" at that cadence). All of
+    // it is disabled under prefers-reduced-motion.
+    var REDUCE = false;
+    try { REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    function enliven(a) {
+      if (REDUCE || !a || !a.avatar) return;
+      try {
+        var sc = a.avatar._characterScalars || (a.avatar._characterScalars = {});
+        sc.idleAmplitude = 1.5;   // head sway ~6° (from ~4°) — organic Perlin drift
+        sc.blinkRate     = 1.3;   // blinks a touch more often
+      } catch (e) {}
+      // 30 fps idle only while the hero is on screen; drops back to the
+      // power-saver (15 fps, or 4 fps when the tab is hidden) when scrolled away.
+      try {
+        if ("IntersectionObserver" in window) {
+          var io = new IntersectionObserver(function (es) {
+            document.body.classList.toggle(
+              "session-on", es.some(function (e) { return e.isIntersecting; }));
+          }, { threshold: 0.12 });
+          io.observe(frame);
+        } else {
+          document.body.classList.add("session-on");
+        }
+      } catch (e) {}
+    }
 
     // Mount the live avatar into the hero window (once). Desktop calls this on
     // idle so she's alive before interaction; mobile calls it lazily on the
@@ -915,12 +1071,21 @@ window.addEventListener('load',function(){
           container: stage,
           glbUrl: "/assets/tour/brunette.glb",
           colors: { skin: "#C1C7E7", top: "#617ECC", hair: "#FFFAFA" },
+          // Frame her head-and-shoulders like the app's "Start Session" screen.
+          // The app's own camera (fov 25) shows head-to-waist — in this wider
+          // hero stage that reads as looking-up with resting hands raised into
+          // frame. Raise the camera + target and use fov 23 for a comfortable
+          // head-and-shoulders portrait: full head with headroom, shoulders in,
+          // resting hands just below the crop (fov 24+ lets them creep in).
+          characterConfig: { cameraFrame: {
+            pos: [0.09, 1.34, 1.4], target: [-0.03, 1.54, -0.07], fov: 23 } },
           // Crisper, well-articulated lip-sync for the first-impression close-up.
           tuning: { visemeGain: 0.72, jawGain: 0.66, jawCeiling: 0.55, ampLerp: 0.9 }
         });
       }).then(function (a) {
         api = a;
         frame.classList.add("live");
+        enliven(a);
         SelamVoice.register("hero", function () {
           try { api.stopSpeaking(); } catch (e) {}
           frame.classList.remove("session");
@@ -1005,6 +1170,66 @@ window.addEventListener('load',function(){
   });
   document.addEventListener("keydown", function(e){ if(e.key==="Escape" && mod && mod.closeSelamGame) mod.closeSelamGame(); });
 })();
+
+// Voice input: speak your question to Ask-Selam. Uses the browser's built-in
+// speech recognition (free, on-device/vendor) — the transcript is submitted to
+// the SAME /api/ask + /api/tts pipeline as a typed question, so it costs the same.
+(function(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return;               // unsupported → typing still works, no mic shown
+  var P = "stour";              // Ask-Selam widget class prefix
+  function injectMic(form){
+    if(!form || form.querySelector(".sv-mic")) return;
+    var input = form.querySelector("."+P+"-askin");
+    if(!input) return;
+    var mic = document.createElement("button");
+    mic.type = "button"; mic.className = "sv-mic";
+    mic.setAttribute("aria-label","Speak your question");
+    mic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor" stroke="none"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>';
+    var send = form.querySelector("."+P+"-asksend");
+    if(send && send.parentNode===form) form.insertBefore(mic, send); else form.appendChild(mic);
+    var rec=null, listening=false, pendingSend=null, ph=input.getAttribute("placeholder")||"";
+    function reset(){ listening=false; mic.classList.remove("on"); input.setAttribute("placeholder", ph); }
+    function cancelPending(){ if(pendingSend){ clearTimeout(pendingSend); pendingSend=null; } mic.classList.remove("sending"); }
+    function submitForm(){ try{ form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit",{cancelable:true,bubbles:true})); }catch(e){} }
+    form.addEventListener("submit", cancelPending); // a real send cancels any queued auto-send
+    mic.addEventListener("click", function(){
+      cancelPending();                 // tapping the mic cancels a queued send and lets you redo
+      if(listening){ try{ rec && rec.stop(); }catch(e){} return; }
+      try{ window.SelamVoice && window.SelamVoice.claim && window.SelamVoice.claim("mic"); }catch(e){} // barge-in
+      rec = new SR();
+      try{ rec.lang = navigator.language || "en-US"; }catch(e){}
+      rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+      var finalTxt = "";
+      rec.onstart = function(){ listening=true; mic.classList.add("on"); input.value=""; input.setAttribute("placeholder","Listening…"); try{ input.focus(); }catch(e){} };
+      rec.onresult = function(ev){
+        var interim="";
+        for(var i=ev.resultIndex; i<ev.results.length; i++){
+          var t = ev.results[i][0].transcript;
+          if(ev.results[i].isFinal) finalTxt += t; else interim += t;
+        }
+        input.value = (finalTxt + interim).replace(/\s+/g," ").trim();
+        try{ input.dispatchEvent(new Event("input",{bubbles:true})); }catch(e){}
+      };
+      rec.onerror = function(){ reset(); };
+      rec.onend = function(){
+        reset();
+        var q = (input.value||"").trim(); input.value = q;
+        if(q.length > 1){
+          // She heard it — it's in the box and sends on its own (so it isn't manual).
+          // Misheard? Tap the mic to say it again, or edit before it goes.
+          mic.classList.add("sending");
+          try{ input.focus(); }catch(e){}
+          pendingSend = setTimeout(function(){ pendingSend=null; mic.classList.remove("sending"); submitForm(); }, 1500);
+        }
+      };
+      try{ rec.start(); }catch(e){ reset(); }
+    });
+  }
+  var found = document.querySelector("."+P+"-ask"); if(found) injectMic(found);
+  var mo = new MutationObserver(function(){ var f=document.querySelector("."+P+"-ask"); if(f) injectMic(f); });
+  mo.observe(document.body, {childList:true, subtree:true});
+})();
 </script>
 <!-- Guided app-setup tour — she walks a new user through setup (lazy-loaded on click) -->
 <script>
@@ -1017,6 +1242,152 @@ window.addEventListener('load',function(){
     ensure().then(function(m){ btn.textContent=label; btn.disabled=false; m.startAppTour({ trialUrl:"https://api.heyselam.app/buy" }); })
             .catch(function(e){ console.warn("apptour load failed", e); btn.textContent=label; btn.disabled=false; location.href="#how"; });
   });
+})();
+</script>
+
+<!-- ===== Live window: pops when Selam is broadcasting on FB / YouTube ===== -->
+<style>
+.live-window{
+  position:fixed; left:20px; bottom:20px; z-index:70;
+  width:340px; max-width:calc(100vw - 40px);
+  background:var(--surface,#141726);
+  border:1px solid var(--line-2,rgba(202,210,240,.18));
+  border-radius:16px; overflow:hidden;
+  box-shadow:0 18px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,59,78,.14);
+  font-family:var(--sans,system-ui,sans-serif);
+  transform:translateY(24px); opacity:0;
+  transition:transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s ease;
+}
+.live-window.show{ transform:translateY(0); opacity:1; }
+.lw-head{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; background:var(--surface-2,#191d2e);
+  border-bottom:1px solid var(--line,rgba(202,210,240,.10));
+  cursor:pointer; user-select:none;
+}
+.lw-dot{
+  width:9px; height:9px; border-radius:50%; background:#ff3b4e; flex:none;
+  box-shadow:0 0 0 0 rgba(255,59,78,.6); animation:lw-pulse 1.8s infinite;
+}
+@keyframes lw-pulse{
+  0%{box-shadow:0 0 0 0 rgba(255,59,78,.55)}
+  70%{box-shadow:0 0 0 8px rgba(255,59,78,0)}
+  100%{box-shadow:0 0 0 0 rgba(255,59,78,0)}
+}
+.lw-label{ font-size:12px; font-weight:700; letter-spacing:.14em; color:#ff5566; }
+.lw-plat{ font-size:12px; color:var(--ink-3,#7d829e); margin-right:auto; }
+.lw-min,.lw-close{
+  appearance:none; border:0; background:transparent; cursor:pointer;
+  color:var(--ink-2,#b6bbd2); font-size:18px; line-height:1;
+  width:26px; height:26px; border-radius:8px;
+}
+.lw-min:hover,.lw-close:hover{ background:rgba(255,255,255,.07); color:var(--ink,#f2f4fb); }
+.live-window.min .lw-body{ display:none; }
+.lw-frame{ position:relative; width:100%; aspect-ratio:16/9; background:#000; }
+.lw-frame iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+.lw-foot{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; background:var(--surface-2,#191d2e);
+}
+.lw-title{ font-size:12.5px; color:var(--ink-2,#b6bbd2); flex:1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lw-watch{
+  flex:none; font-size:12.5px; font-weight:600; text-decoration:none;
+  color:#0a0b14; background:var(--dawn,#8aa4ea); padding:5px 11px; border-radius:8px;
+}
+.lw-watch:hover{ background:var(--dawn-soft,#c1c7e7); }
+@media (max-width:560px){ .live-window{ left:12px; right:12px; bottom:12px; width:auto; } }
+@media (prefers-reduced-motion:reduce){ .live-window{ transition:none; } .lw-dot{ animation:none; } }
+</style>
+
+<aside id="live-window" class="live-window" hidden aria-live="polite" aria-label="Selam live stream">
+  <div class="lw-head" id="lw-head" role="button" tabindex="0" aria-label="Toggle live player">
+    <span class="lw-dot" aria-hidden="true"></span>
+    <span class="lw-label">LIVE</span>
+    <span class="lw-plat" id="lw-plat"></span>
+    <button class="lw-min" id="lw-min" type="button" aria-label="Minimize" title="Minimize">–</button>
+    <button class="lw-close" id="lw-close" type="button" aria-label="Close" title="Close">×</button>
+  </div>
+  <div class="lw-body">
+    <div class="lw-frame" id="lw-frame"></div>
+    <div class="lw-foot">
+      <span class="lw-title" id="lw-title">Selam is hosting live</span>
+      <a class="lw-watch" id="lw-watch" target="_blank" rel="noopener">Watch ↗</a>
+    </div>
+  </div>
+</aside>
+
+<script>
+(function(){
+  var el = document.getElementById("live-window");
+  if(!el) return;
+  var frame  = document.getElementById("lw-frame");
+  var plat   = document.getElementById("lw-plat");
+  var title  = document.getElementById("lw-title");
+  var watch  = document.getElementById("lw-watch");
+  var head   = document.getElementById("lw-head");
+  var minBtn = document.getElementById("lw-min");
+  var closeBtn = document.getElementById("lw-close");
+  var curId = null;
+  var PLAT = { facebook:"Facebook", youtube:"YouTube" };
+
+  function dismissed(){ try{ return localStorage.getItem("selam_live_dismiss")||""; }catch(e){ return ""; } }
+  function setDismissed(id){ try{ localStorage.setItem("selam_live_dismiss", id||""); }catch(e){} }
+
+  function mount(d){
+    if(curId === d.id) return;                 // already showing this stream
+    curId = d.id;
+    plat.textContent  = "· " + (PLAT[d.platform] || d.platform || "");
+    title.textContent = d.title || "Selam is hosting live";
+    watch.href = d.watchUrl || "#";
+    frame.innerHTML = "";
+    var f = document.createElement("iframe");
+    f.src = d.embedUrl;
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    f.setAttribute("allowfullscreen","true");
+    f.setAttribute("scrolling","no");
+    f.title = "Selam live stream";
+    frame.appendChild(f);
+    el.hidden = false;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add("show"); }); });
+  }
+  function unmount(){
+    if(el.hidden && !curId) return;
+    el.classList.remove("show");
+    curId = null;
+    setTimeout(function(){ el.hidden = true; frame.innerHTML = ""; }, 460);
+  }
+  function apply(d){
+    if(d && d.live && d.id){
+      if(dismissed() === d.id) return;         // user closed THIS stream — respect it
+      mount(d);
+    } else { unmount(); }
+  }
+  function poll(){
+    if(document.hidden) return;                // don't poll a backgrounded tab
+    fetch("/api/live", {cache:"no-store"})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){ if(d) apply(d); })
+      .catch(function(){});
+  }
+
+  head.addEventListener("click", function(e){
+    if(e.target===minBtn || e.target===closeBtn) return;
+    el.classList.toggle("min");
+  });
+  minBtn.addEventListener("click", function(e){ e.stopPropagation(); el.classList.toggle("min"); });
+  closeBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    if(curId) setDismissed(curId);
+    unmount();
+  });
+  head.addEventListener("keydown", function(e){
+    if(e.key==="Enter" || e.key===" "){ e.preventDefault(); el.classList.toggle("min"); }
+  });
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) poll(); });
+
+  setTimeout(poll, 2500);                       // let the page settle first
+  setInterval(poll, 45000);
 })();
 </script>
 </body>
