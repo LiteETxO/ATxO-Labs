@@ -130,7 +130,7 @@ async function _fetchFeed(f) {
   return out;
 }
 async function refreshNews(force) {
-  if (!force && Date.now() - lastNewsAt < 20 * 60 * 1000) return;   // refresh at most every 20 min
+  if (!force && Date.now() - lastNewsAt < 5 * 60 * 1000) return;   // refresh at most every 5 min
   const all = [];
   for (const [cat, feeds] of Object.entries(NEWS_FEEDS)) {
     for (const f of feeds) { try { for (const it of await _fetchFeed(f)) all.push({ cat, ...it }); } catch (_) {} }
