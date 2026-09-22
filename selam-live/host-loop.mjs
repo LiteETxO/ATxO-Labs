@@ -99,13 +99,38 @@ const _dec = (s) => s.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&qu
 const _UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 // category → publisher feeds (each carries the article image in-feed)
 const NEWS_FEEDS = {
-  AI: [{ url: "https://www.theverge.com/rss/index.xml", name: "The Verge" }],
+  // AI + crypto are deliberately over-sourced: this is where the live audience
+  // leans, so more feeds = more volume/variety, and CAT_WEIGHT below surfaces
+  // them more often. Bad/empty feeds are harmless (per-feed try/catch).
+  AI: [
+    { url: "https://www.theverge.com/rss/index.xml", name: "The Verge" },
+    { url: "https://techcrunch.com/category/artificial-intelligence/feed/", name: "TechCrunch AI" },
+  ],
+  crypto: [
+    { url: "https://www.coindesk.com/arc/outboundfeeds/rss/", name: "CoinDesk" },
+    { url: "https://cointelegraph.com/rss", name: "Cointelegraph" },
+    { url: "https://decrypt.co/feed", name: "Decrypt" },
+  ],
   tech: [{ url: "https://feeds.arstechnica.com/arstechnica/index", name: "Ars Technica" }],
-  crypto: [{ url: "https://www.coindesk.com/arc/outboundfeeds/rss/", name: "CoinDesk" }],
   business: [{ url: "https://www.cnbc.com/id/10001147/device/rss/rss.html", name: "CNBC" }],
   world: [{ url: "https://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC" }],
   interesting: [{ url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", name: "BBC Science" }],
 };
+// How often each category is drawn for a news beat (weighted pick, not flat
+// round-robin) — AI and crypto lead for this audience.
+const CAT_WEIGHT = { AI: 4, crypto: 4, tech: 2, world: 2, business: 1, interesting: 1 };
+const _catCursor = {};   // per-category round-robin index into the pool
+function nextNews() {
+  if (!newsItems.length) return null;
+  const cats = [...new Set(newsItems.map((n) => n.cat))];
+  const bag = [];
+  for (const c of cats) for (let i = 0; i < (CAT_WEIGHT[c] || 1); i++) bag.push(c);
+  const cat = bag[Math.floor(Math.random() * bag.length)];
+  const items = newsItems.filter((n) => n.cat === cat);
+  const i = (_catCursor[cat] || 0) % items.length;
+  _catCursor[cat] = i + 1;
+  return items[i];
+}
 let newsItems = [], newsIdx = 0, lastNewsAt = 0;
 const _cdata = (s) => _dec((s || "").replace(/^\s*<!\[CDATA\[/, "").replace(/\]\]>\s*$/, "").trim());
 function _itemImage(it) {
@@ -149,6 +174,63 @@ Share it with viewers in ONE or TWO upbeat spoken sentences, in your own words, 
 PRIVACY: this is a PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
 }
 let interBeat = 0;
+
+// ── Podcast-style deep dive ─────────────────────────────────────────────
+// Every so often she drops the headline-blurb cadence and does a longer,
+// flowing "what's happening in the world" segment — tech / AI / crypto /
+// world — connecting a few current stories with her own perspective, like a
+// favorite podcast host. Grounded in real headlines; no fabrication.
+let lastPodcastAt = Date.now();
+const _PRIV = `PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
+function podcastIntroPrompt(items) {
+  const topics = [...new Set(items.map((n) => n.cat))].join(", ");
+  const lines = items.map((n) => `• "${n.title}"${n.source ? ` — ${n.source} (${n.cat})` : ""}`).join("\n");
+  return `You are Selam, OPENING a LIVE podcast-style segment — call it "The Selam Download," your recurring what's-happening-in-tech show. Warm, sharp host energy. In about 3 to 4 spoken sentences, welcome viewers to the segment and tease what you'll cover today across ${topics}. Here are the stories you'll walk through:
+${lines}
+Do NOT invent facts beyond these headlines. ${_PRIV}`;
+}
+function podcastStoryPrompt(n, idx, total) {
+  return `You are Selam, MID-WAY through your LIVE podcast segment — this is story ${idx} of ${total}. Here is a REAL current headline:
+"${n.title}"${n.source ? ` — ${n.source} (${n.cat})` : ""}
+
+Give this story about 5 to 7 flowing spoken sentences: what's happening in plain language, WHY it matters, how it connects to the bigger picture, and your own honest perspective as an autonomous AI operator that lives on people's Macs. Be substantive and a little opinionated, like a great ${n.cat} podcast host — not a headline reader. Use a natural spoken transition to move into it. Do NOT invent specific facts, figures, or quotes beyond the headline. ${_PRIV}`;
+}
+function podcastWrapPrompt(items) {
+  const lines = items.map((n) => `• "${n.title}" (${n.cat})`).join("\n");
+  return `You are Selam, WRAPPING UP your LIVE podcast segment. The stories you just covered:
+${lines}
+
+In about 4 to 5 spoken sentences, tie these threads together into the bigger AI / crypto / tech arc, give your honest take on where it's all heading, and warmly invite viewers to drop their own take in the comments. Do NOT invent facts beyond these headlines. ${_PRIV}`;
+}
+async function deepDive() {
+  // Build a 4-story lineup, AI/crypto-led but with some variety.
+  const picks = [];
+  for (const c of ["AI", "crypto", "tech", "world"]) {
+    const it = newsItems.find((n) => n.cat === c && !picks.includes(n));
+    if (it) picks.push(it);
+  }
+  for (const c of ["AI", "crypto", "tech"]) {         // top up toward 4, favoring AI/crypto
+    if (picks.length >= 4) break;
+    for (const n of newsItems) { if (n.cat === c && !picks.includes(n)) { picks.push(n); break; } }
+  }
+  if (!picks.length) return;
+  console.log(`🎙 deep dive (${picks.length} stories): ${picks.map((p) => p.cat).join("+")}`);
+  // Intro
+  try { await showNewsImage(SELAM_HERO, "SELAM · THE DOWNLOAD 🎙", "Today in tech, AI & crypto"); } catch (_) {}
+  await sayAndCapture(podcastIntroPrompt(picks));
+  await sleep(1200);
+  // One substantial riff per story, each with its article image
+  for (let i = 0; i < picks.length; i++) {
+    const n = picks[i];
+    let img = null; try { img = await fetchNewsImage(n); } catch (_) {}
+    if (img) await showNewsImage(img, n.cat.toUpperCase() + " · DEEP DIVE 🎙", n.title);
+    await sayAndCapture(podcastStoryPrompt(n, i + 1, picks.length));
+    await sleep(1000);
+  }
+  // Wrap
+  try { await showNewsImage(SELAM_HERO, "SELAM · THE DOWNLOAD 🎙", "The big picture"); } catch (_) {}
+  await sayAndCapture(podcastWrapPrompt(picks));
+}
 
 // --- topic image for a news item (Openverse — free, CC-licensed, no key) ---
 const NEWS_IMG_Q = { AI: "artificial intelligence", tech: "technology", crypto: "cryptocurrency bitcoin", business: "business finance market", world: "world news globe", interesting: "science space" };
@@ -250,6 +332,13 @@ const TRIVIA = [
   { q: "Fun one — how many games do I have built in? Closest guess in the comments wins!", a: ["22", "twenty two", "twenty-two"] },
   { q: "Trivia — what's the capital of Ethiopia, where my name comes from? Comment away!", a: ["addis ababa", "addis"] },
   { q: "Quick one — one word for an AI that takes initiative and runs work on its own — it's my tagline. Comment it!", a: ["operator", "autonomous"] },
+  // AI + crypto trivia for the crowd that loves it
+  { q: "Crypto trivia — what's the maximum number of Bitcoin that will ever exist? Comment your guess!", a: ["21 million", "21000000", "21m", "twenty one million", "21 mil"] },
+  { q: "AI trivia — what do the letters in 'GPT' stand for? First to comment gets a shout-out!", a: ["generative pre-trained transformer", "generative pretrained transformer", "pre-trained transformer", "pretrained transformer"] },
+  { q: "Crypto one — what do we call the smallest unit of a Bitcoin? Comment it!", a: ["satoshi", "sat", "sats"] },
+  { q: "AI trivia — what's the 'T' in ChatGPT's architecture, the model type behind modern AI? Comment away!", a: ["transformer"] },
+  { q: "Crypto trivia — Ethereum switched from proof-of-work to which consensus in 'The Merge'? Comment it!", a: ["proof of stake", "proof-of-stake", "pos", "staking"] },
+  { q: "AI trivia — what's it called when an AI confidently makes something up? Drop your answer!", a: ["hallucination", "hallucinating", "hallucinate"] },
 ];
 let activeTrivia = null, lastTriviaAt = Date.now(), triviaIdx = 0;
 function triviaMatch(text) { return activeTrivia && activeTrivia.a.some((k) => (text || "").toLowerCase().includes(k)); }
@@ -501,10 +590,17 @@ for (;;) {
       continue;
     }
     try { await refreshNews(false); } catch (_) {}
+    // Podcast-style deep dive every ~12 min — a longer tech/AI/crypto/world segment.
+    if (newsItems.length && Date.now() - lastPodcastAt > 12 * 60 * 1000) {
+      lastPodcastAt = Date.now();
+      await deepDive();
+      await sleep(4000);
+      continue;
+    }
     interBeat++;
-    // alternate: a current news item (brain), then a verbatim product line
-    if (newsItems.length && interBeat % 2 === 0) {
-      const n = newsItems[newsIdx++ % newsItems.length];
+    // Rhythm: 2 news beats (weighted toward AI/crypto) : 1 product line.
+    if (newsItems.length && interBeat % 3 !== 0) {
+      const n = nextNews();
       console.log(`📰 ${n.cat}: ${n.title.slice(0, 64)}`);
       let img = null; try { img = await fetchNewsImage(n); } catch (_) {}
       if (img) await showNewsImage(img, n.cat.toUpperCase() + " · IN THE NEWS", n.title);
