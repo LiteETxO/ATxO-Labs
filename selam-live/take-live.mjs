@@ -61,8 +61,18 @@ for (const c of b.contexts()) {
 if (!page) { await b.close(); throw new Error("no app page exposing window.__selamLive"); }
 await page.evaluate(async () => { try { await window.__selamLive.stop(); } catch (_) {} });
 await sleep(1500);
-const res = await page.evaluate(async (u) => await window.__selamLive.start(u, { music: true, overlay: true }), STREAM_URL);
-console.log("   stream start:", JSON.stringify(res));
+// Simulcast: also push to YouTube when SELAM_YT_URL is set (main.js tees the
+// single encode to both Facebook + YouTube).
+const YT = (process.env.SELAM_YT_URL || "").trim();
+// Simulcast doubles upload (same encode teed to BOTH FB + YouTube), so drop
+// the per-stream bitrate to fit the uplink — 2000k x2 ≈ the single-stream budget.
+const res = await page.evaluate(
+  async ({ u, yt }) => await window.__selamLive.start(u, {
+    music: true, overlay: true, youtube: yt || undefined,
+    bitrate: yt ? "2000k" : "4000k",
+  }),
+  { u: STREAM_URL, yt: YT });
+console.log("   stream start:", JSON.stringify(res), YT ? "(+ YouTube @2000k x2)" : "(Facebook only)");
 await b.close();
 if (!res || !res.ok) throw new Error("stream start failed: " + (res && res.error));
 
