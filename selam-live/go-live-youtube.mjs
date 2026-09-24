@@ -80,8 +80,8 @@ async function streamFor(key) {
   if (!hadSession) {
     console.log("   opening session off-air (so the owner greeting isn't broadcast)…");
     await page.evaluate(() => { const s = document.getElementById("start-btn"); if (s) s.click(); });
-    for (let i = 0; i < 20; i++) { await sleep(800); if (await page.evaluate(() => !!(window.__selamSessionActive && window.__selamSessionActive()))) break; }
-    await sleep(5000);   // let the off-air greeting finish before capture starts
+    for (let i = 0; i < 15; i++) { await sleep(600); if (await page.evaluate(() => !!(window.__selamSessionActive && window.__selamSessionActive()))) break; }
+    await sleep(2500);   // let the off-air greeting finish before capture starts
   }
   await page.evaluate(async () => { try { await window.__selamLive.stop(); } catch (_) {} });
   await sleep(1000);
@@ -92,12 +92,12 @@ async function streamFor(key) {
 
   console.log("② waiting for YouTube ingest health …");
   let healthy = false;
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 24; i++) {           // poll fast (~3s) up to ~72s so we proceed the moment it's ready
     const s = await streamFor(YT_KEY);
     const h = s && s.status && s.status.healthStatus ? s.status.healthStatus.status : "none";
     console.log(`   health: ${h}`);
     if (h === "good" || h === "ok") { healthy = true; break; }
-    await sleep(6000);
+    await sleep(3000);
   }
   if (!healthy) throw new Error("stream never reported healthy — check uplink / lower SELAM_YT_BITRATE");
 

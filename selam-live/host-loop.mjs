@@ -12,7 +12,7 @@
 import fs from "fs";
 import crypto from "crypto";
 import path from "path";
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
 import { fileURLToPath } from "url";
 import pkg from "/opt/homebrew/lib/node_modules/openclaw/dist/extensions/diffs/node_modules/playwright-core/index.js";
 const { chromium } = pkg;
@@ -722,6 +722,13 @@ async function setupStageLayout() {
       // left in the input box so the raw puppet-prompt never shows on stream.
       try { document.body.classList.add("studio-clean"); } catch (_) {}
       try { const ti = document.getElementById("text-input"); if (ti) { ti.value = ""; } } catch (_) {}
+      // RESTORE the operator's cursor during the broadcast. The studio-clean
+      // class carries `body.studio-clean *{cursor:none}` (the old way to keep the
+      // cursor out of the capture) — now redundant since getDisplayMedia's
+      // cursor:"never" keeps it out of the STREAM, and it was stopping the
+      // operator from seeing the cursor to drag/click the (frameless) window.
+      // Append an override so the operator keeps a usable cursor on their screen.
+      try { if (!document.getElementById("slo-cursor-restore")) { const st = document.createElement("style"); st.id = "slo-cursor-restore"; st.textContent = "body.studio-clean, body.studio-clean *{cursor:auto !important}"; document.head.appendChild(st); } } catch (_) {}
       // The avatar's 3D scene renders an opaque near-black backdrop, so paint the
       // surrounding stage to the EXACT same colour → seamless, no split. Read the
       // live scene.background instead of hard-coding it (it differs by theme /
@@ -785,6 +792,7 @@ async function newsBeatOf(n) {
   if (img) await showNewsImage(img, n.cat.toUpperCase() + " · IN THE NEWS", n.title);
   await sayAndCapture(newsPrompt(n));
 }
+const WRAP_LINE = "We're going to start wrapping up here — thank you so much for spending part of your day with me. If you're just discovering what I can do, it's all at heyselam dot ai. Take care, everyone.";
 async function handleControl(c) {
   const cmd = (c.cmd || "").toLowerCase();
   const arg = (c.arg || c.text || "").trim();
@@ -801,7 +809,14 @@ async function handleControl(c) {
       || CATS.find((k) => k.toLowerCase().startsWith(arg.toLowerCase()));
     if (want) { _topicBoost = want; _topicBoostN = 5; await newsBeatOf(newsItems.find((x) => x.cat === want) || nextNews()); }
   } else if (cmd === "wrap") {
-    await speakLine("We're going to start wrapping up here — thank you so much for spending part of your day with me. If you're just discovering what I can do, it's all at heyselam dot ai. Take care, everyone.");
+    await speakLine(WRAP_LINE);
+  } else if (cmd === "wrapend" || cmd === "wrap_end") {
+    // Graceful close: deliver the full wrap-up, THEN end the live cleanly. We
+    // spawn end-live.mjs DETACHED so it survives end-live killing this host-loop.
+    await speakLine(WRAP_LINE);
+    await sleep(1500);
+    console.log("🎬 wrap complete → ending live");
+    spawn("node", ["end-live.mjs"], { cwd: ROOT, stdio: "ignore", detached: true }).unref();
   } else if (cmd === "say" && arg) {
     await speakLine(arg);
   } else if (cmd === "language" && arg) {
@@ -816,11 +831,51 @@ async function handleControl(c) {
   }
 }
 
+// ── Stream-died watchdog ────────────────────────────────────────────────
+// The host-loop drives the on-air content. If the encoder (ffmpeg → RTMP)
+// vanishes — the broadcast dropped, was ended from the app, or a go-live
+// failed after starting us — we must NOT keep "hosting" into a dead, restored
+// window. Detect the missing encoder and self-terminate, restoring the normal
+// app layout first (otherwise she sits in a small panel talking as if live).
+let _encGoneSince = 0;
+function encoderGone() {
+  for (const pat of ["rtmp://a.rtmp.youtube.com", "rtmps://live-api-s.facebook.com"]) {
+    try { execSync(`pgrep -f '${pat}'`, { stdio: "ignore" }); return false; } catch (_) {}
+  }
+  return true;
+}
+async function restoreLayoutAndExit(reason) {
+  console.log(`⚠ ${reason} — broadcast stream is gone; restoring layout and exiting.`);
+  try {
+    await pg.evaluate(async () => {
+      try { await window.__selamLive.stop(); } catch (_) {}   // live_stop → window restore
+      try { document.body.classList.remove("studio-clean"); } catch (_) {}
+      ["stage-row", "session-content", "app", "avatar-container"].forEach((id) => {
+        const e = document.getElementById(id); if (!e) return;
+        e.style.background = ""; e.style.width = ""; e.style.maxWidth = "";
+        e.style.display = ""; e.style.justifyContent = ""; e.style.alignItems = ""; e.style.transform = "";
+      });
+      const ov = document.getElementById("selam-live-overlay"); if (ov) { ov.style.left = ""; ov.style.right = ""; ov.style.width = ""; ov.style.display = "none"; }
+      const card = document.getElementById("slo-newsimg"); if (card) card.remove();
+      const pr = document.getElementById("slo-prices"); if (pr) pr.remove();
+      const nc = document.getElementById("slo-nocursor"); if (nc) nc.remove();
+      try { const c = window.__selamAdapter && window.__selamAdapter.avatar && window.__selamAdapter.avatar.camera; if (c) { c.position.z = 1.5; c.position.y = 1.55; if (c.updateProjectionMatrix) c.updateProjectionMatrix(); } } catch (_) {}
+      window.dispatchEvent(new Event("resize"));
+    });
+  } catch (_) {}
+  process.exit(0);
+}
+
 await setupStageLayout();   // shift her to the presenter position ONCE (no sliding per beat)
 console.log("LIVE HOST v3 running —", FB_TOKEN ? "Facebook Live" : "mock", "· verbatim host lines + CURRENT news (with images) + brain-answered comments w/ written replies");
 refreshNews(true).catch(() => {});   // seed current headlines (non-blocking)
 marketTick(true).catch(() => {});    // seed the live crypto + stock ticker
 for (;;) {
+  // Stream-died watchdog: if the encoder has been gone ~30s (tolerates blips +
+  // host-loop restarts), the broadcast is over — clean up and exit instead of
+  // hosting into a dead window.
+  if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 30000) { await restoreLayoutAndExit("encoder not running for 30s"); } }
+  else { _encGoneSince = 0; }
   marketTick(false).catch(() => {});   // keep prices fresh (self-throttled to ~60s)
   // Defensive: keep the broadcast clean every tick — studio-clean on, input box
   // empty (never let a stray prompt or the app chrome surface on stream).
@@ -828,7 +883,7 @@ for (;;) {
   // renderer re-init rebuilds #avatar-container and drops the once-set transform,
   // which slides her back to center where the info card overlaps her shoulder.
   // Re-applying the SAME value is idempotent (no per-beat sliding).
-  try { await pg.evaluate(() => { document.body.classList.add("studio-clean"); const ti = document.getElementById("text-input"); if (ti && ti.value && !ti.matches(":focus")) ti.value = ""; const ac = document.getElementById("avatar-container"); if (ac && ac.style.transform !== "translateX(-22%)") ac.style.transform = "translateX(-22%)"; }); } catch (_) {}
+  try { await pg.evaluate(() => { document.body.classList.add("studio-clean"); const ti = document.getElementById("text-input"); if (ti && ti.value && !ti.matches(":focus")) ti.value = ""; const ac = document.getElementById("avatar-container"); if (ac && ac.style.transform !== "translateX(-22%)") ac.style.transform = "translateX(-22%)"; const nc = document.getElementById("slo-nocursor"); if (nc) nc.remove(); if (!document.getElementById("slo-cursor-restore")) { const st = document.createElement("style"); st.id = "slo-cursor-restore"; st.textContent = "body.studio-clean, body.studio-clean *{cursor:auto !important}"; document.head.appendChild(st); } }); } catch (_) {}
   // Operator steering first — act on it immediately, then resume the show.
   const _ctl = readControl();
   if (_ctl) { try { await handleControl(_ctl); } catch (e) { console.log("ctl err:", e.message); } await sleep(1500); continue; }

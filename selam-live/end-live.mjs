@@ -50,6 +50,7 @@ try {
         if (ov) { ov.style.left = ""; ov.style.right = ""; ov.style.width = ""; ov.style.display = "none"; }
         const card = document.getElementById("slo-newsimg"); if (card) card.remove();
         const prices = document.getElementById("slo-prices"); if (prices) prices.remove();
+        const nocur = document.getElementById("slo-nocursor"); if (nocur) nocur.remove();   // restore the cursor
         const ac = document.getElementById("avatar-container");
         if (ac) { ac.style.background = ""; ac.style.transform = ""; }
         try {
