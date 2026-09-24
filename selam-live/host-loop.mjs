@@ -99,6 +99,7 @@ function fetchCommentsMock() {
 }
 async function fetchComments() {
   if (PLATFORM === "youtube") return await fetchCommentsYT();
+  if (PLATFORM === "none") return [];   // X (Twitter) etc. — no live-chat API wired, content-only broadcast
   return FB_TOKEN ? await fetchCommentsFB() : fetchCommentsMock();
 }
 async function fbReply(commentId, message) {
@@ -215,8 +216,52 @@ const NEWS_FEEDS = {
 const CAT_WEIGHT = { AI: 4, crypto: 4, tech: 2, world: 2, business: 1, interesting: 1 };
 const _catCursor = {};   // per-category round-robin index into the pool
 let _topicBoost = null, _topicBoostN = 0;   // operator "more crypto/AI" bias for the next few beats
+
+// Broadcast FOCUS — a free-form topic the owner sets at go-live ("world politics
+// and conflict", "AI breakthroughs"). When set, news beats prefer headlines that
+// match it (keyword overlap) and the prompts frame the whole show around it.
+let LIVE_FOCUS = (process.env.SELAM_LIVE_FOCUS || "").trim();
+// Generic filler only — topic words like "world"/"politics" must survive.
+const _FOCUS_STOP = new Set(["the", "and", "for", "with", "from", "this", "that", "your", "their", "about", "current", "latest", "news", "focus", "topic", "story", "stories", "please", "today", "into", "over", "some", "more"]);
+// Map a focus phrase to a news CATEGORY + its semantic hint words, so "world
+// politics and conflict" prefers world-desk headlines (Ukraine, an attack, an
+// election) even when they don't literally contain the word "politics".
+const _FOCUS_CAT_HINTS = {
+  world: ["world", "politic", "conflict", "war", "military", "troop", "election", "vote", "govern", "president", "minister", "geopolit", "internation", "diplomac", "protest", "attack", "killed", "crisis", "sanction", "strike", "ukraine", "russia", "gaza", "israel", "china", "border", "nato", "summit"],
+  AI: ["ai", "artificial", "intelligence", "machine learning", "llm", "openai", "anthropic", "robot", "agent", "neural", "chatbot", "model"],
+  crypto: ["crypto", "bitcoin", "btc", "ethereum", "blockchain", "defi", "token", "stablecoin", "web3", "coin", "wallet"],
+  tech: ["tech", "technolog", "software", "gadget", "startup", "chip", "semiconductor", "device", "hardware"],
+  business: ["business", "market", "econom", "stock", "earnings", "company", "trade", "finance", "revenue"],
+};
+function _focusWords() {
+  return LIVE_FOCUS.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !_FOCUS_STOP.has(w));
+}
+function _focusCats() {
+  const low = LIVE_FOCUS.toLowerCase();
+  const cats = [];
+  for (const [cat, hints] of Object.entries(_FOCUS_CAT_HINTS)) if (hints.some((h) => low.includes(h))) cats.push(cat);
+  return cats;
+}
+function _focusScore(n, words, cats) {
+  const hay = ((n.title || "") + " " + (n.summary || "")).toLowerCase();
+  let s = 0;
+  for (const w of words) if (hay.includes(w)) s += 2;                 // literal focus keyword hit
+  if (cats && cats.includes(n.cat)) s += 1;                            // headline is in the focus's category bucket
+  if (cats) for (const c of cats) { if (_FOCUS_CAT_HINTS[c].some((h) => hay.includes(h))) { s += 1; break; } }  // semantic hint in the headline
+  return s;
+}
+function _focusNote() { return LIVE_FOCUS ? ` This broadcast is FOCUSED ON ${LIVE_FOCUS} — keep everything oriented around it.` : ""; }
+let _focusCursor = 0;
 function nextNews() {
   if (!newsItems.length) return null;
+  // Focus first: cycle through headlines that match the owner's focus topic.
+  const fw = _focusWords();
+  if (fw.length) {
+    const cats = _focusCats();
+    const scored = newsItems.map((n) => ({ n, s: _focusScore(n, fw, cats) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s);
+    if (scored.length) { const k = _focusCursor++ % scored.length; return scored[k].n; }
+    // no matches this cycle → fall through to the weighted picker (framing still applies)
+  }
   if (_topicBoost && _topicBoostN > 0) {
     const items = newsItems.filter((n) => n.cat === _topicBoost);
     if (items.length) {
@@ -271,7 +316,8 @@ async function refreshNews(force) {
   }
 }
 function newsPrompt(n) {
-  return `You are Selam, hosting a friendly LIVE broadcast — warm and upbeat, like a host giving the day's tech and world news. Here is a REAL current headline from the last few days:
+  const focus = LIVE_FOCUS ? ` Today's broadcast is FOCUSED ON ${LIVE_FOCUS} — cover this headline through that lens and keep the through-line.` : "";
+  return `You are Selam, hosting a friendly LIVE broadcast — warm and upbeat, like a host giving the day's tech and world news.${focus} Here is a REAL current headline from the last few days:
 "${n.title}"${n.source ? ` — ${n.source}` : ""}
 
 Share it with viewers in ONE or TWO upbeat spoken sentences, in your own words, as fresh ${n.cat} news. Do NOT invent facts or details beyond the headline itself. If it fits naturally, add a light tie to what you — Selam, an autonomous AI operator that lives on your Mac — could help with, but keep it brief and never force it.
@@ -299,12 +345,12 @@ const _PRIV = `PUBLIC broadcast — never reveal anything about your owner; spea
 function podcastIntroPrompt(items) {
   const topics = [...new Set(items.map((n) => n.cat))].join(", ");
   const lines = items.map((n) => `• "${n.title}"${n.source ? ` — ${n.source} (${n.cat})` : ""}`).join("\n");
-  return `You are Selam, OPENING a LIVE podcast-style segment — call it "The Selam Download," your recurring what's-happening-in-tech show. Warm, sharp host energy. In about 3 to 4 spoken sentences, welcome viewers to the segment and tease what you'll cover today across ${topics}. Here are the stories you'll walk through:
+  return `You are Selam, OPENING a LIVE podcast-style segment — call it "The Selam Download," your recurring what's-happening show. Warm, sharp host energy.${_focusNote()} In about 3 to 4 spoken sentences, welcome viewers to the segment and tease what you'll cover today across ${topics}. Here are the stories you'll walk through:
 ${lines}
 Do NOT invent facts beyond these headlines. ${_PRIV}`;
 }
 function podcastStoryPrompt(n, idx, total) {
-  return `You are Selam, MID-WAY through your LIVE podcast segment — this is story ${idx} of ${total}. Here is a REAL current headline:
+  return `You are Selam, MID-WAY through your LIVE podcast segment — this is story ${idx} of ${total}.${_focusNote()} Here is a REAL current headline:
 "${n.title}"${n.source ? ` — ${n.source} (${n.cat})` : ""}
 
 Give this story about 5 to 7 flowing spoken sentences: what's happening in plain language, WHY it matters, how it connects to the bigger picture, and your own honest perspective as an autonomous AI operator that lives on people's Macs. Be substantive and a little opinionated, like a great ${n.cat} podcast host — not a headline reader. Use a natural spoken transition to move into it. Do NOT invent specific facts, figures, or quotes beyond the headline. ${_PRIV}`;
@@ -317,9 +363,17 @@ ${lines}
 In about 4 to 5 spoken sentences, tie these threads together into the bigger AI / crypto / tech arc, give your honest take on where it's all heading, and warmly invite viewers to drop their own take in the comments. Do NOT invent facts beyond these headlines. ${_PRIV}`;
 }
 async function deepDive() {
-  // Build a 4-story lineup, AI/crypto-led but with some variety.
+  // Build a 4-story lineup. With a FOCUS set, lead with the best-matched
+  // stories; otherwise AI/crypto-led with some variety.
   const picks = [];
+  const fw = _focusWords();
+  if (fw.length) {
+    const cats = _focusCats();
+    const scored = newsItems.map((n) => ({ n, s: _focusScore(n, fw, cats) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s);
+    for (const x of scored) { if (picks.length >= 4) break; if (!picks.includes(x.n)) picks.push(x.n); }
+  }
   for (const c of ["AI", "crypto", "tech", "world"]) {
+    if (picks.length >= 4) break;
     const it = newsItems.find((n) => n.cat === c && !picks.includes(n));
     if (it) picks.push(it);
   }
@@ -330,7 +384,8 @@ async function deepDive() {
   if (!picks.length) return;
   console.log(`🎙 deep dive (${picks.length} stories): ${picks.map((p) => p.cat).join("+")}`);
   // Intro
-  try { await showNewsImage(SELAM_HERO, "SELAM · THE DOWNLOAD 🎙", "Today in tech, AI & crypto"); } catch (_) {}
+  const _dlSub = LIVE_FOCUS ? LIVE_FOCUS : "Today in tech, AI & crypto";
+  try { await showNewsImage(SELAM_HERO, "SELAM · THE DOWNLOAD 🎙", _dlSub); } catch (_) {}
   await sayAndCapture(podcastIntroPrompt(picks));
   await sleep(1200);
   // One substantial riff per story, each with its article image
@@ -808,6 +863,11 @@ async function handleControl(c) {
     const want = CATS.find((k) => k.toLowerCase() === arg.toLowerCase())
       || CATS.find((k) => k.toLowerCase().startsWith(arg.toLowerCase()));
     if (want) { _topicBoost = want; _topicBoostN = 5; await newsBeatOf(newsItems.find((x) => x.cat === want) || nextNews()); }
+  } else if (cmd === "focus") {
+    // Set/clear the broadcast focus live (empty arg clears it).
+    LIVE_FOCUS = (arg || "").trim(); _focusCursor = 0;
+    console.log(`🎯 focus → ${LIVE_FOCUS || "(cleared)"}`);
+    if (LIVE_FOCUS) await newsBeatOf(nextNews());   // immediately pivot to a focus-matched beat
   } else if (cmd === "wrap") {
     await speakLine(WRAP_LINE);
   } else if (cmd === "wrapend" || cmd === "wrap_end") {
@@ -870,12 +930,48 @@ await setupStageLayout();   // shift her to the presenter position ONCE (no slid
 console.log("LIVE HOST v3 running —", FB_TOKEN ? "Facebook Live" : "mock", "· verbatim host lines + CURRENT news (with images) + brain-answered comments w/ written replies");
 refreshNews(true).catch(() => {});   // seed current headlines (non-blocking)
 marketTick(true).catch(() => {});    // seed the live crypto + stock ticker
+
+// Warm on-air WELCOME to viewers when the broadcast opens (once, before the
+// first beat). Not the owner greeting (that's suppressed off-air) — this greets
+// the audience. Language-aware via sayAndCapture. Best-effort so a hiccup here
+// never blocks the show.
+async function openLive() {
+  const teaser = LIVE_FOCUS
+    ? `tease that today's show is all about ${LIVE_FOCUS} — you'll walk them through the latest on it`
+    : `tease that you'll walk through the latest in AI, crypto, tech and world news`;
+  const prompt = `You are Selam — an autonomous AI operator that lives on people's Macs — and you are OPENING your LIVE stream right this second. Give a genuinely warm, high-energy on-air WELCOME to your viewers in 2 to 3 spoken sentences: greet everyone with real warmth, introduce yourself by name in a line, and ${teaser} — and invite them to drop a comment anytime because you answer live. ${_PRIV}`;
+  await sayAndCapture(prompt);
+}
+try { await openLive(); } catch (_) {}
+
+// Timed session: SELAM_LIVE_MINUTES caps the broadcast length. She gives a ~2-min
+// heads-up, delivers a graceful wrap, then ends the live herself. 0 = open-ended.
+const LIVE_MINUTES = parseFloat(process.env.SELAM_LIVE_MINUTES || "0") || 0;
+const _liveStartTs = Date.now();
+let _wrapWarned = false;
+if (LIVE_MINUTES > 0) console.log(`⏱ timed session: ${LIVE_MINUTES} min`);
+
 for (;;) {
   // Stream-died watchdog: if the encoder has been gone ~30s (tolerates blips +
   // host-loop restarts), the broadcast is over — clean up and exit instead of
   // hosting into a dead window.
   if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 30000) { await restoreLayoutAndExit("encoder not running for 30s"); } }
   else { _encGoneSince = 0; }
+  // Timed-session auto-wrap: heads-up near the end, then a graceful wrap + end.
+  if (LIVE_MINUTES > 0) {
+    const remainMin = LIVE_MINUTES - (Date.now() - _liveStartTs) / 60000;
+    if (remainMin <= 2 && !_wrapWarned) {
+      _wrapWarned = true;
+      try { await speakLine("We've got about two minutes left in today's session — get your last comments in and I'll answer them before we wrap."); } catch (_) {}
+    }
+    if (remainMin <= 0) {
+      console.log(`⏱ timed session (${LIVE_MINUTES} min) reached — wrapping + ending.`);
+      try { await speakLine(WRAP_LINE); } catch (_) {}
+      await sleep(1500);
+      try { spawn("node", ["end-live.mjs"], { cwd: ROOT, stdio: "ignore", detached: true }).unref(); } catch (_) {}
+      break;
+    }
+  }
   marketTick(false).catch(() => {});   // keep prices fresh (self-throttled to ~60s)
   // Defensive: keep the broadcast clean every tick — studio-clean on, input box
   // empty (never let a stray prompt or the app chrome surface on stream).
