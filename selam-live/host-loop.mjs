@@ -598,6 +598,15 @@ await pg.evaluate(() => {
 });
 const speakingF = () => pg.evaluate(() => { const av = window.__selamAdapter && window.__selamAdapter.avatar; return av ? (av.speakingFactor || 0) : 0; });
 const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n }; });
+// Wait until she's actually silent (not mid-sentence), so a new beat never cuts
+// off the previous line. Returns once quiet ~600ms, or after maxMs.
+async function waitUntilQuiet(maxMs = 15000) {
+  const g = Date.now(); let q = 0;
+  while (Date.now() - g < maxMs) {
+    if ((await speakingF()) < 0.06) { if (++q >= 3) return; } else q = 0;
+    await sleep(200);
+  }
+}
 
 // Speak a VERBATIM line directly (no brain) and wait until she finishes.
 async function speakLine(text) {
@@ -607,6 +616,7 @@ async function speakLine(text) {
     await sayAndCapture(`Say the following to your live viewers, translated naturally and warmly into ${LANG} — keep the same friendly meaning, and say ONLY the ${LANG} version, nothing added: "${text}"`);
     return;
   }
+  await waitUntilQuiet(20000);   // don't cut off whatever she's still saying
   await pg.evaluate((t) => { try { window.__selamAdapter.speak(t); } catch (_) {} }, text);
   const t0 = Date.now();
   while (Date.now() - t0 < 8000) { if ((await speakingF()) > 0.06) break; await sleep(150); }
@@ -619,17 +629,24 @@ async function sayAndCapture(prompt) {
   // TTS voice is multilingual, so this alone switches the spoken language.
   if (LANG !== "English") prompt = `LANGUAGE — CRITICAL: Deliver your ENTIRE spoken response only in ${LANG}, as a fluent native ${LANG} speaker. Every sentence in ${LANG}; do not use any English (keep proper names like "Selam" and "heyselam.ai" as-is).\n\n` + prompt;
   await pg.evaluate(() => { if (window.__hostCap) { window.__hostCap.sentences = []; window.__hostCap.n = 0; } });
+  // Don't cut off whatever she's still saying (e.g., a comment answer that ran
+  // long) — wait for her to actually stop before starting this beat.
+  await waitUntilQuiet(20000);
   // Type the brain prompt, send it, then IMMEDIATELY clear the box — the input
   // stays visible even under studio-clean, so a lingering prompt would show the
   // raw puppet-prompt on the broadcast. The click already delivered the message.
   await pg.evaluate((t) => { const i = document.getElementById("text-input"), s = document.getElementById("speak-btn"); i.value = t; i.dispatchEvent(new Event("input", { bubbles: true })); s.click(); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); i.blur && i.blur(); }, prompt);
   const t0 = Date.now();
   while (Date.now() - t0 < 12000) { const s = await capState(); if (s.n > 0 || s.f > 0.06) break; await sleep(150); }
-  let lastN = 0, lastSentenceAt = Date.now();
-  while (Date.now() - t0 < 75000) {
+  // Consider her done only after ~7s of TRUE silence (no sound AND no new
+  // sentence) — the timer resets whenever she's speaking, so a brain that
+  // streams the reply with pauses between sentences won't be cut off mid-answer.
+  let lastN = 0, lastActiveAt = Date.now();
+  while (Date.now() - t0 < 90000) {
     const s = await capState();
-    if (s.n > lastN) { lastN = s.n; lastSentenceAt = Date.now(); }
-    if (s.n > 0 && s.f < 0.06 && Date.now() - lastSentenceAt > 4000) break;
+    if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
+    if (s.f >= 0.06) lastActiveAt = Date.now();
+    if (s.n > 0 && s.f < 0.06 && Date.now() - lastActiveAt > 7000) break;
     await sleep(150);
   }
   const sentences = await pg.evaluate(() => window.__hostCap ? window.__hostCap.sentences.slice() : []);
