@@ -1,0 +1,32 @@
+name: crypto-sweep
+
+# Backstop for the Selam crypto checkout: pings the license server's sweep
+# endpoint so any on-chain payment that confirmed after the buyer closed their
+# tab still mints + emails the license. (The buyer's live page-poll is the
+# instant path; this covers closed tabs on the free/Hobby plan where Vercel
+# cron is daily-only.) The secret is a GitHub Actions secret, never in the file.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 minutes (GitHub may delay under load)
+  workflow_dispatch: {}       # allow manual runs from the Actions tab
+
+concurrency:
+  group: crypto-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping sweep endpoint
+        env:
+          SECRET: ${{ secrets.SWEEP_CRON_SECRET }}
+        run: |
+          if [ -z "$SECRET" ]; then echo "SWEEP_CRON_SECRET not set"; exit 1; fi
+          code=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+            -X GET "https://api.heyselam.app/api/crypto/sweep" \
+            -H "Authorization: Bearer ${SECRET}")
+          echo "HTTP $code"; cat /tmp/out.json; echo
+          # Treat 2xx as success; anything else fails the run so it's visible.
+          case "$code" in 2*) exit 0 ;; *) exit 1 ;; esac
