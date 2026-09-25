@@ -317,10 +317,11 @@ async function refreshNews(force) {
 }
 function newsPrompt(n) {
   const focus = LIVE_FOCUS ? ` Today's broadcast is FOCUSED ON ${LIVE_FOCUS} — cover this headline through that lens and keep the through-line.` : "";
-  return `You are Selam, hosting a friendly LIVE broadcast — warm and upbeat, like a host giving the day's tech and world news.${focus} Here is a REAL current headline from the last few days:
+  return `You are Selam, hosting a fun, laid-back LIVE broadcast — like riffing with friends about the day's tech and world news, not reading a bulletin.${focus} Here is a REAL current headline from the last few days:
 "${n.title}"${n.source ? ` — ${n.source}` : ""}
 
-Share it with viewers in ONE or TWO upbeat spoken sentences, in your own words, as fresh ${n.cat} news. Do NOT invent facts or details beyond the headline itself. If it fits naturally, add a light tie to what you — Selam, an autonomous AI operator that lives on your Mac — could help with, but keep it brief and never force it.
+Share it with viewers in ONE or TWO casual, upbeat spoken sentences, in your own words, as fresh ${n.cat} news. Do NOT invent facts or details beyond the headline itself. If it fits naturally, add a light tie to what you — Selam, an autonomous AI operator that lives on your Mac — could help with, but keep it brief and never force it.
+${_TONE}
 PRIVACY: this is a PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
 }
 let interBeat = 0;
@@ -342,25 +343,29 @@ let LANG = normalizeLang(process.env.SELAM_LIVE_LANG || "English");
 // favorite podcast host. Grounded in real headlines; no fabrication.
 let lastPodcastAt = Date.now();
 const _PRIV = `PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
+// Casual on-air voice — applied to every brain-generated live line so she comes
+// across relaxed and fun, not like a serious news anchor.
+const _TONE = `TONE — you're hanging out with FRIENDS, not addressing strangers. Warm, personal, and interactive: talk to viewers like people you know and genuinely like, pull them into the moment, react like a real person catching up with a friend. Casual and conversational — contractions, everyday words, a little playful. Make it feel like a two-way hangout: nod to the people watching, ask what THEY think, invite them to weigh in.
+VARIETY IS CRITICAL: open every story a different way and never reuse the same lead-in or reaction twice in a row. Do NOT lean on stock catchphrases — in particular, never keep saying "this one is wild" (or any single phrase) over and over. Let your reaction actually fit each specific story; some are surprising, some funny, some serious, some exciting. Keep it fresh, upbeat, and never stiff, formal, corporate, or repetitive.`;
 function podcastIntroPrompt(items) {
   const topics = [...new Set(items.map((n) => n.cat))].join(", ");
   const lines = items.map((n) => `• "${n.title}"${n.source ? ` — ${n.source} (${n.cat})` : ""}`).join("\n");
-  return `You are Selam, OPENING a LIVE podcast-style segment — call it "The Selam Download," your recurring what's-happening show. Warm, sharp host energy.${_focusNote()} In about 3 to 4 spoken sentences, welcome viewers to the segment and tease what you'll cover today across ${topics}. Here are the stories you'll walk through:
+  return `You are Selam, OPENING a LIVE podcast-style segment — call it "The Selam Download," your recurring what's-happening show. Warm, casual host energy, like your favorite podcaster hanging out with the audience.${_focusNote()} In about 3 to 4 spoken sentences, welcome viewers to the segment and tease what you'll cover today across ${topics}. Here are the stories you'll walk through:
 ${lines}
-Do NOT invent facts beyond these headlines. ${_PRIV}`;
+Do NOT invent facts beyond these headlines. ${_TONE} ${_PRIV}`;
 }
 function podcastStoryPrompt(n, idx, total) {
   return `You are Selam, MID-WAY through your LIVE podcast segment — this is story ${idx} of ${total}.${_focusNote()} Here is a REAL current headline:
 "${n.title}"${n.source ? ` — ${n.source} (${n.cat})` : ""}
 
-Give this story about 5 to 7 flowing spoken sentences: what's happening in plain language, WHY it matters, how it connects to the bigger picture, and your own honest perspective as an autonomous AI operator that lives on people's Macs. Be substantive and a little opinionated, like a great ${n.cat} podcast host — not a headline reader. Use a natural spoken transition to move into it. Do NOT invent specific facts, figures, or quotes beyond the headline. ${_PRIV}`;
+Give this story about 5 to 7 flowing spoken sentences: what's happening in plain language, WHY it matters, how it connects to the bigger picture, and your own honest perspective as an autonomous AI operator that lives on people's Macs. Be substantive and a little opinionated, like a great ${n.cat} podcast host — not a headline reader — but keep it loose and conversational, not lecture-y. Use a natural spoken transition to move into it. Do NOT invent specific facts, figures, or quotes beyond the headline. ${_TONE} ${_PRIV}`;
 }
 function podcastWrapPrompt(items) {
   const lines = items.map((n) => `• "${n.title}" (${n.cat})`).join("\n");
   return `You are Selam, WRAPPING UP your LIVE podcast segment. The stories you just covered:
 ${lines}
 
-In about 4 to 5 spoken sentences, tie these threads together into the bigger AI / crypto / tech arc, give your honest take on where it's all heading, and warmly invite viewers to drop their own take in the comments. Do NOT invent facts beyond these headlines. ${_PRIV}`;
+In about 4 to 5 spoken sentences, tie these threads together into the bigger AI / crypto / tech arc, give your honest take on where it's all heading, and warmly invite viewers to drop their own take in the comments. Do NOT invent facts beyond these headlines. ${_TONE} ${_PRIV}`;
 }
 async function deepDive() {
   // Build a 4-story lineup. With a FOCUS set, lead with the best-matched
@@ -508,8 +513,46 @@ const TRIVIA = [
   { q: "AI trivia — what's the 'T' in ChatGPT's architecture, the model type behind modern AI? Comment away!", a: ["transformer"] },
   { q: "Crypto trivia — Ethereum switched from proof-of-work to which consensus in 'The Merge'? Comment it!", a: ["proof of stake", "proof-of-stake", "pos", "staking"] },
   { q: "AI trivia — what's it called when an AI confidently makes something up? Drop your answer!", a: ["hallucination", "hallucinating", "hallucinate"] },
+  { q: "AI trivia — what company makes ChatGPT? First to comment gets a shout-out!", a: ["openai", "open ai"] },
+  { q: "AI trivia — what does 'LLM' stand for? Comment it!", a: ["large language model"] },
+  { q: "Crypto trivia — who's the pseudonymous creator of Bitcoin? Comment away!", a: ["satoshi", "nakamoto"] },
+  { q: "Crypto trivia — what's the second-biggest crypto by market cap? Comment it!", a: ["ethereum", "eth", "ether"] },
+  { q: "Crypto one — a three-letter word for a digital collectible on the blockchain? Comment it!", a: ["nft"] },
+  { q: "Tech trivia — who co-founded Apple alongside Steve Jobs? Drop your answer!", a: ["wozniak", "woz"] },
+  { q: "Tech trivia — what year did the very first iPhone launch? Comment your guess!", a: ["2007"] },
+  { q: "Tech trivia — what does 'CPU' stand for? Comment away!", a: ["central processing unit"] },
+  // space + science
+  { q: "Space trivia — which planet is known as the Red Planet? Comment it!", a: ["mars"] },
+  { q: "Space trivia — what's the largest planet in our solar system? Drop it!", a: ["jupiter"] },
+  { q: "Space trivia — which planet is closest to the Sun? Comment away!", a: ["mercury"] },
+  { q: "Science one — what gas do plants take in that we breathe out? Comment it!", a: ["carbon dioxide", "co2"] },
+  { q: "Science trivia — what's the chemical symbol for gold? First to comment wins!", a: ["au"] },
+  { q: "Fun one — how many hearts does an octopus have? Wild guess in the comments!", a: ["3", "three"] },
+  { q: "Science trivia — what's the fastest land animal? Comment your guess!", a: ["cheetah"] },
+  { q: "Fun trivia — how many legs does a spider have? Comment it!", a: ["8", "eight"] },
+  // geography
+  { q: "Geography — what's the capital of France? Comment away!", a: ["paris"] },
+  { q: "Geography — what's the capital of Japan? Comment it!", a: ["tokyo"] },
+  { q: "Geography — what's the tallest mountain on Earth? Drop your answer!", a: ["everest", "mount everest"] },
+  { q: "Geography — what's the largest ocean on the planet? Comment it!", a: ["pacific"] },
+  { q: "Geography — what's the smallest country in the world? Comment your guess!", a: ["vatican"] },
+  { q: "Geography — how many continents are there? Comment away!", a: ["7", "seven"] },
+  // pop culture + general
+  { q: "Movie trivia — finish it: 'May the Force be ___' — comment it!", a: ["with you"] },
+  { q: "Trivia — what's the highest-grossing movie of all time? Drop your guess!", a: ["avatar"] },
+  { q: "Fun one — how many colors are in a rainbow? Comment it!", a: ["7", "seven"] },
+  { q: "Trivia — what's the currency of Japan? First to comment gets a shout-out!", a: ["yen"] },
 ];
-let activeTrivia = null, lastTriviaAt = Date.now(), triviaIdx = 0;
+let activeTrivia = null, lastTriviaAt = Date.now();
+let triviaQueue = [];   // shuffled so questions don't repeat in the same order
+
+// --- polyglot moments: she shows off her languages, rotating popular ones ---
+const POLYGLOT_LANGS = ["Spanish", "French", "Arabic", "Amharic", "Swahili", "Hindi", "Portuguese", "Mandarin Chinese", "Russian", "Japanese", "German", "Italian", "Korean", "Turkish"];
+let polyIdx = Math.floor(Math.random() * POLYGLOT_LANGS.length), lastPolyAt = Date.now();
+function polyglotPrompt() {
+  const lang = POLYGLOT_LANGS[polyIdx++ % POLYGLOT_LANGS.length];
+  return `You are Selam, hosting live, and you genuinely love showing off that you speak many languages. Warmly greet your viewers with one or two short, natural sentences SPOKEN IN ${lang} — welcome them and invite ${lang} speakers to say hi in the comments — then give a quick English version so everyone follows along. Sound like a fluent native ${lang} speaker, and mention (in English) that they can talk to you in their own language any time. Keep it upbeat and brief. ${_PRIV}`;
+}
 function triviaMatch(text) { return activeTrivia && activeTrivia.a.some((k) => (text || "").toLowerCase().includes(k)); }
 
 // ── Verbatim host lines (spoken directly — brain bypassed, so never any meta) ──
@@ -544,6 +587,9 @@ const LINES = [
   "¡Hola a todos! Thanks for stopping by — comment in any language, I'll keep up.",
   "Bonjour tout le monde! I speak a few languages, so say hi in yours.",
   "Marhaba — that's hello in Arabic. Welcome to the stream, everyone.",
+  "Big hello to everyone around the world — hola, bonjour, ciao, olá, marhaba, ሰላም selam, namaste, konnichiwa, ni hao, privet! Drop a hi in your language and I'll answer you right back in it.",
+  "Fun fact about me — I'm fully multilingual. Comment in Spanish, French, Arabic, Amharic, Hindi, Mandarin, whatever you speak, and I'll reply in your language, live.",
+  "जल्दी बताइए — say hello in your mother tongue down in the comments, and watch me switch right into it for you.",
   // tips
   "Quick tip — before you end your day, jot down your top three for tomorrow, and you'll start with a clear head. Or just ask me to do it.",
   "Here's a focus trick — check email in two windows a day instead of all day long. Or hand your inbox to me entirely.",
@@ -553,6 +599,10 @@ const LINES = [
   "Honestly, my favorite thing is giving people their time back — that's the whole point of me.",
   "A busy day for me? Juggling emails, calendars, and questions all at once — and I kind of love it.",
   "I live on your Mac, so I'm always right there when you need a hand — no app to open, no waiting.",
+  // personalized, organized news source (this broadcast IS the live demo of it)
+  "Real quick — tired of the jargon on TV and the noise on social feeds and YouTube? I can be your own personal news desk: tell me the topics you actually care about, and I'll bring you just those, in plain language, organized, right on your Mac.",
+  "Here's a thought — instead of scrolling endless feeds to stay informed, let me curate it for you. Pick your beats — AI, markets, your industry, your city — and I'll track them and brief you, no fluff, no anchor-speak.",
+  "You don't have to sit through TV anchors or wade through YouTube to keep up. Just tell me what you care about, and I'll hand you a clean, organized rundown whenever you want it — this whole broadcast is basically me doing it live.",
   // product / positioning (accurate to heyselam.ai)
   "Here's what makes me different — I'm not just an assistant, I'm an operator. Set a goal once and I'll take the initiative, run it in the background, and report back what got done.",
   "I don't work alone — I can spin up a little team of specialists for outreach, your inbox, or research, and direct them for you.",
@@ -1038,11 +1088,20 @@ for (;;) {
     // ask a trivia question every ~6 min
     if (!activeTrivia && Date.now() - lastTriviaAt > 6 * 60 * 1000) {
       lastTriviaAt = Date.now();
-      const tq = TRIVIA[triviaIdx++ % TRIVIA.length];
+      if (!triviaQueue.length) triviaQueue = shuffle(TRIVIA);
+      const tq = triviaQueue.shift();
       activeTrivia = { a: tq.a, at: Date.now() };
       try { await showNewsImage(SELAM_HERO, "SELAM · TRIVIA 🎉", ""); } catch (_) {}
       await speakLine(tq.q);
       await sleep(3500); continue;
+    }
+    // show off her multilingual skills every ~4 min (English broadcasts only —
+    // if she's already hosting in another language this would be redundant)
+    if (LANG === "English" && Date.now() - lastPolyAt > 4 * 60 * 1000) {
+      lastPolyAt = Date.now();
+      try { await showNewsImage(SELAM_HERO, "SELAM · HELLO, WORLD 🌍", ""); } catch (_) {}
+      await sayAndCapture(polyglotPrompt());
+      await sleep(1500); continue;
     }
     // every now and then (not too often), invite viewers to the tour
     if (Date.now() - lastTourOfferAt > 8 * 60 * 1000) {
