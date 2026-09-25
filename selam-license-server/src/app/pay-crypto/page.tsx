@@ -24,13 +24,15 @@ function payUri(o: Order): string {
 export default function PayCrypto() {
   const [email, setEmail] = useState('');
   const [flow, setFlow] = useState<'ownership' | 'trial'>('ownership');
-  const [asset, setAsset] = useState<Asset>('usdc');
+  const [asset, setAsset] = useState<Asset>('btc');
   const [order, setOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState<'idle' | 'creating' | 'waiting' | 'paid' | 'expired' | 'error'>('idle');
   const [licenseKey, setLicenseKey] = useState('');
   const [err, setErr] = useState('');
   const [left, setLeft] = useState(0);
-  const [enabled, setEnabled] = useState<Record<Asset, boolean>>({ btc: true, usdc: true, usdt: true, usd1: true });
+  // Conservative default: only BTC (always-on) until /config confirms more —
+  // avoids a flash of unavailable stablecoins in SSR / first paint.
+  const [enabled, setEnabled] = useState<Record<Asset, boolean>>({ btc: true, usdc: false, usdt: false, usd1: false });
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Which assets are actually accepted right now (BTC may be live before the
@@ -74,7 +76,7 @@ export default function PayCrypto() {
     <main style={{ minHeight: '100vh', background: '#0a0c13', color: '#eef1fb', fontFamily: '-apple-system,system-ui,sans-serif', display: 'flex', justifyContent: 'center', padding: '48px 20px' }}>
       <div style={{ width: '100%', maxWidth: 460 }}>
         <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.02em', marginBottom: 6 }}>Pay with crypto</h1>
-        <p style={{ color: '#aab2d0', marginBottom: 28 }}>Own Selam with Bitcoin, USDC, USDT, or USD1. Your license is emailed the moment your payment confirms on-chain.</p>
+        <p style={{ color: '#aab2d0', marginBottom: 28 }}>Own Selam with {(['btc','usdc','usdt','usd1'] as Asset[]).filter((a) => enabled[a]).map((a) => a === 'btc' ? 'Bitcoin' : a.toUpperCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}. Your license is emailed the moment your payment confirms on-chain.</p>
 
         {status !== 'paid' && status !== 'waiting' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

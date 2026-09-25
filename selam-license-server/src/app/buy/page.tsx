@@ -174,7 +174,7 @@ export default function BuyPage() {
 
         <div style={styles.footer}>
           Prefer crypto?&nbsp;
-          <a href="/pay-crypto" style={styles.link}>Pay with Bitcoin, USDC, USDT or USD1</a>.
+          <a href="/pay-crypto" style={styles.link}>Pay with Bitcoin</a>.
           <br />
           By purchasing you agree to the&nbsp;
           <a href="/terms" style={styles.link}>Terms</a> and&nbsp;
