@@ -993,6 +993,31 @@ async function restoreLayoutAndExit(reason) {
   process.exit(0);
 }
 
+// ── Platform-dropped watchdog ───────────────────────────────────────────────
+// The encoder can keep pushing bytes to an ingest the PLATFORM has already
+// stopped serving (a slow/unstable uplink makes the stream unhealthy and the
+// platform drops the public broadcast, but ffmpeg has no idea). Then she keeps
+// reporting "live" while nobody can watch. So we ask the platform itself whether
+// it's still serving, and if it's been dropped for a sustained window, end.
+let _platGoneSince = 0, _lastPlatCheck = 0;
+async function platformServingLive() {
+  try {
+    if (PLATFORM === "facebook") {
+      if (!FB_VIDEO) return true;                       // not resolved yet — don't false-alarm
+      const r = await gget(`${FB_VIDEO}?fields=status`, COMMENT_TOKEN || FB_TOKEN);
+      return LIVE_STATES.includes(r.status);            // LIVE / LIVE_NOW = serving; else dropped
+    }
+    if (PLATFORM === "youtube") {
+      if (!CKEY || !YT_CID) return true;                // can't check yet — don't false-alarm
+      const d = await ytProxy("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=status&broadcastStatus=active&broadcastType=all&maxResults=5");
+      const items = (d && d.items) || [];
+      if (!items.length) return false;                  // nothing active on YouTube → not serving
+      return items.some((i) => ["live", "liveStarting"].includes((i.status || {}).lifeCycleStatus));
+    }
+  } catch (_) { return true; }                          // API blip → don't false-alarm (encoderGone still covers a dead stream)
+  return true;                                          // none/mock → nothing to check
+}
+
 await setupStageLayout();   // shift her to the presenter position ONCE (no sliding per beat)
 console.log("LIVE HOST v3 running —", FB_TOKEN ? "Facebook Live" : "mock", "· verbatim host lines + CURRENT news (with images) + brain-answered comments w/ written replies");
 refreshNews(true).catch(() => {});   // seed current headlines (non-blocking)
@@ -1024,6 +1049,17 @@ for (;;) {
   // hosting into a dead window.
   if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 30000) { await restoreLayoutAndExit("encoder not running for 30s"); } }
   else { _encGoneSince = 0; }
+  // Platform-dropped watchdog: encoder alive but the platform stopped serving the
+  // live? Poll the platform every ~45s (after a 60s grace so YouTube has time to
+  // fully go live), and end after ~90s sustained-dropped so a transient API/health
+  // blip never cuts a healthy show. This is what stops her claiming "live" when
+  // the platform has quietly dropped the broadcast.
+  if (Date.now() - _liveStartTs > 60000 && Date.now() - _lastPlatCheck > 45000) {
+    _lastPlatCheck = Date.now();
+    const serving = await platformServingLive();
+    if (!serving) { if (!_platGoneSince) _platGoneSince = Date.now(); else if (Date.now() - _platGoneSince > 90000) { await restoreLayoutAndExit("platform stopped serving the live for ~90s"); } }
+    else { _platGoneSince = 0; }
+  }
   // Timed-session auto-wrap: heads-up near the end, then a graceful wrap + end.
   if (LIVE_MINUTES > 0) {
     const remainMin = LIVE_MINUTES - (Date.now() - _liveStartTs) / 60000;
