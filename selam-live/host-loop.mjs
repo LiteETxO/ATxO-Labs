@@ -555,6 +555,42 @@ function polyglotPrompt() {
 }
 function triviaMatch(text) { return activeTrivia && activeTrivia.a.some((k) => (text || "").toLowerCase().includes(k)); }
 
+// ── Interactive segments: polls, comment spotlight, roll call, viewer topics ──
+// Rolling buffer of recent viewer comments — feeds the spotlight + roll call.
+const recentComments = [];
+function rememberComment(c) {
+  const name = (c.name && c.name !== "Viewer" && c.name !== "(name hidden)") ? c.name : "";
+  const text = (c.text || "").trim();
+  if (!text) return;
+  recentComments.push({ name, text, at: Date.now() });
+  while (recentComments.length > 15) recentComments.shift();
+}
+
+// Live polls — a rotating pool of two-option opinion polls the chat votes on.
+const POLLS = [
+  { q: "Quick poll — what matters more in an AI assistant? Type A for SPEED or B for ACCURACY!", a: { key: "speed", label: "Speed" }, b: { key: "accuracy", label: "Accuracy" } },
+  { q: "Poll time — which would you automate first? A) your INBOX or B) your CALENDAR? Type A or B!", a: { key: "inbox", label: "Inbox" }, b: { key: "calendar", label: "Calendar" } },
+  { q: "Vote now — A) Team Bitcoin or B) Team Ethereum? Drop A or B in the chat!", a: { key: "bitcoin", label: "Bitcoin" }, b: { key: "ethereum", label: "Ethereum" } },
+  { q: "Poll — are you more A) an early bird or B) a night owl? Type A or B!", a: { key: "early", label: "Early bird" }, b: { key: "night", label: "Night owl" } },
+  { q: "Quick one — A) coffee or B) tea to power your workday? Vote A or B!", a: { key: "coffee", label: "Coffee" }, b: { key: "tea", label: "Tea" } },
+  { q: "Poll — is AI going to be A) mostly helpful or B) mostly hype this year? Type A or B!", a: { key: "helpful", label: "Helpful" }, b: { key: "hype", label: "Hype" } },
+  { q: "Vote — would you rather have an AI that A) works overnight or B) is instant on demand? A or B!", a: { key: "overnight", label: "Works overnight" }, b: { key: "instant", label: "Instant" } },
+  { q: "Poll — remote work: A) love it or B) miss the office? Type A or B!", a: { key: "remote", label: "Love remote" }, b: { key: "office", label: "Miss office" } },
+];
+let pollQueue = [], activePoll = null, lastPollAt = Date.now();
+// Returns "a" | "b" | null for a comment that reads as a vote in the active poll.
+function pollVote(text) {
+  if (!activePoll) return null;
+  const t = (text || "").trim().toLowerCase().replace(/[^a-z0-9 ]/g, "");
+  if (/^(a|1|option a|vote a)$/.test(t) || t.includes(activePoll.a.key)) return "a";
+  if (/^(b|2|option b|vote b)$/.test(t) || t.includes(activePoll.b.key)) return "b";
+  return null;
+}
+
+let lastSpotlightAt = Date.now(), lastRollCallAt = Date.now();
+let lastTopicAt = Date.now(), awaitingTopicsUntil = 0;
+const topicSuggestions = [];
+
 // ── Verbatim host lines (spoken directly — brain bypassed, so never any meta) ──
 const WELCOMES = [
   "Hey everyone, welcome in! I'm Selam — an autonomous AI operator that lives on your Mac and actually gets work done while you focus on what matters.",
@@ -753,6 +789,23 @@ Respond in ONE or TWO short spoken sentences (final spoken words only, no preamb
 - If they were clearly TAKING A GUESS at the trivia and got it WRONG: playfully MAKE FUN of the wrong answer — a witty, good-natured roast of the guess${named ? ` (tease ${c.name} lightly)` : ""}, then cheerfully nudge them to try again. Don't give away the answer.
 - If the comment is NOT a trivia guess (an unrelated question or remark): just reply warmly and normally and ignore the trivia.
 HARD LIMITS on any roast: PG, never cruel/hateful/demeaning, never about appearance/race/gender/religion or other protected traits — roast the wrong GUESS, not the person, punch up not down, always fun, always end on warmth. PUBLIC broadcast: never reveal anything about your owner.`;
+}
+// Feature a viewer's comment on-screen and riff on it.
+function spotlightPrompt(item) {
+  const named = !!item.name;
+  return `You are Selam, hosting a LIVE broadcast, and you're pulling a viewer's comment up on screen as the FEATURED comment. ${named ? `${item.name}` : "A viewer"} said: "${item.text}".
+React to it in ONE or TWO short spoken sentences — warm, quick-witted, and fun, like a host shining a spotlight on someone in the crowd${named ? ` (use their name, ${item.name})` : ""}. If it's funny or cheeky, play along; if it's kind, appreciate it; if it's a little silly, tease it good-naturedly. Final spoken words only — no preamble, meta, or brackets. PUBLIC broadcast: never reveal anything about your owner; keep it PG and warm.`;
+}
+// Warm roll-call: shout out recent viewers by name + invite newcomers.
+function rollCallPrompt(names) {
+  const list = names.length ? names.slice(0, 5).join(", ") : "";
+  return `You are Selam, hosting a LIVE broadcast, doing a warm ROLL CALL to make the audience feel seen. ${list ? `Give a genuine shout-out to these viewers who are here by name: ${list}.` : "Warmly welcome everyone who's watching."} Then invite anyone just joining to drop a hi and where they're watching from, and say you'll greet them. TWO or THREE short, high-energy spoken sentences, upbeat and personal. Final spoken words only — no preamble, meta, or brackets. PUBLIC broadcast: never reveal anything about your owner.`;
+}
+// Cover a topic a viewer asked for.
+function topicCoverPrompt(sug) {
+  const named = !!sug.name;
+  return `You are Selam, hosting a LIVE broadcast. You asked viewers what to cover next, and ${named ? sug.name : "a viewer"} suggested: "${sug.text}".
+Give them what they asked for in about 3 to 4 flowing spoken sentences: acknowledge the suggestion${named ? ` and thank ${sug.name} by name` : ""}, then share a genuinely useful, interesting, and lively take on that topic — like a sharp host riffing on a request. If the topic is unclear or inappropriate for a public stream, gracefully pivot to something adjacent and fun instead. Do NOT invent specific facts, figures, or quotes. Final spoken words only — no preamble, meta, or brackets. ${_TONE} ${_PRIV}`;
 }
 
 // ── Live market ticker (crypto + major stocks) under the news card ──────
@@ -1111,6 +1164,17 @@ for (;;) {
   if (fresh.length) {
     for (const c of fresh) {
       console.log(`💬 ${c.name || "viewer"}: ${c.text}`);
+      rememberComment(c);   // feed the spotlight + roll-call buffer
+      // Live poll vote → tally it silently (results announced when the poll closes).
+      if (activePoll) {
+        const v = pollVote(c.text);
+        if (v) { activePoll.votes[v].add(String(c.id || c.name || ("anon:" + c.text))); continue; }
+      }
+      // While a "what should I cover next?" window is open, capture suggestions
+      // (non-blocking — the comment still gets a normal reply below).
+      if (awaitingTopicsUntil > Date.now() && (c.text || "").trim().split(/\s+/).length >= 2) {
+        topicSuggestions.push({ name: (c.name && c.name !== "Viewer" && c.name !== "(name hidden)") ? c.name : "", text: (c.text || "").trim() });
+      }
       // correct trivia answer → praise them (by name when it's visible)
       if (triviaMatch(c.text)) {
         const named = c.name && c.name !== "Viewer" && c.name !== "(name hidden)";
@@ -1164,6 +1228,32 @@ for (;;) {
       await sleep(1000);
     }
   } else {
+    // Live poll closed (~100s) → tally + announce the winner with percentages.
+    if (activePoll && Date.now() - activePoll.at > 100000) {
+      const na = activePoll.votes.a.size, nb = activePoll.votes.b.size, tot = na + nb;
+      const p = activePoll; activePoll = null;
+      if (tot === 0) {
+        try { await showNewsImage(SELAM_HERO, "SELAM · POLL", "No votes this time!"); } catch (_) {}
+        await speakLine("Looks like that poll went quiet — no worries, we'll run another one soon!");
+      } else {
+        const aPct = Math.round(100 * na / tot), bPct = 100 - aPct;
+        const winLabel = na >= nb ? p.a.label : p.b.label, winPct = Math.max(aPct, bPct);
+        try { await showNewsImage(SELAM_HERO, "SELAM · POLL RESULTS 📊", `${p.a.label} ${aPct}%  ·  ${p.b.label} ${bPct}%`); } catch (_) {}
+        await speakLine(`Poll results are in — ${winLabel} takes it with ${winPct} percent! That's ${p.a.label} at ${aPct} and ${p.b.label} at ${bPct}. Love seeing how you all think.`);
+      }
+      await sleep(3000); continue;
+    }
+    // Viewer-topic window closed → cover the best suggestion.
+    if (awaitingTopicsUntil && Date.now() > awaitingTopicsUntil) {
+      awaitingTopicsUntil = 0;
+      const sug = topicSuggestions.slice().sort((x, y) => y.text.length - x.text.length)[0];
+      topicSuggestions.length = 0;
+      if (sug) {
+        try { await showNewsImage(SELAM_HERO, "SELAM · YOU PICKED IT 🗳", (sug.name ? `${sug.name}: ${sug.text}` : sug.text).slice(0, 80)); } catch (_) {}
+        await sayAndCapture(topicCoverPrompt(sug));
+        await sleep(2000); continue;
+      }
+    }
     // trivia timed out with no correct answer → reveal it
     if (activeTrivia && Date.now() - activeTrivia.at > 120000) {
       const ans = activeTrivia.a[0]; activeTrivia = null;
@@ -1187,6 +1277,40 @@ for (;;) {
       try { await showNewsImage(SELAM_HERO, "SELAM · HELLO, WORLD 🌍", ""); } catch (_) {}
       await sayAndCapture(polyglotPrompt());
       await sleep(1500); continue;
+    }
+    // Live poll every ~5 min — chat votes A/B, tallied live, results announced.
+    if (!activePoll && Date.now() - lastPollAt > 5 * 60 * 1000) {
+      lastPollAt = Date.now();
+      if (!pollQueue.length) pollQueue = shuffle(POLLS);
+      const pq = pollQueue.shift();
+      activePoll = { q: pq.q, a: pq.a, b: pq.b, votes: { a: new Set(), b: new Set() }, at: Date.now() };
+      try { await showNewsImage(SELAM_HERO, "SELAM · LIVE POLL 📊", `${pq.a.label}  vs  ${pq.b.label}`); } catch (_) {}
+      await speakLine(pq.q);
+      await sleep(3500); continue;
+    }
+    // Featured-comment spotlight every ~5.5 min — pull a viewer comment up + riff.
+    if (Date.now() - lastSpotlightAt > 5.5 * 60 * 1000 && recentComments.length) {
+      lastSpotlightAt = Date.now();
+      const item = recentComments.pop();
+      try { await showNewsImage(SELAM_HERO, "💬 FROM THE CHAT", (item.name ? `${item.name}: ${item.text}` : item.text).slice(0, 90)); } catch (_) {}
+      await sayAndCapture(spotlightPrompt(item));
+      await sleep(2000); continue;
+    }
+    // Warm roll call every ~6.5 min — shout out recent viewers + invite newcomers.
+    if (Date.now() - lastRollCallAt > 6.5 * 60 * 1000) {
+      lastRollCallAt = Date.now();
+      const names = [...new Set(recentComments.map((r) => r.name).filter(Boolean))];
+      try { await showNewsImage(SELAM_HERO, "SELAM · ROLL CALL 👋", "Say hi + where you're watching from!"); } catch (_) {}
+      await sayAndCapture(rollCallPrompt(names));
+      await sleep(2000); continue;
+    }
+    // Let viewers steer the next topic every ~7 min — invite, collect ~75s, then cover.
+    if (!awaitingTopicsUntil && Date.now() - lastTopicAt > 7 * 60 * 1000) {
+      lastTopicAt = Date.now();
+      awaitingTopicsUntil = Date.now() + 75000;
+      try { await showNewsImage(SELAM_HERO, "SELAM · YOU PICK 🗳", "Comment a topic — I'll cover the top pick!"); } catch (_) {}
+      await speakLine("Here's your chance to steer the show — comment a topic you want me to cover, and in a minute I'll pick one and dive right in!");
+      await sleep(3500); continue;
     }
     // every now and then (not too often), invite viewers to the tour
     if (Date.now() - lastTourOfferAt > 8 * 60 * 1000) {
