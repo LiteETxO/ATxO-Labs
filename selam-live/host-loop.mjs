@@ -685,13 +685,14 @@ await pg.evaluate(() => {
   a.onSentenceStart = function (s) { try { if (typeof s === "string" && s.trim()) { window.__hostCap.sentences.push(s.trim()); window.__hostCap.n++; } } catch (_) {} return os && os.apply(this, arguments); };
 });
 const speakingF = () => pg.evaluate(() => { const av = window.__selamAdapter && window.__selamAdapter.avatar; return av ? (av.speakingFactor || 0) : 0; });
-const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n }; });
+const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n, q: (a && a._speakQueue && a._speakQueue.length) || 0, spk: !!(a && a.speaking) }; });
 // Wait until she's actually silent (not mid-sentence), so a new beat never cuts
 // off the previous line. Returns once quiet ~600ms, or after maxMs.
 async function waitUntilQuiet(maxMs = 15000) {
   const g = Date.now(); let q = 0;
   while (Date.now() - g < maxMs) {
-    if ((await speakingF()) < 0.06) { if (++q >= 3) return; } else q = 0;
+    const s = await capState();   // quiet = not speaking AND nothing left queued to speak
+    if (s.f < 0.06 && s.q === 0 && !s.spk) { if (++q >= 3) return; } else q = 0;
     await sleep(200);
   }
 }
@@ -707,9 +708,9 @@ async function speakLine(text) {
   await waitUntilQuiet(20000);   // don't cut off whatever she's still saying
   await pg.evaluate((t) => { try { window.__selamAdapter.speak(t); } catch (_) {} }, text);
   const t0 = Date.now();
-  while (Date.now() - t0 < 8000) { if ((await speakingF()) > 0.06) break; await sleep(150); }
+  while (Date.now() - t0 < 8000) { const s = await capState(); if (s.f > 0.06 || s.q > 0 || s.spk) break; await sleep(150); }
   let quiet = 0;
-  while (Date.now() - t0 < 60000) { if ((await speakingF()) < 0.06) { if (++quiet >= 8) break; } else quiet = 0; await sleep(150); }
+  while (Date.now() - t0 < 90000) { const s = await capState(); if (s.f < 0.06 && s.q === 0 && !s.spk) { if (++quiet >= 8) break; } else quiet = 0; await sleep(150); }
 }
 // Ask her brain to answer a comment; speak it AND return the spoken text.
 async function sayAndCapture(prompt) {
@@ -729,12 +730,16 @@ async function sayAndCapture(prompt) {
   // Consider her done only after ~7s of TRUE silence (no sound AND no new
   // sentence) — the timer resets whenever she's speaking, so a brain that
   // streams the reply with pauses between sentences won't be cut off mid-answer.
+  // Done only when she's silent, NOTHING is still queued to speak, and no new
+  // sentence has arrived for a while — so a slow brain that pauses between
+  // sentences (or queues several) never gets cut off mid-thought. Generous cap
+  // for long segments on a slow connection.
   let lastN = 0, lastActiveAt = Date.now();
-  while (Date.now() - t0 < 90000) {
+  while (Date.now() - t0 < 180000) {
     const s = await capState();
     if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
-    if (s.f >= 0.06) lastActiveAt = Date.now();
-    if (s.n > 0 && s.f < 0.06 && Date.now() - lastActiveAt > 7000) break;
+    if (s.f >= 0.06 || s.q > 0 || s.spk) lastActiveAt = Date.now();   // speaking OR more queued → still going
+    if (s.n > 0 && s.f < 0.06 && s.q === 0 && !s.spk && Date.now() - lastActiveAt > 11000) break;
     if (urgentStopPending()) break;   // operator hit Wrap & End / End Live — stop waiting, unwind fast
     await sleep(150);
   }
