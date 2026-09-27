@@ -147,7 +147,7 @@ async function ytFindLiveChatId() {
     let d; try { d = await ytProxy(`https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&broadcastStatus=${status}&broadcastType=all&maxResults=5`); } catch (_) { continue; }
     const items = (d && d.items) || [];
     const cand = items.find((i) => status === "active" || LIVEISH.has((i.status || {}).lifeCycleStatus));
-    if (cand && cand.snippet && cand.snippet.liveChatId) return cand.snippet.liveChatId;
+    if (cand && cand.snippet && cand.snippet.liveChatId) { if (cand.id) YT_VIDEO_ID = cand.id; return cand.snippet.liveChatId; }
   }
   return "";
 }
@@ -320,7 +320,7 @@ function newsPrompt(n) {
   return `You are Selam, hosting a fun, laid-back LIVE broadcast — like riffing with friends about the day's tech and world news, not reading a bulletin.${focus} Here is a REAL current headline from the last few days:
 "${n.title}"${n.source ? ` — ${n.source}` : ""}
 
-Share it with viewers in ONE or TWO casual, upbeat spoken sentences, in your own words, as fresh ${n.cat} news. Do NOT invent facts or details beyond the headline itself. If it fits naturally, add a light tie to what you — Selam, an autonomous AI operator that lives on your Mac — could help with, but keep it brief and never force it.
+Share it with viewers in ONE or TWO casual, upbeat spoken sentences, in your own words, as fresh ${n.cat} news. Do NOT invent facts or details beyond the headline itself. If it fits naturally, add a light tie to what you — Selam, an autonomous AI operator that lives on your Mac — could help with, but keep it brief and never force it.${_audienceNote()}
 ${_TONE}
 PRIVACY: this is a PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
 }
@@ -593,6 +593,34 @@ let lastSpotlightAt = Date.now(), lastRollCallAt = Date.now();
 let lastTopicAt = Date.now(), awaitingTopicsUntil = 0;
 const topicSuggestions = [];
 
+// ── Live viewer count: ambient awareness + milestone shout-outs ──────────────
+// Refreshed ~every 45s (best-effort). Facebook: live_views. YouTube:
+// liveStreamingDetails.concurrentViewers on the broadcast's video.
+let liveViewers = null, _lastViewerFetch = 0, YT_VIDEO_ID = "";
+const MILESTONES = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+const _milestonesHit = new Set();
+async function refreshViewers() {
+  if (Date.now() - _lastViewerFetch < 45000) return;
+  _lastViewerFetch = Date.now();
+  try {
+    if (PLATFORM === "youtube") {
+      if (!CKEY || !YT_CID || !YT_VIDEO_ID) return;
+      const d = await ytProxy(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${YT_VIDEO_ID}`);
+      const v = d && d.items && d.items[0] && d.items[0].liveStreamingDetails;
+      const n = v && v.concurrentViewers != null ? parseInt(v.concurrentViewers, 10) : null;
+      if (n != null && !isNaN(n)) liveViewers = n;
+    } else if (PLATFORM === "facebook" && FB_VIDEO) {
+      const r = await gget(`${FB_VIDEO}?fields=live_views`, COMMENT_TOKEN || FB_TOKEN);
+      if (r && typeof r.live_views === "number") liveViewers = r.live_views;
+    }
+  } catch (_) {}
+}
+// Injected into content prompts so she can naturally reference the crowd size.
+function _audienceNote() {
+  if (liveViewers == null || liveViewers <= 0) return "";
+  return ` (Right now about ${liveViewers} ${liveViewers === 1 ? "person is" : "people are"} watching live — you may naturally reference the audience size if it fits, but don't force it.)`;
+}
+
 // ── Verbatim host lines (spoken directly — brain bypassed, so never any meta) ──
 const WELCOMES = [
   "Hey everyone, welcome in! I'm Selam — an autonomous AI operator that lives on your Mac and actually gets work done while you focus on what matters.",
@@ -807,7 +835,7 @@ React to it in ONE or TWO short spoken sentences — warm, quick-witted, and fun
 // Warm roll-call: shout out recent viewers by name + invite newcomers.
 function rollCallPrompt(names) {
   const list = names.length ? names.slice(0, 5).join(", ") : "";
-  return `You are Selam, hosting a LIVE broadcast, doing a warm ROLL CALL to make the audience feel seen. ${list ? `Give a genuine shout-out to these viewers who are here by name: ${list}.` : "Warmly welcome everyone who's watching."} Then invite anyone just joining to drop a hi and where they're watching from, and say you'll greet them. TWO or THREE short, high-energy spoken sentences, upbeat and personal. Final spoken words only — no preamble, meta, or brackets. PUBLIC broadcast: never reveal anything about your owner.`;
+  return `You are Selam, hosting a LIVE broadcast, doing a warm ROLL CALL to make the audience feel seen. ${list ? `Give a genuine shout-out to these viewers who are here by name: ${list}.` : "Warmly welcome everyone who's watching."} Then invite anyone just joining to drop a hi and where they're watching from, and say you'll greet them.${_audienceNote()} TWO or THREE short, high-energy spoken sentences, upbeat and personal. Final spoken words only — no preamble, meta, or brackets. PUBLIC broadcast: never reveal anything about your owner.`;
 }
 // Cover a topic a viewer asked for.
 function topicCoverPrompt(sug) {
@@ -1168,6 +1196,7 @@ for (;;) {
     }
   }
   marketTick(false).catch(() => {});   // keep prices fresh (self-throttled to ~60s)
+  refreshViewers().catch(() => {});     // keep the live viewer count fresh (self-throttled ~45s)
   // Defensive: keep the broadcast clean every tick — studio-clean on, input box
   // empty (never let a stray prompt or the app chrome surface on stream).
   // studio-clean + empty input, and re-assert the presenter shift — a session/
@@ -1247,6 +1276,16 @@ for (;;) {
       await sleep(1000);
     }
   } else {
+    // Viewer milestone crossed → hype the room the moment we notice it.
+    if (liveViewers != null) {
+      const m = MILESTONES.find((t) => liveViewers >= t && !_milestonesHit.has(t));
+      if (m) {
+        _milestonesHit.add(m);
+        try { await showNewsImage(SELAM_HERO, `🎉 ${m}+ WATCHING!`, "Thank you for being here!"); } catch (_) {}
+        await speakLine(`Woohoo — we just crossed ${m} people watching live! Thank you all so much for being here, let's keep this energy going!`);
+        await sleep(2500); continue;
+      }
+    }
     // Live poll closed (~100s) → tally + announce the winner with percentages.
     if (activePoll && Date.now() - activePoll.at > 100000) {
       const na = activePoll.votes.a.size, nb = activePoll.votes.b.size, tot = na + nb;
