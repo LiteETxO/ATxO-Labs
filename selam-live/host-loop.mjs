@@ -747,7 +747,7 @@ async function speakLine(text) {
 async function sayAndCapture(prompt) {
   // Broadcast-language steer: force every brain-generated line into LANG. The
   // TTS voice is multilingual, so this alone switches the spoken language.
-  if (LANG !== "English") prompt = `LANGUAGE — CRITICAL: You ARE fully fluent in ${LANG} and absolutely can host in it. Deliver your ENTIRE spoken response only in ${LANG}, as a fluent native ${LANG} speaker. Every sentence in ${LANG}; do not use any English (keep proper names like "Selam" and "heyselam.ai" as-is). NEVER refuse, hesitate, apologize for, or comment on speaking ${LANG}, and never say you can't or won't — just speak naturally in ${LANG}.\n\n` + prompt;
+  if (LANG !== "English") prompt = `You're hosting the show in ${LANG} now, so please give this reply in ${LANG}, speaking naturally like a native ${LANG} speaker (keep names like "Selam" and "heyselam.ai" as they are).\n\n` + prompt;
   await pg.evaluate(() => { if (window.__hostCap) { window.__hostCap.sentences = []; window.__hostCap.n = 0; } });
   // Don't cut off whatever she's still saying (e.g., a comment answer that ran
   // long) — wait for her to actually stop before starting this beat.
@@ -1127,7 +1127,7 @@ async function handleControl(c) {
       await pg.evaluate((t) => { try { window.__selamAdapter.speak(t); } catch (_) {} }, "Switching back to English from here — thanks for staying with me.");
     } else {
       // Announce the switch, already spoken IN the new language.
-      await sayAndCapture(`Speak ONE short, warm sentence, ENTIRELY in ${LANG}, telling viewers you'll continue the show in ${LANG} from here. Just perform that one sentence — do NOT refuse, hesitate, decline, translate it to English, or comment on the request in any way. ${_PRIV}`);
+      await sayAndCapture(`Say one short, warm sentence in ${LANG} to let your viewers know the show continues in ${LANG} from here. Just that one friendly sentence, in ${LANG}.`);
     }
   }
 }
