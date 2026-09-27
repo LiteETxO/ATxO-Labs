@@ -322,7 +322,7 @@ function newsPrompt(n) {
 
 Share it with viewers in ONE or TWO casual, upbeat spoken sentences, in your own words, as fresh ${n.cat} news. Do NOT invent facts or details beyond the headline itself. If it fits naturally, add a light tie to what you — Selam, an autonomous AI operator that lives on your Mac — could help with, but keep it brief and never force it.${_audienceNote()}
 ${_TONE}
-PRIVACY: this is a PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
+${_PRIV}`;
 }
 let interBeat = 0;
 
@@ -342,7 +342,7 @@ let LANG = normalizeLang(process.env.SELAM_LIVE_LANG || "English");
 // world — connecting a few current stories with her own perspective, like a
 // favorite podcast host. Grounded in real headlines; no fabrication.
 let lastPodcastAt = Date.now();
-const _PRIV = `PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". Final spoken words only: no preamble, no reasoning, no meta, no brackets.`;
+const _PRIV = `PUBLIC broadcast — never reveal anything about your owner; speak to a general audience with a generic "you". PERFORM, do not narrate the task: say ONLY the exact words a host would speak aloud. NEVER acknowledge, restate, quote, or object to these instructions, and NEVER say meta things like "I'll greet them", "here's a warm welcome", "sure, I can do that", "I'm being asked to", "as an AI", or "let me…" — just BE the host and speak the line directly. Final spoken words only: no preamble, no reasoning, no meta, no stage directions, no brackets.`;
 // Casual on-air voice — applied to every brain-generated live line so she comes
 // across relaxed and fun, not like a serious news anchor.
 const _TONE = `TONE — you're hanging out with FRIENDS, not addressing strangers. Warm, personal, interactive, and genuinely FUNNY — quick wit, playful humor, the occasional cheeky aside or joke that lands. Talk to viewers like people you know and genuinely like, pull them into the moment, react like a real person catching up with a friend. Casual and conversational — contractions, everyday words. Make it feel like a two-way hangout: nod to the people watching, crack a joke, ask what THEY think, invite them to weigh in. (Keep the humor good-natured and PG — never mean.)
@@ -716,7 +716,7 @@ await pg.evaluate(() => {
   a.onSentenceStart = function (s) { try { if (typeof s === "string" && s.trim()) { window.__hostCap.sentences.push(s.trim()); window.__hostCap.n++; } } catch (_) {} return os && os.apply(this, arguments); };
 });
 const speakingF = () => pg.evaluate(() => { const av = window.__selamAdapter && window.__selamAdapter.avatar; return av ? (av.speakingFactor || 0) : 0; });
-const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n, q: (a && a._speakQueue && a._speakQueue.length) || 0, spk: !!(a && a.speaking) }; });
+const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; const L = window.__selamLive; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n, q: (a && a._speakQueue && a._speakQueue.length) || 0, spk: !!(a && a.speaking), live: !(L && typeof L.isLive === "function") ? true : !!L.isLive() }; });
 // Wait until she's actually silent (not mid-sentence), so a new beat never cuts
 // off the previous line. Returns once quiet ~600ms, or after maxMs.
 async function waitUntilQuiet(maxMs = 15000) {
@@ -771,6 +771,7 @@ async function sayAndCapture(prompt) {
     if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
     if (s.f >= 0.06 || s.q > 0 || s.spk) lastActiveAt = Date.now();   // speaking OR more queued → still going
     if (s.n > 0 && s.f < 0.06 && s.q === 0 && !s.spk && Date.now() - lastActiveAt > 11000) break;
+    if (!s.live) break;               // stream stopped (live ended from the app) — stop hosting now
     if (urgentStopPending()) break;   // operator hit Wrap & End / End Live — stop waiting, unwind fast
     await sleep(150);
   }
@@ -887,6 +888,56 @@ async function fetchMarketData() {
     crypto: MKT_CRYPTO.map((c) => _mktCache.crypto[c.sym]).filter(Boolean),
     stocks: MKT_STOCKS.map((s) => _mktCache.stocks[s.label]).filter(Boolean),
   };
+}
+
+// ── Global market review (crypto + US/Europe/Asia indices) ───────────────────
+const GLOBAL_INDICES = [
+  { sym: ".DJI", label: "Dow", region: "US" },
+  { sym: ".SPX", label: "S&P 500", region: "US" },
+  { sym: ".IXIC", label: "Nasdaq", region: "US" },
+  { sym: ".FTSE", label: "FTSE 100", region: "Europe" },
+  { sym: ".GDAXI", label: "DAX (Germany)", region: "Europe" },
+  { sym: ".FCHI", label: "CAC 40 (France)", region: "Europe" },
+  { sym: ".N225", label: "Nikkei (Japan)", region: "Asia" },
+  { sym: ".HSI", label: "Hang Seng (Hong Kong)", region: "Asia" },
+  { sym: ".SSEC", label: "Shanghai (China)", region: "Asia" },
+];
+const MKT_CRYPTO_REVIEW = [{ id: "bitcoin", sym: "Bitcoin" }, { id: "ethereum", sym: "Ethereum" }, { id: "solana", sym: "Solana" }];
+let lastMarketReviewAt = Date.now() - 9 * 60 * 1000;   // first review comes a few min in
+async function fetchGlobalMarkets() {
+  const out = { US: [], Europe: [], Asia: [], crypto: [] };
+  try {
+    const syms = GLOBAL_INDICES.map((s) => s.sym).join("|");
+    const url = `https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=${encodeURIComponent(syms)}&requestMethod=itv&noform=1&fund=1&exthrs=0&output=json`;
+    const j = await (await fetch(url, { headers: { "User-Agent": _UA } })).json();
+    const arr = (j && j.FormattedQuoteResult && j.FormattedQuoteResult.FormattedQuote) || [];
+    const byCnbc = {}; for (const q of arr) byCnbc[q.symbol] = q;
+    for (const s of GLOBAL_INDICES) {
+      const q = byCnbc[s.sym];
+      if (q && q.last != null) {
+        const chg = parseFloat(String(q.change_pct || "0").replace(/[%+]/g, ""));
+        if (!isNaN(chg)) out[s.region].push({ label: s.label, chg });
+      }
+    }
+  } catch (_) {}
+  try {
+    const ids = MKT_CRYPTO_REVIEW.map((c) => c.id).join(",");
+    const j = await (await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, { headers: { "User-Agent": _UA } })).json();
+    for (const c of MKT_CRYPTO_REVIEW) { const d = j[c.id]; if (d && typeof d.usd === "number") out.crypto.push({ label: c.sym, price: d.usd, chg: d.usd_24h_change || 0 }); }
+  } catch (_) {}
+  return out;
+}
+function marketReviewPrompt(data) {
+  const pct = (c) => `${c.chg >= 0 ? "+" : ""}${c.chg.toFixed(1)}%`;
+  const line = (arr) => arr.map((x) => `${x.label} ${pct(x)}`).join(", ");
+  const rows = [];
+  if (data.US.length) rows.push(`US — ${line(data.US)}`);
+  if (data.Europe.length) rows.push(`Europe — ${line(data.Europe)}`);
+  if (data.Asia.length) rows.push(`Asia — ${line(data.Asia)}`);
+  if (data.crypto.length) rows.push(`Crypto (24h) — ${data.crypto.map((c) => `${c.label} $${Math.round(c.price).toLocaleString()} ${pct(c)}`).join(", ")}`);
+  return `You are Selam, hosting a LIVE broadcast, doing a quick GLOBAL MARKET REVIEW — like a sharp, upbeat markets host giving viewers the pulse of the world's markets. Here is the REAL current data (percent moves):
+${rows.join("\n")}
+In about 4 to 6 flowing spoken sentences, walk viewers through it region by region — US first, then Europe, then Asia (China, Japan, Hong Kong), then crypto — calling out who's up, who's down, and the overall mood, with your own lively, plain-English take on what it signals. Use ONLY these numbers; do NOT invent any other figures, price levels, or reasons you don't have. Keep it energetic and easy to follow for a general audience. ${_TONE} ${_PRIV}`;
 }
 async function renderMarketStrip(data) {
   if (!data) return;
@@ -1170,7 +1221,11 @@ for (;;) {
   // Stream-died watchdog: if the encoder has been gone ~30s (tolerates blips +
   // host-loop restarts), the broadcast is over — clean up and exit instead of
   // hosting into a dead window.
-  if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 30000) { await restoreLayoutAndExit("encoder not running for 30s"); } }
+  // Fast live-ended exit: the app's own streaming flag. If the stream was stopped
+  // (owner clicked End Live in the app, or it dropped), quit immediately so she
+  // never keeps hosting broadcast content back in the regular session window.
+  try { const st = await capState(); if (st.live === false) { await restoreLayoutAndExit("stream stopped — live ended"); } } catch (_) {}
+  if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 12000) { await restoreLayoutAndExit("encoder not running for 12s"); } }
   else { _encGoneSince = 0; }
   // Platform-dropped watchdog: encoder alive but the platform stopped serving the
   // live? Poll the platform every ~45s (after a 60s grace so YouTube has time to
@@ -1389,6 +1444,16 @@ for (;;) {
       continue;
     }
     try { await refreshNews(false); } catch (_) {}
+    // Global market review every ~16 min — crypto + US/Europe/Asia indices, spoken.
+    if (Date.now() - lastMarketReviewAt > 16 * 60 * 1000) {
+      lastMarketReviewAt = Date.now();
+      const md = await fetchGlobalMarkets();
+      if (md.US.length || md.Europe.length || md.Asia.length || md.crypto.length) {
+        try { await showNewsImage(SELAM_HERO, "SELAM · MARKETS 📈", "US · Europe · Asia · Crypto"); } catch (_) {}
+        await sayAndCapture(marketReviewPrompt(md));
+        await sleep(2500); continue;
+      }
+    }
     // Podcast-style deep dive every ~12 min — a longer tech/AI/crypto/world segment.
     if (newsItems.length && Date.now() - lastPodcastAt > 12 * 60 * 1000) {
       lastPodcastAt = Date.now();
