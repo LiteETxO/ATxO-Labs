@@ -395,12 +395,14 @@ async function deepDive() {
   await sleep(1200);
   // One substantial riff per story, each with its article image
   for (let i = 0; i < picks.length; i++) {
+    if (urgentStopPending()) return;   // operator wants to wrap/end — abort the deep dive
     const n = picks[i];
     let img = null; try { img = await fetchNewsImage(n); } catch (_) {}
     if (img) await showNewsImage(img, n.cat.toUpperCase() + " · DEEP DIVE 🎙", n.title);
     await sayAndCapture(podcastStoryPrompt(n, i + 1, picks.length));
     await sleep(1000);
   }
+  if (urgentStopPending()) return;
   // Wrap
   try { await showNewsImage(SELAM_HERO, "SELAM · THE DOWNLOAD 🎙", "The big picture"); } catch (_) {}
   await sayAndCapture(podcastWrapPrompt(picks));
@@ -733,6 +735,7 @@ async function sayAndCapture(prompt) {
     if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
     if (s.f >= 0.06) lastActiveAt = Date.now();
     if (s.n > 0 && s.f < 0.06 && Date.now() - lastActiveAt > 7000) break;
+    if (urgentStopPending()) break;   // operator hit Wrap & End / End Live — stop waiting, unwind fast
     await sleep(150);
   }
   const sentences = await pg.evaluate(() => window.__hostCap ? window.__hostCap.sentences.slice() : []);
@@ -980,6 +983,17 @@ function readControl() {
     try { fs.unlinkSync(CONTROL); } catch (_) {}
     return c;
   } catch (_) { try { fs.unlinkSync(CONTROL); } catch (_) {} return null; }
+}
+// Peek (WITHOUT consuming) for an urgent stop command, so long segments — a deep
+// dive, a topic cover, a slow brain reply — can bail out early instead of making
+// the operator's Wrap & End / End Live wait minutes. The top-of-loop
+// readControl() still consumes + handles it.
+function urgentStopPending() {
+  try {
+    if (!fs.existsSync(CONTROL)) return false;
+    const c = JSON.parse(fs.readFileSync(CONTROL, "utf8"));
+    return ["wrapend", "wrap_end", "endlive", "end_live", "end", "stop", "wrap"].includes(((c && c.cmd) || "").toLowerCase());
+  } catch (_) { return false; }
 }
 async function newsBeatOf(n) {
   if (!n) return;
