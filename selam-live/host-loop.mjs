@@ -599,6 +599,7 @@ const topicSuggestions = [];
 let liveViewers = null, _lastViewerFetch = 0, YT_VIDEO_ID = "";
 const MILESTONES = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
 const _milestonesHit = new Set();
+let _welcomedFirst = false;   // the very first viewer gets a special warm welcome
 async function refreshViewers() {
   if (Date.now() - _lastViewerFetch < 45000) return;
   _lastViewerFetch = Date.now();
@@ -618,7 +619,9 @@ async function refreshViewers() {
 // Injected into content prompts so she can naturally reference the crowd size.
 function _audienceNote() {
   if (liveViewers == null || liveViewers <= 0) return "";
-  return ` (Right now about ${liveViewers} ${liveViewers === 1 ? "person is" : "people are"} watching live — you may naturally reference the audience size if it fits, but don't force it.)`;
+  if (liveViewers === 1) return ` (Right now it's an intimate audience — just one viewer watching live. Treat it like a warm one-on-one and make them feel special; do NOT dwell on the small number or make it awkward.)`;
+  if (liveViewers <= 4) return ` (It's a small, cozy crowd right now — about ${liveViewers} people watching live. Reference it warmly and personally if it fits.)`;
+  return ` (Right now about ${liveViewers} people are watching live — you may naturally reference the audience size if it fits, but don't force it.)`;
 }
 
 // ── Verbatim host lines (spoken directly — brain bypassed, so never any meta) ──
@@ -1276,6 +1279,13 @@ for (;;) {
       await sleep(1000);
     }
   } else {
+    // The very first viewer just joined → a special, warm one-on-one welcome (once).
+    if (!_welcomedFirst && liveViewers != null && liveViewers >= 1) {
+      _welcomedFirst = true;
+      try { await showNewsImage(SELAM_HERO, "👋 FIRST VIEWER!", "Welcome — so glad you're here!"); } catch (_) {}
+      await sayAndCapture(`You are Selam, hosting live, and your very FIRST viewer just joined the stream. Give them a genuinely warm, personal welcome in ONE or TWO spoken sentences — make them feel special for being the first one here, like a cozy one-on-one, and invite them to say hi in the chat. Heartfelt and upbeat, not needy about the low numbers. Final spoken words only — no preamble or brackets. ${_PRIV}`);
+      await sleep(2000); continue;
+    }
     // Viewer milestone crossed → hype the room the moment we notice it.
     if (liveViewers != null) {
       const m = MILESTONES.find((t) => liveViewers >= t && !_milestonesHit.has(t));
