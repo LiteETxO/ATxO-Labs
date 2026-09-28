@@ -501,36 +501,31 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
 </section>
 
 <style>
-  #watch-live .live-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;max-width:1120px;margin:42px auto 0}
+  #watch-live .live-stage{max-width:880px;margin:42px auto 0}
   #watch-live .yt-frame{border:1px solid var(--line-2);border-radius:14px;overflow:hidden;background:#05060c;box-shadow:0 26px 64px -32px rgba(0,0,0,.6)}
   #watch-live .yt-frame iframe{width:100%;aspect-ratio:16/9;display:block;border:0;background:#05060c}
-  #watch-live .yt-cap{display:flex;align-items:center;gap:8px;padding:11px 15px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em;border-top:1px solid var(--line-2)}
+  #watch-live .yt-cap{display:flex;align-items:center;gap:8px;padding:12px 16px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em;border-top:1px solid var(--line-2)}
   #watch-live .yt-cap b{color:var(--ink-2);font-weight:600}
   #watch-live .live-dot{width:8px;height:8px;border-radius:50%;background:#ff3b3b;flex:none;animation:live-pulse 1.6s infinite}
   @keyframes live-pulse{0%{box-shadow:0 0 0 0 rgba(255,59,59,.55)}70%{box-shadow:0 0 0 8px rgba(255,59,59,0)}100%{box-shadow:0 0 0 0 rgba(255,59,59,0)}}
-  #watch-live .yt-sub{display:flex;justify-content:center;margin:24px auto 0}
+  #watch-live .yt-sub{display:flex;justify-content:center;margin:22px auto 0}
   #watch-live .yt-sub a{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:100px;padding:9px 18px;color:var(--ink-2);font-size:14px;transition:.2s cubic-bezier(.2,.7,.2,1)}
   #watch-live .yt-sub a:hover{border-color:var(--dawn-soft);color:var(--ink);transform:translateY(-2px)}
-  @media (max-width:820px){#watch-live .live-grid{grid-template-columns:1fr;max-width:520px}}
 </style>
 <section class="block" id="watch-live">
   <div class="wrap">
     <div class="block-head">
       <span class="eyebrow reveal">▸ Live on YouTube</span>
       <h2 class="section-title serif reveal">Watch Selam <em>host, live.</em></h2>
-      <p class="lede reveal">She runs her own broadcast — current news, global market reviews, trivia and live Q&A with the chat, all in her own voice. Catch her live below, or browse her past shows.</p>
+      <p class="lede reveal">She runs her own broadcast — current news, global market reviews, trivia, and live Q&A with the chat, all in her own voice, and she'll even switch languages on request. When she's on air, it plays right here.</p>
     </div>
-    <div class="live-grid reveal">
+    <div class="live-stage reveal">
       <div class="yt-frame">
         <iframe src="https://www.youtube.com/embed/live_stream?channel=UCxCqKytnFVwt75TsV3tK3cA" title="Selam — live now" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
-        <div class="yt-cap"><span class="live-dot"></span> <b>LIVE NOW</b> — when she's on air</div>
-      </div>
-      <div class="yt-frame">
-        <iframe src="https://www.youtube.com/embed/videoseries?list=UUxCqKytnFVwt75TsV3tK3cA" title="Selam — past broadcasts" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
-        <div class="yt-cap">📺 <b>Past broadcasts</b></div>
+        <div class="yt-cap"><span class="live-dot"></span> <b>LIVE</b> — when she's on air. Otherwise, subscribe to catch the next stream.</div>
       </div>
     </div>
-    <div class="yt-sub reveal"><a href="https://www.youtube.com/@Selam_AI_Agent" target="_blank" rel="noopener">▶ Subscribe on YouTube — @Selam_AI_Agent</a></div>
+    <div class="yt-sub reveal"><a href="https://www.youtube.com/@Selam_AI_Agent" target="_blank" rel="noopener">▶ Subscribe &amp; see all streams — @Selam_AI_Agent</a></div>
   </div>
 </section>
 
