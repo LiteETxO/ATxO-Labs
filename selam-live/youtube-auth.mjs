@@ -26,7 +26,9 @@ import { fileURLToPath } from "url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ENV = path.join(ROOT, ".env");
-const SCOPE = "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly";
+// force-ssl = read + manage existing videos (videos.update → unlist, delete, etc.);
+// upload = publish new videos. Together they cover posting + channel management.
+const SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.upload";
 
 function readEnv() {
   const out = {};
