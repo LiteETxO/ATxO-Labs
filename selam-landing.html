@@ -1429,5 +1429,50 @@ window.addEventListener('load',function(){
   setInterval(poll, 45000);
 })();
 </script>
+
+<!-- Conversion tracking: pairs with Vercel Web Analytics (enable it in the project's
+     Analytics tab). Privacy-light — sessionStorage only, no cookies, no 3rd parties. -->
+<script>
+(function () {
+  // Vercel Web Analytics custom-event shim (queues calls until the beacon loads).
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  function track(name, data) { try { window.va("event", { name: name, data: data || {} }); } catch (_) {} }
+
+  // Campaign attribution — capture ad UTMs (+ gclid) once, persist for the session
+  // so every later event is tied to the campaign that brought the visitor in.
+  var P = new URLSearchParams(location.search), utm = {};
+  ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"].forEach(function (k) {
+    var v = P.get(k); if (v) utm[k.replace("utm_", "")] = v.slice(0, 80);
+  });
+  try {
+    if (Object.keys(utm).length) sessionStorage.setItem("selam_utm", JSON.stringify(utm));
+    else { var s = sessionStorage.getItem("selam_utm"); if (s) utm = JSON.parse(s); }
+  } catch (_) {}
+  function ctx(extra) { var o = { path: location.pathname }; for (var k in utm) o[k] = utm[k]; if (extra) for (var j in extra) o[j] = extra[j]; return o; }
+
+  // Landing view (with campaign attribution) — once per load.
+  track("landing_view", ctx());
+
+  // One delegated listener → duplicate buttons across the page all count.
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest && e.target.closest("a,button"); if (!el) return;
+    var href = el.getAttribute("href") || "", cls = (el.className || "") + "";
+    var askish = /asksend/.test(cls) || (el.closest && el.closest('[class*="asksend"]'));
+    if (/\/pay-crypto/.test(href) || /crypto-cta/.test(cls)) track("cta_pay_crypto", ctx({ href: href }));
+    else if (/\/buy/.test(href) || /\/checkout/.test(href)) track("cta_buy", ctx({ href: href }));
+    else if (/youtube\.com\/@?Selam/i.test(href)) track("cta_watch_live", ctx({ href: href }));
+    else if (el.id === "watch-setup" || el.id === "watch-live") track("cta_watch_setup", ctx());
+    else if (askish) track("cta_ask_selam", ctx());
+  }, true);
+
+  // Scroll-depth milestones — how far ad traffic actually reads.
+  var hit = {};
+  addEventListener("scroll", function () {
+    var d = document.documentElement, h = d.scrollHeight - d.clientHeight;
+    if (h <= 0) return; var pct = (d.scrollTop / h) * 100;
+    [25, 50, 75, 90].forEach(function (m) { if (!hit[m] && pct >= m) { hit[m] = 1; track("scroll_" + m); } });
+  }, { passive: true });
+})();
+</script>
 </body>
 </html>
