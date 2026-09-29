@@ -705,10 +705,57 @@ function nextLine() {
 }
 
 // ── Drive the streamed avatar ────────────────────────────────────────────────
-const b = await chromium.connectOverCDP("http://127.0.0.1:9222");
-let pg = null;
-for (const ctx of b.contexts()) for (const p of ctx.pages()) { if (p.url().startsWith("devtools://")) continue; try { if (await p.evaluate(() => !!document.getElementById("text-input"))) { pg = p; break; } } catch (_) {} }
-if (!pg) { console.error("no app window"); process.exit(1); }
+const BCAST_CLEAN_CSS = "body.studio-clean #drag-handle,body.studio-clean #status,body.studio-clean #session-controls,body.studio-clean #transcript-panel,body.studio-clean #settings-btn,body.studio-clean #projects-toggle,body.studio-clean #selam-avatar-logo,body.studio-clean #avatar-placeholder,body.studio-clean #net-banner,body.studio-clean #network-quality-pill,body.studio-clean #inflight-chips,body.studio-clean #debug-controls,body.studio-clean #inflight-tasks,body.studio-clean #completed-tasks,body.studio-clean #settings-panel,body.studio-clean #settings-backdrop,body.studio-clean #projects-panel,body.studio-clean #lesson-panel,body.studio-clean #working-indicator,body.studio-clean #selam-toast-stack,body.studio-clean #text-input,body.studio-clean #speak-btn,body.studio-clean #composer,body.studio-clean #input-row,body.studio-clean #input-wrap,body.studio-clean #mute-btn,body.studio-clean #start-btn{display:none !important}body.studio-clean #avatar-container{border-radius:0 !important}body.studio-clean{background:#0a0c13 !important}";
+
+let b = null, pg = null;
+
+// Connect to the app over CDP and grab its window. Returns the page or null.
+async function connectApp() {
+  b = await chromium.connectOverCDP("http://127.0.0.1:9222");
+  pg = null;
+  for (const ctx of b.contexts()) for (const p of ctx.pages()) {
+    if (p.url().startsWith("devtools://")) continue;
+    try { if (await p.evaluate(() => !!document.getElementById("text-input"))) { pg = p; break; } } catch (_) {}
+    if (pg) break;
+  }
+  return pg;
+}
+
+// Errors that mean the renderer re-initialized or the app briefly died — recoverable
+// by reconnecting, NOT by crashing the whole host-loop.
+function _transient(e) {
+  return /Execution context was destroyed|Target (page, context or browser has been closed|closed)|browser has been closed|Session closed|Connection closed|Protocol error|ECONNREFUSED|WebSocket|not connected|Navigation/i.test(String((e && e.message) || e));
+}
+
+// Re-apply the host's page hooks + broadcast-clean styling. Idempotent, so it's safe
+// to run after every (re)connect. Does NOT restart the session/recorder or re-greet.
+async function setupPage() {
+  try { await pg.evaluate(() => { const m = document.getElementById("mute-btn"); if (m && document.body.classList.contains("mic-listening")) m.click(); }); } catch (_) {}
+  try { await pg.evaluate((css) => { if (!document.getElementById("selam-bcast-clean")) { const st = document.createElement("style"); st.id = "selam-bcast-clean"; st.textContent = css; document.head.appendChild(st); } document.body.classList.add("studio-clean"); const ac = document.getElementById("avatar-container"); if (ac && ac.style.transform !== "translateX(-22%)") ac.style.transform = "translateX(-22%)"; }, BCAST_CLEAN_CSS); } catch (_) {}
+  try { await pg.evaluate(() => { const a = window.__selamAdapter; if (!a || a.__hostHooked) return; a.__hostHooked = true; window.__hostCap = { sentences: [], n: 0 }; const os = a.onSentenceStart; a.onSentenceStart = function (s) { try { if (typeof s === "string" && s.trim()) { window.__hostCap.sentences.push(s.trim()); window.__hostCap.n++; } } catch (_) {} return os && os.apply(this, arguments); }; }); } catch (_) {}
+}
+
+// Reconnect to the app after a lost context / app restart, then re-apply setup and
+// resume. Retries for ~90s while the app relaunches; returns false only if it's truly gone.
+let _reconnecting = false;
+async function reconnectApp() {
+  if (_reconnecting) return true;
+  _reconnecting = true;
+  console.log("⚠ app context lost — reconnecting to CDP…");
+  try { await b.close(); } catch (_) {}
+  try {
+    for (let i = 0; i < 60; i++) {
+      try { if (await connectApp()) { await setupPage(); console.log("✅ reconnected — resuming the show"); return true; } } catch (_) {}
+      await sleep(1500);
+    }
+    console.log("✗ could not reconnect to the app after ~90s");
+    return false;
+  } finally { _reconnecting = false; }
+}
+
+// Initial connect — retry while the app is still booting.
+for (let i = 0; i < 40; i++) { try { if (await connectApp()) break; } catch (_) {} await sleep(1500); }
+if (!pg) { console.error("no app window (CDP 9222)"); process.exit(1); }
 if (!(await pg.evaluate(() => !!(window.__selamSessionActive && window.__selamSessionActive())))) {
   await pg.evaluate(() => { const s = document.getElementById("start-btn"); if (s) s.click(); });
   for (let i = 0; i < 20; i++) { await sleep(800); if (await pg.evaluate(() => !!(window.__selamSessionActive && window.__selamSessionActive()))) break; }
@@ -726,7 +773,7 @@ try {
     if (document.getElementById("selam-bcast-clean")) return;
     const st = document.createElement("style");
     st.id = "selam-bcast-clean";
-    st.textContent = "body.studio-clean #drag-handle,body.studio-clean #status,body.studio-clean #session-controls,body.studio-clean #transcript-panel,body.studio-clean #settings-btn,body.studio-clean #projects-toggle,body.studio-clean #selam-avatar-logo,body.studio-clean #avatar-placeholder,body.studio-clean #net-banner,body.studio-clean #network-quality-pill,body.studio-clean #inflight-chips,body.studio-clean #debug-controls,body.studio-clean #inflight-tasks,body.studio-clean #completed-tasks,body.studio-clean #settings-panel,body.studio-clean #settings-backdrop,body.studio-clean #projects-panel,body.studio-clean #lesson-panel,body.studio-clean #working-indicator,body.studio-clean #selam-toast-stack,body.studio-clean #text-input,body.studio-clean #speak-btn,body.studio-clean #composer,body.studio-clean #input-row,body.studio-clean #input-wrap,body.studio-clean #mute-btn,body.studio-clean #start-btn{display:none !important}body.studio-clean #avatar-container{border-radius:0 !important}body.studio-clean{background:#0a0c13 !important}";
+    st.textContent = BCAST_CLEAN_CSS;
     document.head.appendChild(st);
   });
 } catch (_) {}
@@ -746,21 +793,18 @@ if (REHEARSE) {
   } catch (e) { console.log("rehearse setup err:", e.message); }
 }
 
-// hook onSentenceStart to capture the brain's answer text (comments only)
-await pg.evaluate(() => {
-  const a = window.__selamAdapter; if (!a || a.__hostHooked) return;
-  a.__hostHooked = true; window.__hostCap = { sentences: [], n: 0 };
-  const os = a.onSentenceStart;
-  a.onSentenceStart = function (s) { try { if (typeof s === "string" && s.trim()) { window.__hostCap.sentences.push(s.trim()); window.__hostCap.n++; } } catch (_) {} return os && os.apply(this, arguments); };
-});
+// Apply page hooks (onSentenceStart capture) + broadcast-clean styling.
+// setupPage() is idempotent and is re-run automatically after any reconnect.
+await setupPage();
 const speakingF = () => pg.evaluate(() => { const av = window.__selamAdapter && window.__selamAdapter.avatar; return av ? (av.speakingFactor || 0) : 0; });
-const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; const L = window.__selamLive; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n, q: (a && a._speakQueue && a._speakQueue.length) || 0, spk: !!(a && a.speaking), live: !(L && typeof L.isLive === "function") ? true : !!L.isLive() }; });
+const capState = () => pg.evaluate(() => { const a = window.__selamAdapter, av = a && a.avatar, c = window.__hostCap || { n: 0 }; const L = window.__selamLive; return { f: av ? (av.speakingFactor || 0) : 0, n: c.n, q: (a && a._speakQueue && a._speakQueue.length) || 0, spk: !!(a && a.speaking), live: !(L && typeof L.isLive === "function") ? true : !!L.isLive(), gone: !window.__hostCap }; });
 // Wait until she's actually silent (not mid-sentence), so a new beat never cuts
 // off the previous line. Returns once quiet ~600ms, or after maxMs.
 async function waitUntilQuiet(maxMs = 15000) {
   const g = Date.now(); let q = 0;
   while (Date.now() - g < maxMs) {
     const s = await capState();   // quiet = not speaking AND nothing left queued to speak
+    if (s.gone) return;           // page reloaded mid-wait — stop; the loop re-heals + resumes
     if (s.f < 0.06 && s.q === 0 && !s.spk) { if (++q >= 3) return; } else q = 0;
     await sleep(200);
   }
@@ -777,9 +821,9 @@ async function speakLine(text) {
   await waitUntilQuiet(20000);   // don't cut off whatever she's still saying
   await pg.evaluate((t) => { try { window.__selamAdapter.speak(t); } catch (_) {} }, text);
   const t0 = Date.now();
-  while (Date.now() - t0 < 8000) { const s = await capState(); if (s.f > 0.06 || s.q > 0 || s.spk) break; await sleep(150); }
+  while (Date.now() - t0 < 8000) { const s = await capState(); if (s.gone) return; if (s.f > 0.06 || s.q > 0 || s.spk) break; await sleep(150); }
   let quiet = 0;
-  while (Date.now() - t0 < 90000) { const s = await capState(); if (s.f < 0.06 && s.q === 0 && !s.spk) { if (++quiet >= 8) break; } else quiet = 0; await sleep(150); }
+  while (Date.now() - t0 < 90000) { const s = await capState(); if (s.gone) return; if (s.f < 0.06 && s.q === 0 && !s.spk) { if (++quiet >= 8) break; } else quiet = 0; await sleep(150); }
 }
 // Ask her brain to answer a comment; speak it AND return the spoken text.
 async function sayAndCapture(prompt) {
@@ -795,7 +839,7 @@ async function sayAndCapture(prompt) {
   // raw puppet-prompt on the broadcast. The click already delivered the message.
   await pg.evaluate((t) => { const i = document.getElementById("text-input"), s = document.getElementById("speak-btn"); i.value = t; i.dispatchEvent(new Event("input", { bubbles: true })); s.click(); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); i.blur && i.blur(); }, prompt);
   const t0 = Date.now();
-  while (Date.now() - t0 < 12000) { const s = await capState(); if (s.n > 0 || s.f > 0.06) break; await sleep(150); }
+  while (Date.now() - t0 < 12000) { const s = await capState(); if (s.gone) return; if (s.n > 0 || s.f > 0.06) break; await sleep(150); }
   // Consider her done only after ~7s of TRUE silence (no sound AND no new
   // sentence) — the timer resets whenever she's speaking, so a brain that
   // streams the reply with pauses between sentences won't be cut off mid-answer.
@@ -806,6 +850,7 @@ async function sayAndCapture(prompt) {
   let lastN = 0, lastActiveAt = Date.now();
   while (Date.now() - t0 < 180000) {
     const s = await capState();
+    if (s.gone) break;   // page reloaded mid-speech — hook + counters are wiped; stop waiting and let the loop re-heal
     if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
     if (s.f >= 0.06 || s.q > 0 || s.spk) lastActiveAt = Date.now();   // speaking OR more queued → still going
     if (s.n > 0 && s.f < 0.06 && s.q === 0 && !s.spk && Date.now() - lastActiveAt > 11000) break;
@@ -1270,6 +1315,7 @@ let _wrapWarned = false;
 if (LIVE_MINUTES > 0) console.log(`⏱ timed session: ${LIVE_MINUTES} min`);
 
 for (;;) {
+  try {
   // Stream-died watchdog: if the encoder has been gone ~30s (tolerates blips +
   // host-loop restarts), the broadcast is over — clean up and exit instead of
   // hosting into a dead window.
@@ -1321,6 +1367,11 @@ for (;;) {
   // which slides her back to center where the info card overlaps her shoulder.
   // Re-applying the SAME value is idempotent (no per-beat sliding).
   try { await pg.evaluate(() => { document.body.classList.add("studio-clean"); const ti = document.getElementById("text-input"); if (ti && ti.value && !ti.matches(":focus")) ti.value = ""; const ac = document.getElementById("avatar-container"); if (ac && ac.style.transform !== "translateX(-22%)") ac.style.transform = "translateX(-22%)"; const nc = document.getElementById("slo-nocursor"); if (nc) nc.remove(); if (!document.getElementById("slo-cursor-restore")) { const st = document.createElement("style"); st.id = "slo-cursor-restore"; st.textContent = "body.studio-clean, body.studio-clean *{cursor:auto !important}"; document.head.appendChild(st); } }); } catch (_) {}
+  // Self-heal after a renderer re-init that Playwright silently adopted (no throw,
+  // so no reconnect fired): the clean-CSS <style> and the sentence hook get wiped
+  // on reload. setupPage() is idempotent — a no-op when they're already present,
+  // and re-injects them the tick after any reload. Cheap insurance every beat.
+  try { await setupPage(); } catch (_) {}
   // Operator steering first — act on it immediately, then resume the show.
   const _ctl = readControl();
   if (_ctl) { try { await handleControl(_ctl); } catch (e) { console.log("ctl err:", e.message); } await sleep(1500); continue; }
@@ -1535,5 +1586,16 @@ for (;;) {
       await speakLine(line);
     }
     await sleep(3500 + Math.floor(Math.random() * 2500));
+  }
+  } catch (_loopErr) {
+    // A destroyed CDP context or a brief app death would otherwise crash the whole
+    // host-loop (and end the broadcast). Reconnect and resume instead — only give up
+    // if the app is genuinely gone. Non-context errors are logged and skipped.
+    if (_transient(_loopErr)) {
+      if (!(await reconnectApp())) await restoreLayoutAndExit("lost the app and couldn't reconnect");
+    } else {
+      console.log("⚠ loop error (continuing):", String((_loopErr && _loopErr.message) || _loopErr).slice(0, 160));
+      await sleep(1200);
+    }
   }
 }
