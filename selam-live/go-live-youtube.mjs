@@ -120,7 +120,7 @@ async function streamFor(key) {
   const start = new Date(Date.now() + 15000).toISOString().replace(/\.\d+Z$/, "Z");
   const created = await proxy("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails", "POST", {
     snippet: { title: "Selam AI Agent — Live", scheduledStartTime: start },
-    status: { privacyStatus: "public", selfDeclaredMadeForKids: false },
+    status: { privacyStatus: process.env.SELAM_YT_PRIVACY || "public", selfDeclaredMadeForKids: false },
     contentDetails: { enableAutoStart: false, enableAutoStop: true, monitorStream: { enableMonitorStream: false }, latencyPreference: "normal" },
   });
   const bid = created.id;
@@ -133,7 +133,7 @@ async function streamFor(key) {
   try { execSync("pkill -f 'host-loop.mjs'", { stdio: "ignore" }); } catch (_) {}
   await sleep(800);
   const out = fs.openSync(path.join(ROOT, "host-loop.log"), "a");
-  spawn("node", ["host-loop.mjs"], { cwd: ROOT, stdio: ["ignore", out, out], detached: true, env: { ...process.env, SELAM_CHAT_PLATFORM: "youtube" } }).unref();
+  spawn("node", ["host-loop.mjs"], { cwd: ROOT, stdio: ["ignore", out, out], detached: true, env: { ...process.env, SELAM_CHAT_PLATFORM: process.env.SELAM_CHAT_PLATFORM || "youtube" } }).unref();
 
   console.log(`\n✅ LIVE → https://www.youtube.com/watch?v=${bid}`);
 })().catch((e) => { console.error("✗ go-live failed:", e.message); process.exit(1); });

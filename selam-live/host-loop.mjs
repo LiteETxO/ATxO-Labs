@@ -35,6 +35,11 @@ let COMMENT_TOKEN = FB_TOKEN;
 // Which chat she reads: "youtube" (via Composio-managed OAuth + proxy) or
 // "facebook" (Graph API). Defaults to facebook when an FB token is present.
 const PLATFORM = (process.env.SELAM_CHAT_PLATFORM || (process.env.SELAM_FB_TOKEN ? "facebook" : "mock")).toLowerCase();
+// REHEARSAL capture: mount the real broadcast look + run the full show locally and
+// record it to a file, WITHOUT opening any RTMP stream or publishing anywhere.
+// Used to capture authentic live-show footage (furniture, news cards, ticker,
+// comments, trivia) for promos/ads. Guards every stream/platform watchdog below.
+const REHEARSE = !!process.env.SELAM_REHEARSE;
 // Composio API key (macOS Keychain selam.byok, or the secrets file) — used to
 // call YouTube's live-chat API through Composio's authenticated proxy so the
 // OAuth token stays server-side.
@@ -100,6 +105,7 @@ function fetchCommentsMock() {
 async function fetchComments() {
   if (PLATFORM === "youtube") return await fetchCommentsYT();
   if (PLATFORM === "none") return [];   // X (Twitter) etc. — no live-chat API wired, content-only broadcast
+  if (PLATFORM === "mock") return fetchCommentsMock();   // explicit mock (rehearsal) — never touch a real platform even if a token is present
   return FB_TOKEN ? await fetchCommentsFB() : fetchCommentsMock();
 }
 async function fbReply(commentId, message) {
@@ -603,6 +609,7 @@ let _welcomedFirst = false;   // the very first viewer gets a special warm welco
 async function refreshViewers() {
   if (Date.now() - _lastViewerFetch < 45000) return;
   _lastViewerFetch = Date.now();
+  if (REHEARSE) { liveViewers = (liveViewers || 36) + 3; return; }   // pleasant, growing crowd for promo capture
   try {
     if (PLATFORM === "youtube") {
       if (!CKEY || !YT_CID || !YT_VIDEO_ID) return;
@@ -708,6 +715,37 @@ if (!(await pg.evaluate(() => !!(window.__selamSessionActive && window.__selamSe
 }
 try { await pg.evaluate(() => { const m = document.getElementById("mute-btn"); if (m && document.body.classList.contains("mic-listening")) m.click(); }); } catch (_) {}
 
+// Broadcast-clean CSS. The `studio-clean` class is applied every tick, but its
+// hide rules live in the Selam Studio module and are only injected while Studio is
+// actively performing (its _ensureStyle). On a live broadcast Studio isn't running,
+// so the class had NO backing CSS and the app chrome (toolbar, transcript, composer,
+// settings, mute) leaked onto the stream. Inject the hide rules ourselves so every
+// broadcast — real stream or rehearsal — renders as a clean full-frame show.
+try {
+  await pg.evaluate(() => {
+    if (document.getElementById("selam-bcast-clean")) return;
+    const st = document.createElement("style");
+    st.id = "selam-bcast-clean";
+    st.textContent = "body.studio-clean #drag-handle,body.studio-clean #status,body.studio-clean #session-controls,body.studio-clean #transcript-panel,body.studio-clean #settings-btn,body.studio-clean #projects-toggle,body.studio-clean #selam-avatar-logo,body.studio-clean #avatar-placeholder,body.studio-clean #net-banner,body.studio-clean #network-quality-pill,body.studio-clean #inflight-chips,body.studio-clean #debug-controls,body.studio-clean #inflight-tasks,body.studio-clean #completed-tasks,body.studio-clean #settings-panel,body.studio-clean #settings-backdrop,body.studio-clean #projects-panel,body.studio-clean #lesson-panel,body.studio-clean #working-indicator,body.studio-clean #selam-toast-stack,body.studio-clean #text-input,body.studio-clean #speak-btn,body.studio-clean #composer,body.studio-clean #input-row,body.studio-clean #input-wrap,body.studio-clean #mute-btn,body.studio-clean #start-btn{display:none !important}body.studio-clean #avatar-container{border-radius:0 !important}body.studio-clean{background:#0a0c13 !important}";
+    document.head.appendChild(st);
+  });
+} catch (_) {}
+
+// Rehearsal: turn on the broadcast furniture (brand + ticker) locally and start a
+// local screen recording — no RTMP, nothing published. The main loop keeps
+// re-asserting studio-clean + the presenter shift every tick, so this just seeds it.
+if (REHEARSE) {
+  try {
+    await pg.evaluate(() => {
+      document.body.classList.add("studio-clean");
+      const ac = document.getElementById("avatar-container"); if (ac) ac.style.transform = "translateX(-22%)";
+      try { window.__selamLive && window.__selamLive.startOverlay && window.__selamLive.startOverlay(); } catch (_) {}
+    });
+    const r = await pg.evaluate(() => window.__selamRecorder && window.__selamRecorder.start ? window.__selamRecorder.start({ scope: "window" }) : { ok: false, error: "no recorder" });
+    console.log("🎬 REHEARSAL — overlay on, recording locally (no stream):", JSON.stringify(r));
+  } catch (e) { console.log("rehearse setup err:", e.message); }
+}
+
 // hook onSentenceStart to capture the brain's answer text (comments only)
 await pg.evaluate(() => {
   const a = window.__selamAdapter; if (!a || a.__hostHooked) return;
@@ -771,7 +809,7 @@ async function sayAndCapture(prompt) {
     if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
     if (s.f >= 0.06 || s.q > 0 || s.spk) lastActiveAt = Date.now();   // speaking OR more queued → still going
     if (s.n > 0 && s.f < 0.06 && s.q === 0 && !s.spk && Date.now() - lastActiveAt > 11000) break;
-    if (!s.live) break;               // stream stopped (live ended from the app) — stop hosting now
+    if (!REHEARSE && !s.live) break;  // stream stopped (live ended from the app) — stop hosting now
     if (urgentStopPending()) break;   // operator hit Wrap & End / End Live — stop waiting, unwind fast
     await sleep(150);
   }
@@ -1096,6 +1134,20 @@ async function handleControl(c) {
   if (cmd === "deepdive") { await deepDive(); }
   else if (cmd === "tour") { await runTour(); }
   else if (cmd === "news") { await newsBeatOf(nextNews()); }
+  else if (cmd === "trivia") {
+    // Fire a trivia round on demand. With an arg, pick a specific question
+    // (match on question text or answer) so the operator knows the answer;
+    // otherwise take the next shuffled one.
+    if (!triviaQueue.length) triviaQueue = shuffle(TRIVIA);
+    let tq = null;
+    if (arg) tq = TRIVIA.find((t) => t.q.toLowerCase().includes(arg.toLowerCase()) || t.a.some((a) => a.toLowerCase() === arg.toLowerCase()));
+    tq = tq || triviaQueue.shift();
+    lastTriviaAt = Date.now();
+    activeTrivia = { q: tq.q, a: tq.a, at: Date.now() };
+    console.log("🎯 trivia (steered):", tq.q, "| answer:", tq.a[0]);
+    try { await showNewsImage(SELAM_HERO, "SELAM · TRIVIA 🎉", ""); } catch (_) {}
+    await speakLine(tq.q);
+  }
   else if (cmd === "product") {
     const line = nextLine();
     try { const f = featureImage(line); const fu = await fetchFeatureImage(f); if (fu) await showNewsImage(fu, "SELAM · " + f.label, ""); } catch (_) {}
@@ -1224,15 +1276,17 @@ for (;;) {
   // Fast live-ended exit: the app's own streaming flag. If the stream was stopped
   // (owner clicked End Live in the app, or it dropped), quit immediately so she
   // never keeps hosting broadcast content back in the regular session window.
-  try { const st = await capState(); if (st.live === false) { await restoreLayoutAndExit("stream stopped — live ended"); } } catch (_) {}
-  if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 12000) { await restoreLayoutAndExit("encoder not running for 12s"); } }
-  else { _encGoneSince = 0; }
+  if (!REHEARSE) {
+    try { const st = await capState(); if (st.live === false) { await restoreLayoutAndExit("stream stopped — live ended"); } } catch (_) {}
+    if (encoderGone()) { if (!_encGoneSince) _encGoneSince = Date.now(); else if (Date.now() - _encGoneSince > 12000) { await restoreLayoutAndExit("encoder not running for 12s"); } }
+    else { _encGoneSince = 0; }
+  }
   // Platform-dropped watchdog: encoder alive but the platform stopped serving the
   // live? Poll the platform every ~45s (after a 60s grace so YouTube has time to
   // fully go live), and end after ~90s sustained-dropped so a transient API/health
   // blip never cuts a healthy show. This is what stops her claiming "live" when
   // the platform has quietly dropped the broadcast.
-  if (Date.now() - _liveStartTs > 60000 && Date.now() - _lastPlatCheck > 45000) {
+  if (!REHEARSE && Date.now() - _liveStartTs > 60000 && Date.now() - _lastPlatCheck > 45000) {
     _lastPlatCheck = Date.now();
     const serving = await platformServingLive();
     if (!serving) { if (!_platGoneSince) _platGoneSince = Date.now(); else if (Date.now() - _platGoneSince > 90000) { await restoreLayoutAndExit("platform stopped serving the live for ~90s"); } }
@@ -1249,6 +1303,11 @@ for (;;) {
       console.log(`⏱ timed session (${LIVE_MINUTES} min) reached — wrapping + ending.`);
       try { await speakLine(WRAP_LINE); } catch (_) {}
       await sleep(1500);
+      if (REHEARSE) {
+        try { const r = await pg.evaluate(() => window.__selamRecorder && window.__selamRecorder.stop ? window.__selamRecorder.stop() : { ok: false }); console.log("🎬 rehearsal saved:", JSON.stringify(r)); } catch (e) { console.log("save err:", e.message); }
+        try { await pg.evaluate(() => window.__selamLive && window.__selamLive.stopOverlay && window.__selamLive.stopOverlay()); } catch (_) {}
+        process.exit(0);
+      }
       try { spawn("node", ["end-live.mjs"], { cwd: ROOT, stdio: "ignore", detached: true }).unref(); } catch (_) {}
       break;
     }
