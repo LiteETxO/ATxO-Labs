@@ -24,34 +24,34 @@ export async function GET(req: NextRequest) {
   const sql = neon(url);
 
   try {
-    const since = sql`NOW() - make_interval(days => ${days})`;
+    // Interval is inlined per query — Neon's serverless driver can't compose sql`` fragments.
     const [byEvent, visitors, daily, funnel, campaigns, content, referrers, countries, devices, scroll] = await Promise.all([
-      sql`SELECT event, COUNT(*)::int n FROM landing_events WHERE ts >= ${since} GROUP BY 1 ORDER BY 2 DESC`,
-      sql`SELECT COUNT(DISTINCT visitor)::int n FROM landing_events WHERE ts >= ${since}`,
+      sql`SELECT event, COUNT(*)::int n FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') GROUP BY 1 ORDER BY 2 DESC`,
+      sql`SELECT COUNT(DISTINCT visitor)::int n FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day')`,
       sql`SELECT to_char(date_trunc('day', ts),'YYYY-MM-DD') d,
                  COUNT(*) FILTER (WHERE event='landing_view')::int views,
                  COUNT(DISTINCT visitor)::int visitors
-          FROM landing_events WHERE ts >= ${since} GROUP BY 1 ORDER BY 1`,
+          FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') GROUP BY 1 ORDER BY 1`,
       sql`SELECT
             COUNT(*) FILTER (WHERE event='landing_view')::int views,
             COUNT(DISTINCT visitor) FILTER (WHERE event LIKE 'cta_%')::int engaged,
             COUNT(*) FILTER (WHERE event='cta_buy')::int buy,
             COUNT(*) FILTER (WHERE event='cta_pay_crypto')::int crypto
-          FROM landing_events WHERE ts >= ${since}`,
+          FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day')`,
       sql`SELECT COALESCE(utm_campaign,'(none)') campaign,
                  COUNT(*) FILTER (WHERE event='landing_view')::int views,
                  COUNT(*) FILTER (WHERE event LIKE 'cta_%')::int clicks,
                  COUNT(*) FILTER (WHERE event='cta_buy')::int buy
-          FROM landing_events WHERE ts >= ${since} GROUP BY 1 ORDER BY 2 DESC NULLS LAST LIMIT 20`,
+          FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') GROUP BY 1 ORDER BY 2 DESC NULLS LAST LIMIT 20`,
       sql`SELECT COALESCE(utm_content,'(none)') content, COUNT(*) FILTER (WHERE event LIKE 'cta_%')::int clicks
-          FROM landing_events WHERE ts >= ${since} AND event LIKE 'cta_%' GROUP BY 1 ORDER BY 2 DESC LIMIT 20`,
+          FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event LIKE 'cta_%' GROUP BY 1 ORDER BY 2 DESC LIMIT 20`,
       sql`SELECT COALESCE(ref,'(direct)') ref, COUNT(*)::int n FROM landing_events
-          WHERE ts >= ${since} AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC LIMIT 12`,
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC LIMIT 12`,
       sql`SELECT COALESCE(country,'??') country, COUNT(*)::int n FROM landing_events
-          WHERE ts >= ${since} AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC LIMIT 12`,
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC LIMIT 12`,
       sql`SELECT COALESCE(device,'?') device, COUNT(*)::int n FROM landing_events
-          WHERE ts >= ${since} AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC`,
-      sql`SELECT event, COUNT(*)::int n FROM landing_events WHERE ts >= ${since} AND event LIKE 'scroll_%' GROUP BY 1 ORDER BY 1`,
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC`,
+      sql`SELECT event, COUNT(*)::int n FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event LIKE 'scroll_%' GROUP BY 1 ORDER BY 1`,
     ]) as unknown as [
       Array<{ event: string; n: number }>,
       Array<{ n: number }>,
