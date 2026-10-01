@@ -180,7 +180,16 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .af-iconbtn svg{width:17px;height:17px}
 .af-end{flex:1;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;padding:12px 10px;font-weight:600;font-size:14px;color:var(--ink-3);cursor:default;transition:.2s}
 .app-frame.session .af-end{color:#e58aa0;border-color:rgba(229,138,160,.45);cursor:pointer}
-@media(prefers-reduced-motion:reduce){.app-frame{animation:none}}
+/* Live answer caption — a fixed teleprompter band near the stage floor. Long
+   answers slide up and fade at the top instead of growing over "Core connected". */
+.af-cap{position:absolute;left:0;right:0;bottom:7%;z-index:4;display:flex;align-items:flex-end;justify-content:center;max-height:4.3em;overflow:hidden;padding:0 7%;pointer-events:none;opacity:0;transition:opacity .3s ease}
+.af-cap-inner{font-family:var(--sans);font-weight:600;font-size:14.5px;line-height:1.4;text-align:center;color:#eef2ff;text-shadow:0 1px 2px rgba(0,0,0,.95),0 2px 14px rgba(0,0,0,.82);will-change:transform}
+.af-cap.rolling{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 44%,#000 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 44%,#000 100%)}
+/* Hero voice button: live mic → speech-to-text, same pipeline as a typed question */
+.af-iconbtn.voice-on{background:var(--dawn);border-color:var(--dawn);color:#241606;animation:afMicPulse 1.3s ease-in-out infinite}
+.af-iconbtn.voice-sending{background:rgba(231,177,92,.18);border-color:rgba(231,177,92,.5);color:var(--dawn-soft)}
+@keyframes afMicPulse{0%,100%{box-shadow:0 0 0 0 rgba(231,177,92,.5)}50%{box-shadow:0 0 0 9px rgba(231,177,92,0)}}
+@media(prefers-reduced-motion:reduce){.app-frame{animation:none}.af-iconbtn.voice-on{animation:none}}
 @media(max-width:760px){
   .app-frame{width:100%;margin:0 auto;border-radius:16px}
   .af-stage{aspect-ratio:1/1}
@@ -450,7 +459,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
           </span>
         </div>
         <div class="af-stage" id="hero-avatar">
-          <video class="af-poster" id="hero-video" src="/assets/hero-intro.mp4?v=4" poster="/assets/hero-intro-poster.jpg?v=4" muted playsinline preload="auto" aria-label="Selam introduces herself — your on-device AI operator" style="opacity:1;z-index:2;object-position:50% 18%"></video>
+          <img class="af-poster" src="/assets/hero-intro-poster.jpg?v=4" alt="Selam — your on-device AI operator" loading="eager" fetchpriority="high" decoding="async">
           <span class="af-gear" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span>
           <span class="af-menu" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="badge">3</span></span>
           <div class="af-hint">Click Start Session to begin</div>
@@ -1149,29 +1158,169 @@ window.addEventListener('load',function(){
 
     // Start Session → mount if needed (shows a brief "waking" state on mobile),
     // then she introduces herself. If WebGL can't load, fall back to the trial.
-    // Hero shows a recorded clip of the CURRENT avatar (latest lip-sync/posture/voice).
-    // The live-mount path (mountHero/speakIntro) is kept intact above for a future
-    // interactive rebuild, but isn't invoked. Start Session = play the clip with her voice.
-    var hv = document.getElementById("hero-video");
-    // Idle = the poster (no autoplay, no loop). Start Session = she introduces herself
-    // once, with her voice. End / finished = back to the still.
-    function heroReset() {
-      if (!hv) return;
-      try { hv.pause(); hv.currentTime = 0; hv.muted = true; } catch (e) {}
-      frame.classList.remove("session");
-    }
+    // Start Session → mount the live avatar (latest rig) if needed, then she
+    // introduces herself with real lip-sync. If WebGL can't load, fall back to trial.
     if (startBtn) startBtn.addEventListener("click", function () {
-      if (!hv) { window.location.href = TRIAL; return; }
-      try { hv.muted = false; hv.currentTime = 0; var p = hv.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
-      frame.classList.add("session");
+      if (api) { speakIntro(); return; }
+      var label = startBtn.textContent;
+      startBtn.textContent = "Waking her…";
+      startBtn.disabled = true;
+      mountHero().then(function () {
+        startBtn.textContent = label; startBtn.disabled = false;
+        speakIntro();
+      }).catch(function (e) {
+        console.warn("hero avatar load failed", e);
+        startBtn.textContent = label; startBtn.disabled = false;
+        window.location.href = TRIAL;
+      });
     });
-    if (endBtn) endBtn.addEventListener("click", heroReset);
-    if (hv) hv.addEventListener("ended", heroReset);
+    if (endBtn) endBtn.addEventListener("click", function () {
+      if (!frame.classList.contains("session")) return;
+      try { api && api.stopSpeaking(); } catch (e) {}
+      frame.classList.remove("session");
+    });
 
-    // Desktop: eagerly bring her to life on idle. Mobile: stay on the light
-    // poster and mount when Start Session is tapped (handled above).
-    // (Live-mount idle auto-start disabled — the hero now plays the recorded clip of
-    // the current avatar. Re-enable mountHero() here to restore the interactive rig.)
+    // Desktop: eagerly bring her to life on idle. Mobile: mount on first Start Session.
+    if (window.innerWidth >= 760) {
+      var go = function () { mountHero().catch(function (e) { console.warn("hero avatar load failed", e); }); };
+      if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 2500 });
+      else setTimeout(go, 900);
+    }
+
+    // ── Ask Selam, right here in the hero ─────────────────────────────────────
+    // Type a question → she answers in her own voice with real lip-sync + a caption.
+    // Reuses the same /api/ask (gated Q&A) + /api/tts the floating widget uses.
+    var askInput = frame.querySelector(".af-input input");
+    var askSend  = frame.querySelector(".af-send");
+    var askWrap  = frame.querySelector(".af-input");
+    var askHistory = [];
+    var asking = false;
+    // Teleprompter caption: a fixed band at the stage floor. Short answers sit
+    // crisp at the bottom; long ones slide up and fade at the top (see .af-cap CSS)
+    // instead of growing up over her face or down onto "Core connected".
+    var cap = document.createElement("div"); cap.className = "af-cap";
+    var capIn = document.createElement("div"); capIn.className = "af-cap-inner";
+    cap.appendChild(capIn); stage.appendChild(cap);
+    var capRaf = null;
+    function showCap(t) {
+      if (capRaf) { cancelAnimationFrame(capRaf); capRaf = null; }
+      cap.classList.remove("rolling");           // opening lines crisp (no fade yet)
+      capIn.textContent = t || "";
+      // Pre-position long answers on their FIRST lines so there's no flash of the ending.
+      var overflow = t ? (capIn.scrollHeight - cap.clientHeight) : 0;
+      capIn.style.transform = "translateY(" + (overflow > 2 ? overflow : 0) + "px)";
+      cap.style.opacity = t ? "1" : "0";
+    }
+    // Drive the slide: dwell on the opening lines, then glide to the last by the time
+    // she stops speaking. durSec = the TTS clip length (so it tracks her actual pace).
+    function rollCap(durSec) {
+      if (capRaf) { cancelAnimationFrame(capRaf); capRaf = null; }
+      var overflow = capIn.scrollHeight - cap.clientHeight;
+      if (overflow <= 2 || !(durSec > 0)) { capIn.style.transform = "translateY(0)"; return; }
+      var hold = Math.min(700, durSec * 120);                  // read the opening before it moves
+      var moveMs = Math.max(300, durSec * 1000 - hold - 250);  // finish just before she stops
+      var t0 = null;
+      function step(ts) {
+        if (t0 == null) t0 = ts;
+        var el = ts - t0 - hold;
+        if (el > 0) cap.classList.add("rolling");              // fade only kicks in once it moves
+        var p = el <= 0 ? 0 : Math.min(1, el / moveMs);
+        capIn.style.transform = "translateY(" + (overflow * (1 - p)) + "px)"; // first→last lines
+        if (p < 1) capRaf = requestAnimationFrame(step); else capRaf = null;
+      }
+      capRaf = requestAnimationFrame(step);
+    }
+
+    async function ask(q) {
+      if (asking || !q) return;
+      asking = true;
+      if (askInput) { askInput.value = ""; askInput.disabled = true; }
+      try {
+        await mountHero();
+        SelamVoice.claim("hero");
+        frame.classList.add("session");
+        showCap("…");
+        var r = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q, history: askHistory.slice(-6) }) });
+        var answer = (await r.text()).trim();
+        if (!answer) { showCap(""); frame.classList.remove("session"); return; }
+        askHistory.push({ role: "user", content: q }, { role: "assistant", content: answer });
+        showCap(answer);
+        var ta = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: answer }) });
+        var url = URL.createObjectURL(await ta.blob());
+        // Read the clip length so the teleprompter glides at her speaking pace.
+        var durSec = await new Promise(function (res) {
+          var a = new Audio(); a.preload = "metadata";
+          a.onloadedmetadata = function () { res(a.duration || 0); };
+          a.onerror = function () { res(0); };
+          a.src = url;
+        });
+        api.speakClip(url, { text: answer, emotion: "happy", caption: answer,
+          onCaption: function () { rollCap(durSec); },   // audio just got scheduled → start the roll
+          onEnd: function () { showCap(""); frame.classList.remove("session"); try { URL.revokeObjectURL(url); } catch (e) {} } });
+      } catch (e) {
+        console.warn("ask failed", e); showCap("I couldn't reach my brain just then — try again?");
+        setTimeout(function () { showCap(""); }, 2600); frame.classList.remove("session");
+      } finally {
+        asking = false;
+        if (askInput) { askInput.disabled = false; try { askInput.focus(); } catch (x) {} }
+      }
+    }
+
+    // Activate the (previously decorative) composer.
+    if (askWrap) askWrap.setAttribute("aria-hidden", "false");
+    if (askInput) {
+      askInput.disabled = false;
+      askInput.placeholder = "Ask Selam anything about her…";
+      askInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); ask(askInput.value.trim()); } });
+    }
+    if (askSend) { askSend.removeAttribute("tabindex"); askSend.addEventListener("click", function () { ask(askInput && askInput.value.trim()); }); }
+
+    // Voice input: speak your question. Browser speech-to-text fills the box, then
+    // it auto-sends to the SAME /api/ask + /api/tts pipeline as a typed question.
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var voiceBtn = frame.querySelector('.af-iconbtn[aria-label="Voice"]');
+    if (SR && voiceBtn && askInput) {
+      voiceBtn.removeAttribute("tabindex");
+      voiceBtn.style.cursor = "pointer";
+      voiceBtn.setAttribute("aria-label", "Speak your question");
+      voiceBtn.title = "Speak your question";
+      var rec = null, listening = false, micPending = null, ph0 = askInput.placeholder;
+      function micReset() { listening = false; voiceBtn.classList.remove("voice-on"); askInput.placeholder = ph0; }
+      function micCancel() { if (micPending) { clearTimeout(micPending); micPending = null; } voiceBtn.classList.remove("voice-sending"); }
+      // A manual send (Enter/Send) cancels any queued voice auto-send.
+      if (askInput) askInput.addEventListener("keydown", function (e) { if (e.key === "Enter") micCancel(); });
+      if (askSend) askSend.addEventListener("click", micCancel);
+      voiceBtn.addEventListener("click", function () {
+        micCancel();
+        if (listening) { try { rec && rec.stop(); } catch (e) {} return; }
+        try { SelamVoice.claim("hero"); } catch (e) {}   // barge-in: stop her mid-sentence to ask again
+        rec = new SR();
+        try { rec.lang = navigator.language || "en-US"; } catch (e) {}
+        rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+        var finalTxt = "";
+        rec.onstart = function () { listening = true; voiceBtn.classList.add("voice-on"); askInput.value = ""; askInput.placeholder = "Listening…"; try { askInput.focus(); } catch (e) {} };
+        rec.onresult = function (ev) {
+          var interim = "";
+          for (var i = ev.resultIndex; i < ev.results.length; i++) {
+            var t = ev.results[i][0].transcript;
+            if (ev.results[i].isFinal) finalTxt += t; else interim += t;
+          }
+          askInput.value = (finalTxt + interim).replace(/\s+/g, " ").trim();
+        };
+        rec.onerror = micReset;
+        rec.onend = function () {
+          micReset();
+          var q = (askInput.value || "").trim();
+          if (q.length > 1) {   // heard something → show it, then send (tap mic again to redo)
+            voiceBtn.classList.add("voice-sending");
+            micPending = setTimeout(function () { micPending = null; voiceBtn.classList.remove("voice-sending"); ask(q); }, 1400);
+          }
+        };
+        try { rec.start(); } catch (e) { micReset(); }
+      });
+    }
   });
 </script>
 <!-- Selam floating tour (opt-in; avatar loads only on tap) -->
