@@ -149,7 +149,7 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .af-win{display:flex;align-items:center;gap:15px;color:var(--ink-3)}
 .af-win svg{width:15px;height:15px;display:block;opacity:.75}
 /* stage */
-.af-stage{position:relative;aspect-ratio:1/1;background:radial-gradient(120% 92% at 50% 20%,#2a3168 0%,#161a3a 46%,#0b0e1c 100%);overflow:hidden}
+.af-stage{position:relative;aspect-ratio:1/0.88;background:radial-gradient(120% 92% at 50% 20%,#2a3168 0%,#161a3a 46%,#0b0e1c 100%);overflow:hidden}
 .af-stage canvas{position:absolute!important;inset:0;width:100%!important;height:100%!important;z-index:2}
 .af-stage .af-poster{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover!important;object-position:50% 16%;z-index:1;margin:0!important;animation:none!important;filter:none!important;transition:opacity .6s ease}
 .app-frame.live .af-poster{opacity:0}
@@ -450,7 +450,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
           </span>
         </div>
         <div class="af-stage" id="hero-avatar">
-          <video class="af-poster" id="hero-video" src="/assets/hero-intro.mp4?v=4" poster="/assets/hero-intro-poster.jpg?v=4" muted playsinline preload="auto" aria-label="Selam introduces herself — your on-device AI operator" style="opacity:1;z-index:2;object-position:50% 50%"></video>
+          <video class="af-poster" id="hero-video" src="/assets/hero-intro.mp4?v=4" poster="/assets/hero-intro-poster.jpg?v=4" muted playsinline preload="auto" aria-label="Selam introduces herself — your on-device AI operator" style="opacity:1;z-index:2;object-position:50% 18%"></video>
           <span class="af-gear" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span>
           <span class="af-menu" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="badge">3</span></span>
           <div class="af-hint">Click Start Session to begin</div>
