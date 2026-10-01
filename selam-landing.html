@@ -1436,7 +1436,17 @@ window.addEventListener('load',function(){
 (function () {
   // Vercel Web Analytics custom-event shim (queues calls until the beacon loads).
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-  function track(name, data) { try { window.va("event", { name: name, data: data || {} }); } catch (_) {} }
+  function track(name, data) {
+    // Vercel Web Analytics (optional) …
+    try { window.va("event", { name: name, data: data || {} }); } catch (_) {}
+    // … and our own first-party collector (the dashboard you own — no Vercel login).
+    try {
+      var payload = JSON.stringify(Object.assign({ event: name }, data || {}));
+      var url = "https://api.heyselam.app/api/track";
+      if (navigator.sendBeacon) navigator.sendBeacon(url, new Blob([payload], { type: "text/plain" }));
+      else fetch(url, { method: "POST", keepalive: true, mode: "cors", headers: { "Content-Type": "text/plain" }, body: payload });
+    } catch (_) {}
+  }
 
   // Campaign attribution — capture ad UTMs (+ gclid) once, persist for the session
   // so every later event is tied to the campaign that brought the visitor in.
