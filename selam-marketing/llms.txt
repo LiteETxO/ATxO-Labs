@@ -1,0 +1,43 @@
+# Selam — AI operator for your Mac
+
+> Selam is an autonomous AI operator that lives on your Mac. You set a goal once; she
+> directs her own sub-agents, runs work overnight, reaches people across WhatsApp,
+> Telegram, iMessage and Email, and reports back what got done. You choose her face,
+> voice, and name. She asks before anything irreversible.
+
+## What she does
+- Drafts documents, manages email + calendar, takes meeting notes, answers and places phone calls
+- Runs autonomously overnight and reports the results
+- On-device 3D avatar (no cloud avatar subscription); on-device face & voice recognition
+- Native macOS document skills (Pages, Numbers, Keynote, Word, Excel, Notes)
+- Built-in crypto wallet (BTC / ETH / USDC / USDT) — off by default; spoken approval + hard caps
+- 22 built-in games, a live Party Trivia host, guided meditation and soundscapes
+- Selam Studio: hand her a script and she performs it as captioned video clips
+- Hosts a live AI news broadcast on YouTube (@Selam_AI_Agent)
+
+## Privacy & safety
+- Runs on your Mac; API keys live in your macOS Keychain; conversations go straight from
+  your Mac to your chosen AI providers — no Selam server in the loop
+- Every action that touches the outside world passes through an approval gate
+- Memory/identity files are plain Markdown you own and can export anytime
+
+## Pricing
+- $10 for a 30-day trial, then $89 to own it forever ($99 total; or $99 outright)
+- First 12 months of updates free; optional $99/yr update pass afterward
+- Pay by card or crypto (Bitcoin)
+
+## Platforms
+- macOS 14+ (Apple silicon recommended) today; Windows in Q3; mobile companion later
+
+## Key links
+- Home: https://heyselam.ai/
+- Buy / start trial: https://api.heyselam.app/buy
+- Pay with crypto: https://api.heyselam.app/pay-crypto
+- Security: https://heyselam.ai/security
+- Selam vs. ChatGPT Desktop: https://heyselam.ai/vs/chatgpt-desktop
+- Local AI assistant: https://heyselam.ai/local-ai-assistant
+- AI phone assistant: https://heyselam.ai/ai-phone-assistant
+- AI meeting notes: https://heyselam.ai/ai-meeting-notes
+- Live show: https://www.youtube.com/@Selam_AI_Agent
+
+Made by Deribe Labs · support@heyselam.app
