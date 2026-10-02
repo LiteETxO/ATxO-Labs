@@ -1054,6 +1054,8 @@ async function marketTick(force) {
 // overlap); she recenters when the image hides.
 async function showNewsImage(url, label, headline) {
   if (!url) return;
+  setSegmentBanner(label).catch(() => {});       // every beat labels its segment → auto banner
+  hideRightCards("slo-newsimg").catch(() => {});  // only one right-side card at a time
   try {
     await pg.evaluate(({ url, label, headline }) => {
       const o = document.getElementById("selam-live-overlay"); if (!o) return;
@@ -1079,6 +1081,113 @@ async function showNewsImage(url, label, headline) {
 }
 async function hideNewsImage() {
   try { await pg.evaluate(() => { const box = document.getElementById("slo-newsimg"); if (box) box.style.opacity = "0"; }); } catch (_) {}
+}
+
+// ── Liveliness overlays (segment banner · live poll bars · Q&A lower-third ·
+// Creator's Corner). All drawn into #selam-live-overlay via pg.evaluate, same
+// pattern as the news card — so they render straight onto the captured stream. ──
+
+// Only one right-side card shows at a time (news card, poll card, or text card).
+async function hideRightCards(except) {
+  try { await pg.evaluate((ex) => { for (const id of ["slo-newsimg", "slo-poll", "slo-textcard"]) { if (id === ex) continue; const b = document.getElementById(id); if (b) b.style.opacity = "0"; } }, except || ""); } catch (_) {}
+}
+
+// Persistent "NOW: <segment>" chip, tinted per segment — auto-driven from the
+// card label every beat already sets, so the show reads as produced segments.
+const _SEG_ACCENT = { TRIVIA: "#ffb74d", "LIVE POLL": "#8ab6ff", "POLL RESULTS": "#8ab6ff", POLL: "#8ab6ff", "ROLL CALL": "#7c6cff", MARKETS: "#3ecf8e", "THE DOWNLOAD": "#22d3ee", "DEEP DIVE": "#22d3ee", "IN THE NEWS": "#22d3ee", "LIVE CHAT": "#ff5c8a", "HELLO, WORLD": "#7c6cff", "YOU PICK": "#ffb74d", "YOU PICKED IT": "#ffb74d", "CREATOR'S CORNER": "#ff5c8a", "FROM THE CHAT": "#ff5c8a", "TAKE THE TOUR": "#8ab6ff", CORRECT: "#3ecf8e" };
+function _segFromLabel(label) {
+  return (label || "").replace(/^[●\s]*/, "").replace(/SELAM\s*·?\s*/i, "").replace(/[\u{1F000}-\u{1FFFF}☀-➿←-⇿️]/gu, "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+async function setSegmentBanner(label) {
+  const seg = _segFromLabel(label); if (!seg) return;
+  let accent = "#8ab6ff"; for (const k in _SEG_ACCENT) { if (seg.includes(k)) { accent = _SEG_ACCENT[k]; break; } }
+  try {
+    await pg.evaluate(({ seg, accent }) => {
+      const o = document.getElementById("selam-live-overlay"); if (!o) return;
+      let b = document.getElementById("slo-seg"); if (!b) { b = document.createElement("div"); b.id = "slo-seg"; o.appendChild(b); }
+      b.style.cssText = `position:absolute;top:28px;left:50%;transform:translateX(-50%);z-index:6;display:inline-flex;align-items:center;gap:9px;padding:8px 18px;border-radius:999px;background:rgba(10,12,19,.84);border:1.5px solid ${accent}99;box-shadow:0 6px 24px rgba(0,0,0,.45);font-family:-apple-system,'Segoe UI',system-ui,sans-serif`;
+      b.innerHTML = `<span style="width:9px;height:9px;border-radius:50%;background:${accent};box-shadow:0 0 10px ${accent}"></span><span style="font:800 15px/1 -apple-system,system-ui,sans-serif;letter-spacing:1.6px;color:#eaf1ff">${seg}</span>`;
+    }, { seg, accent });
+  } catch (_) {}
+}
+
+// Live poll card with A/B bars that fill as votes land.
+async function showPoll(p) {
+  await hideRightCards("slo-poll");
+  try {
+    await pg.evaluate(({ q, al, bl }) => {
+      const o = document.getElementById("selam-live-overlay"); if (!o) return;
+      let box = document.getElementById("slo-poll"); if (!box) { box = document.createElement("div"); box.id = "slo-poll"; o.appendChild(box); }
+      box.style.cssText = "position:absolute;top:40px;right:32px;width:40%;max-width:520px;z-index:5;border-radius:16px;background:#0a0c13;border:2px solid rgba(130,170,255,.55);box-shadow:0 18px 52px rgba(0,0,0,.6);padding:16px 18px;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;opacity:0;transition:opacity .4s";
+      const bar = (k, lab, grad) => `<div style="margin:11px 0"><div style="display:flex;justify-content:space-between;font:700 15px -apple-system,system-ui,sans-serif;color:#dfe6ff;margin-bottom:5px"><span>${k} · ${lab}</span><span id="slo-poll-${k.toLowerCase()}p" style="font-variant-numeric:tabular-nums">0%</span></div><div style="height:16px;border-radius:8px;background:#1a2036;overflow:hidden"><div id="slo-poll-${k.toLowerCase()}b" style="height:100%;width:0%;border-radius:8px;background:linear-gradient(90deg,${grad});transition:width .5s ease"></div></div></div>`;
+      box.innerHTML = `<div style="font:800 13px -apple-system,system-ui,sans-serif;letter-spacing:.6px;color:#8ab6ff;margin-bottom:12px">● LIVE POLL · VOTE IN CHAT</div><div style="font:700 18px/1.3 -apple-system,system-ui,sans-serif;color:#fff;margin-bottom:8px">${q}</div>${bar("A", al, "#8ab6ff,#5f7ac6")}${bar("B", bl, "#ff8ab6,#c65f8a")}<div id="slo-poll-tot" style="font:600 12px -apple-system,system-ui,sans-serif;color:#7d829e;margin-top:10px">0 votes · be the first!</div>`;
+      requestAnimationFrame(() => { box.style.opacity = "1"; });
+    }, { q: (p.q || "").replace(/\s*(type|drop|vote).*$/i, "").trim() || p.q, al: p.a.label, bl: p.b.label });
+  } catch (_) {}
+}
+async function updatePoll(na, nb) {
+  try {
+    await pg.evaluate(({ na, nb }) => {
+      const tot = na + nb, ap = tot ? Math.round(100 * na / tot) : 0, bp = tot ? 100 - ap : 0;
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      const setw = (id, v) => { const e = document.getElementById(id); if (e) e.style.width = v + "%"; };
+      set("slo-poll-ap", ap + "%"); set("slo-poll-bp", bp + "%"); setw("slo-poll-ab", ap); setw("slo-poll-bb", bp);
+      set("slo-poll-tot", tot === 0 ? "0 votes · be the first!" : tot + (tot === 1 ? " vote" : " votes"));
+    }, { na, nb });
+  } catch (_) {}
+}
+async function hidePoll() { try { await pg.evaluate(() => { const b = document.getElementById("slo-poll"); if (b) b.style.opacity = "0"; }); } catch (_) {} }
+
+// Q&A lower-third — shows the viewer's actual question while she answers it, so
+// commenting visibly puts you on screen.
+async function showQABar(user, text) {
+  try {
+    await pg.evaluate(({ user, text }) => {
+      const o = document.getElementById("selam-live-overlay"); if (!o) return;
+      let b = document.getElementById("slo-qa"); if (!b) { b = document.createElement("div"); b.id = "slo-qa"; o.appendChild(b); }
+      b.style.cssText = "position:absolute;left:32px;right:32px;bottom:92px;z-index:5;display:flex;align-items:flex-start;gap:13px;padding:12px 17px;border-radius:14px;background:linear-gradient(90deg,rgba(10,12,19,.93),rgba(10,12,19,.82));border-left:4px solid #ff5c8a;box-shadow:0 10px 30px rgba(0,0,0,.5);font-family:-apple-system,'Segoe UI',system-ui,sans-serif;opacity:0;transition:opacity .3s";
+      b.innerHTML = `<span style="font:800 12px -apple-system,system-ui,sans-serif;letter-spacing:.5px;color:#ff8ab6;white-space:nowrap;padding-top:3px">💬 NOW ANSWERING</span><span style="font:600 17px/1.35 -apple-system,system-ui,sans-serif;color:#fff">${user ? `<b style="color:#ffd27a">${user}: </b>` : ""}${text}</span>`;
+      requestAnimationFrame(() => { b.style.opacity = "1"; });
+    }, { user: user || "", text: (text || "").slice(0, 180) });
+  } catch (_) {}
+}
+async function hideQABar() { try { await pg.evaluate(() => { const b = document.getElementById("slo-qa"); if (b) b.style.opacity = "0"; }); } catch (_) {} }
+
+// Creator's Corner — she makes a haiku / limerick / friendly roast / pep talk
+// live from a viewer topic (or a rotating default), spoken + shown on a card.
+const _CREATE_KINDS = [
+  { k: "haiku", ask: (t) => `Write a genuine, evocative haiku (three lines, 5-7-5 feel) about "${t}". Output ONLY the three lines.`, title: (t) => `HAIKU · ${t}` },
+  { k: "limerick", ask: (t) => `Write a fun, clean limerick (five lines, AABBA) about "${t}". Output ONLY the five lines.`, title: (t) => `LIMERICK · ${t}` },
+  { k: "friendly roast", ask: (t) => `Give a short, playful, GOOD-NATURED roast of "${t}" — two or three witty PG lines, affectionate not mean. Output ONLY the lines.`, title: (t) => `FRIENDLY ROAST · ${t}` },
+  { k: "pep talk", ask: (t) => `Write a short, punchy pep talk (two or three lines) about "${t}" to hype up the chat. Output ONLY the lines.`, title: (t) => `PEP TALK · ${t}` },
+];
+let lastCreateAt = Date.now(), _createIdx = 0;
+async function showTextCard(title, body) {
+  await hideRightCards("slo-textcard");
+  try {
+    await pg.evaluate(({ title, body }) => {
+      const o = document.getElementById("selam-live-overlay"); if (!o) return;
+      let box = document.getElementById("slo-textcard"); if (!box) { box = document.createElement("div"); box.id = "slo-textcard"; o.appendChild(box); }
+      box.style.cssText = "position:absolute;top:40px;right:32px;width:40%;max-width:520px;z-index:5;border-radius:16px;background:#0a0c13;border:2px solid rgba(255,140,180,.55);box-shadow:0 18px 52px rgba(0,0,0,.6);padding:18px 20px;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;opacity:0;transition:opacity .4s";
+      box.innerHTML = `<div style="font:800 13px -apple-system,system-ui,sans-serif;letter-spacing:.6px;color:#ff8ab6;margin-bottom:12px">✨ CREATOR'S CORNER</div><div style="font:700 15px -apple-system,system-ui,sans-serif;color:#ffd27a;margin-bottom:10px">${title}</div><div style="font:600 21px/1.5 -apple-system,'Segoe UI',system-ui,sans-serif;color:#fff;white-space:pre-wrap">${body}</div>`;
+      requestAnimationFrame(() => { box.style.opacity = "1"; });
+    }, { title, body });
+  } catch (_) {}
+}
+async function creationBeat() {
+  const pool = ["your Monday", "coffee", "the stock market", "working from home", "artificial intelligence", "the weekend", "procrastination", "the chat", "your to-do list"];
+  let topic = "", fromViewer = null;
+  const c = recentComments.slice().reverse().find((x) => { const w = (x.text || "").trim(); return w && w.split(/\s+/).length <= 6 && w.length <= 40; });
+  if (c) { topic = c.text.trim(); fromViewer = (c.name && c.name !== "Viewer" && c.name !== "(name hidden)") ? c.name : null; }
+  else topic = pool[_createIdx % pool.length];
+  const kind = _CREATE_KINDS[_createIdx % _CREATE_KINDS.length]; _createIdx++;
+  await setSegmentBanner("CREATOR'S CORNER");
+  await hideRightCards();
+  await speakLine(`Time for Creator's Corner${fromViewer ? `, and ${fromViewer} gave me the perfect spark` : ""} — let me make you a ${kind.k} about ${topic}, live.`);
+  const raw = await sayAndCapture(`You are Selam on a live show doing a quick, delightful creative bit for the chat. ${kind.ask(topic)} Speak it out loud warmly. Output ONLY the piece itself — no preamble, title, or meta. ${_PRIV}`);
+  const body = cleanSpoken(raw);
+  if (body) { try { await showTextCard(kind.title(topic), body); } catch (_) {} }
+  await sleep(4000);
 }
 // One-time stage layout: shift the avatar LEFT (presenter position) and paint the
 // exposed backdrop navy — set ONCE so she never slides around during the show.
@@ -1193,6 +1302,19 @@ async function handleControl(c) {
     try { await showNewsImage(SELAM_HERO, "SELAM · TRIVIA 🎉", ""); } catch (_) {}
     await speakLine(tq.q);
   }
+  else if (cmd === "poll") {
+    // Fire a live poll on demand (shows the A/B bar overlay).
+    if (!activePoll) {
+      if (!pollQueue.length) pollQueue = shuffle(POLLS);
+      const pq = pollQueue.shift();
+      activePoll = { q: pq.q, a: pq.a, b: pq.b, votes: { a: new Set(), b: new Set() }, at: Date.now() };
+      lastPollAt = Date.now();
+      await setSegmentBanner("LIVE POLL");
+      try { await showPoll(activePoll); await updatePoll(0, 0); } catch (_) {}
+      await speakLine(pq.q);
+    }
+  }
+  else if (cmd === "create") { lastCreateAt = Date.now(); await creationBeat(); }
   else if (cmd === "product") {
     const line = nextLine();
     try { const f = featureImage(line); const fu = await fetchFeatureImage(f); if (fu) await showNewsImage(fu, "SELAM · " + f.label, ""); } catch (_) {}
@@ -1384,7 +1506,7 @@ for (;;) {
       // Live poll vote → tally it silently (results announced when the poll closes).
       if (activePoll) {
         const v = pollVote(c.text);
-        if (v) { activePoll.votes[v].add(String(c.id || c.name || ("anon:" + c.text))); continue; }
+        if (v) { activePoll.votes[v].add(String(c.id || c.name || ("anon:" + c.text))); updatePoll(activePoll.votes.a.size, activePoll.votes.b.size).catch(() => {}); continue; }
       }
       // While a "what should I cover next?" window is open, capture suggestions
       // (non-blocking — the comment still gets a normal reply below).
@@ -1438,9 +1560,11 @@ for (;;) {
           await showNewsImage(SELAM_HERO, "SELAM · LIVE CHAT 💬", who ? `Replying to ${who}` : "Replying to the chat");
         }
       } catch (_) {}
+      try { await showQABar(who, c.text); } catch (_) {}
       const raw = await sayAndCapture(commentPrompt(c));
       const clean = cleanSpoken(raw);
       if (c.id && clean) await postReply(c.id, clean);
+      try { await hideQABar(); } catch (_) {}
       await sleep(1000);
     }
   } else {
@@ -1465,6 +1589,7 @@ for (;;) {
     if (activePoll && Date.now() - activePoll.at > 100000) {
       const na = activePoll.votes.a.size, nb = activePoll.votes.b.size, tot = na + nb;
       const p = activePoll; activePoll = null;
+      await hidePoll();
       if (tot === 0) {
         try { await showNewsImage(SELAM_HERO, "SELAM · POLL", "No votes this time!"); } catch (_) {}
         await speakLine("Looks like that poll went quiet — no worries, we'll run another one soon!");
@@ -1517,7 +1642,8 @@ for (;;) {
       if (!pollQueue.length) pollQueue = shuffle(POLLS);
       const pq = pollQueue.shift();
       activePoll = { q: pq.q, a: pq.a, b: pq.b, votes: { a: new Set(), b: new Set() }, at: Date.now() };
-      try { await showNewsImage(SELAM_HERO, "SELAM · LIVE POLL 📊", `${pq.a.label}  vs  ${pq.b.label}`); } catch (_) {}
+      await setSegmentBanner("LIVE POLL");
+      try { await showPoll(activePoll); await updatePoll(0, 0); } catch (_) {}
       await speakLine(pq.q);
       await sleep(3500); continue;
     }
@@ -1536,6 +1662,13 @@ for (;;) {
       try { await showNewsImage(SELAM_HERO, "SELAM · ROLL CALL 👋", "Say hi + where you're watching from!"); } catch (_) {}
       await sayAndCapture(rollCallPrompt(names));
       await sleep(2000); continue;
+    }
+    // Creator's Corner every ~8.5 min — a live haiku / roast / pep talk from a
+    // viewer topic, spoken + shown on a card.
+    if (Date.now() - lastCreateAt > 8.5 * 60 * 1000) {
+      lastCreateAt = Date.now();
+      await creationBeat();
+      await sleep(1500); continue;
     }
     // Let viewers steer the next topic every ~7 min — invite, collect ~75s, then cover.
     if (!awaitingTopicsUntil && Date.now() - lastTopicAt > 7 * 60 * 1000) {
