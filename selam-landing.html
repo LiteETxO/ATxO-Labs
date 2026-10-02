@@ -129,7 +129,7 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .hero-play .hp-ico{font-size:21px;line-height:1}
 .hero-play .arrow{margin-left:auto;color:var(--dawn-soft)}
 .hero-meta{margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.05em}
-.hero-shot{position:relative;display:flex;justify-content:center}
+.hero-shot{position:relative;display:flex;flex-direction:column;align-items:flex-end}
 .hero-shot img{display:block;--bleed:calc(max(0px,(100vw - var(--maxw))/4) + 32px);width:calc(100% + var(--bleed));max-width:none;height:auto;max-height:86vh;object-fit:contain;margin:0 calc(-1*var(--bleed)) 0 auto;
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.4)) drop-shadow(0 30px 60px rgba(0,0,0,.5));
   animation:heroFloat 6s ease-in-out 1s infinite}
@@ -189,6 +189,14 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .af-iconbtn.voice-on{background:var(--dawn);border-color:var(--dawn);color:#241606;animation:afMicPulse 1.3s ease-in-out infinite}
 .af-iconbtn.voice-sending{background:rgba(231,177,92,.18);border-color:rgba(231,177,92,.5);color:var(--dawn-soft)}
 @keyframes afMicPulse{0%,100%{box-shadow:0 0 0 0 rgba(231,177,92,.5)}50%{box-shadow:0 0 0 9px rgba(231,177,92,0)}}
+/* "Watch her work" trigger strip under the hero frame */
+.af-ops{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:16px;width:100%;max-width:500px}
+.af-ops-lead{width:100%;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--dawn-soft);margin-bottom:3px}
+.af-op{background:var(--surface);border:1px solid var(--line-2);border-radius:999px;padding:8px 14px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:transform .12s ease,border-color .2s,color .2s}
+.af-op:hover{transform:translateY(-1px);border-color:var(--dawn);color:#fff}
+.af-op:disabled{opacity:.5;cursor:default;transform:none}
+.af-op-play{background:linear-gradient(135deg,rgba(231,177,92,.18),rgba(231,177,92,.05));border-color:rgba(231,177,92,.42);color:var(--dawn-soft)}
+.af-op-play:hover{border-color:var(--dawn);color:#fff}
 @media(prefers-reduced-motion:reduce){.app-frame{animation:none}.af-iconbtn.voice-on{animation:none}}
 @media(max-width:760px){
   .app-frame{width:100%;margin:0 auto;border-radius:16px}
@@ -475,6 +483,10 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
           <button type="button" class="af-iconbtn" aria-label="Notes" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h11l3 3v15H5z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></button>
           <button type="button" class="af-end">End Session</button>
         </div>
+      </div>
+      <div class="af-ops reveal" id="hero-ops">
+        <span class="af-ops-lead">Not here to work? Play her — free, right here</span>
+        <button type="button" class="af-op af-op-play" data-selam-game="connect4"><span aria-hidden="true">🎮</span> Play a round</button>
       </div>
     </div>
   </div>
