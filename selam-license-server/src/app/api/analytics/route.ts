@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
 
   try {
     // Interval is inlined per query — Neon's serverless driver can't compose sql`` fragments.
-    const [byEvent, visitors, daily, funnel, campaigns, content, referrers, countries, devices, scroll] = await Promise.all([
+    const [byEvent, visitors, daily, funnel, campaigns, content, referrers, countries, devices, scroll,
+           questions, engagement, games, sections, ctaPlacement, sources] = await Promise.all([
       sql`SELECT event, COUNT(*)::int n FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') GROUP BY 1 ORDER BY 2 DESC`,
       sql`SELECT COUNT(DISTINCT visitor)::int n FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day')`,
       sql`SELECT to_char(date_trunc('day', ts),'YYYY-MM-DD') d,
@@ -52,6 +53,29 @@ export async function GET(req: NextRequest) {
       sql`SELECT COALESCE(device,'?') device, COUNT(*)::int n FROM landing_events
           WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='landing_view' GROUP BY 1 ORDER BY 2 DESC`,
       sql`SELECT event, COUNT(*)::int n FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event LIKE 'scroll_%' GROUP BY 1 ORDER BY 1`,
+      // Voice-of-customer: the questions visitors actually ask.
+      sql`SELECT q, COUNT(*)::int n, COUNT(DISTINCT visitor)::int u FROM landing_events
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='engage_ask' AND q IS NOT NULL AND q <> ''
+          GROUP BY q ORDER BY 2 DESC LIMIT 40`,
+      // Interactive-hero engagement (asks / voice / games / tour …).
+      sql`SELECT event, COUNT(*)::int n, COUNT(DISTINCT visitor)::int u FROM landing_events
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event LIKE 'engage_%' GROUP BY 1 ORDER BY 2 DESC`,
+      // Which games get played.
+      sql`SELECT COALESCE(label,'?') game, COUNT(*)::int n FROM landing_events
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='engage_game' GROUP BY 1 ORDER BY 2 DESC`,
+      // Sections actually reached (unique visitors).
+      sql`SELECT event, COUNT(DISTINCT visitor)::int n FROM landing_events
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event LIKE 'section_%' GROUP BY 1 ORDER BY 2 DESC`,
+      // Which buy button (placement) gets the click.
+      sql`SELECT COALESCE(label,'(unknown)') placement, COUNT(*)::int n FROM landing_events
+          WHERE ts >= NOW() - (${days} * INTERVAL '1 day') AND event='cta_buy' GROUP BY 1 ORDER BY 2 DESC`,
+      // Traffic quality per source — views → clicks → buy, not just volume.
+      sql`SELECT COALESCE(ref,'(direct)') ref,
+                 COUNT(*) FILTER (WHERE event='landing_view')::int views,
+                 COUNT(*) FILTER (WHERE event LIKE 'cta_%')::int clicks,
+                 COUNT(*) FILTER (WHERE event='cta_buy')::int buy
+          FROM landing_events WHERE ts >= NOW() - (${days} * INTERVAL '1 day')
+          GROUP BY 1 ORDER BY 2 DESC LIMIT 15`,
     ]) as unknown as [
       Array<{ event: string; n: number }>,
       Array<{ n: number }>,
@@ -63,6 +87,12 @@ export async function GET(req: NextRequest) {
       Array<{ country: string; n: number }>,
       Array<{ device: string; n: number }>,
       Array<{ event: string; n: number }>,
+      Array<{ q: string; n: number; u: number }>,
+      Array<{ event: string; n: number; u: number }>,
+      Array<{ game: string; n: number }>,
+      Array<{ event: string; n: number }>,
+      Array<{ placement: string; n: number }>,
+      Array<{ ref: string; views: number; clicks: number; buy: number }>,
     ];
 
     const byEventMap: Record<string, number> = {};
@@ -82,12 +112,24 @@ export async function GET(req: NextRequest) {
       daily,
       ctas: byEvent.filter((r) => r.event.startsWith('cta_')).map((r) => ({ name: r.event, count: r.n })),
       funnel: f,
+      funnelRates: {
+        viewToEngaged: f.views ? +(100 * f.engaged / f.views).toFixed(1) : 0,
+        viewToBuy: f.views ? +(100 * f.buy / f.views).toFixed(1) : 0,
+        engagedToBuy: f.engaged ? +(100 * f.buy / f.engaged).toFixed(1) : 0,
+      },
       campaigns,
       content,
       referrers,
       countries,
       devices,
       scroll: scroll.map((r) => ({ depth: r.event.replace('scroll_', '') + '%', n: r.n })),
+      // Phase 1 additions
+      questions: questions.map((r) => ({ q: r.q, n: r.n, visitors: r.u })),
+      engagement: engagement.map((r) => ({ kind: r.event.replace('engage_', ''), n: r.n, visitors: r.u })),
+      games,
+      sections: sections.map((r) => ({ section: r.event.replace('section_', ''), visitors: r.n })),
+      ctaPlacement,
+      sources,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ error: 'query failed', detail: String((e as Error)?.message || e).slice(0, 200) }, { status: 500 });

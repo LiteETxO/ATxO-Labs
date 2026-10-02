@@ -21,7 +21,7 @@ const CORS = {
 };
 
 // Only accept known event names — keeps the table clean + abuse-resistant.
-const EVENT_RE = /^(landing_view|cta_[a-z_]{1,24}|scroll_\d{2,3})$/;
+const EVENT_RE = /^(landing_view|cta_[a-z_]{1,24}|engage_[a-z_]{1,24}|section_[a-z_]{1,24}|scroll_\d{2,3})$/;
 
 let _ensured = false;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,11 +33,15 @@ async function ensure(sql: any) {
     event TEXT NOT NULL,
     path TEXT,
     utm_source TEXT, utm_medium TEXT, utm_campaign TEXT, utm_content TEXT, utm_term TEXT,
-    gclid TEXT, ref TEXT, country TEXT, device TEXT, visitor TEXT
+    gclid TEXT, ref TEXT, country TEXT, device TEXT, visitor TEXT,
+    q TEXT, label TEXT
   )`;
   await sql`CREATE INDEX IF NOT EXISTS landing_events_ts ON landing_events (ts)`;
   await sql`CREATE INDEX IF NOT EXISTS landing_events_event ON landing_events (event)`;
   await sql`CREATE INDEX IF NOT EXISTS landing_events_campaign ON landing_events (utm_campaign)`;
+  // Added after launch — backfill columns on already-provisioned tables.
+  await sql`ALTER TABLE landing_events ADD COLUMN IF NOT EXISTS q TEXT`;
+  await sql`ALTER TABLE landing_events ADD COLUMN IF NOT EXISTS label TEXT`;
   _ensured = true;
 }
 
@@ -89,11 +93,14 @@ export async function POST(req: NextRequest) {
     // Accept utm keys with or without the "utm_" prefix (client strips it).
     const u = (k: string) => s(b['utm_' + k] ?? b[k], 80);
 
+    // q = free-text question (engage_ask); label = CTA placement or game name.
+    const q = event === 'engage_ask' ? s(b.q, 240) : null;
+    const label = s(b.label, 60);
     await sql`INSERT INTO landing_events
-      (event, path, utm_source, utm_medium, utm_campaign, utm_content, utm_term, gclid, ref, country, device, visitor)
+      (event, path, utm_source, utm_medium, utm_campaign, utm_content, utm_term, gclid, ref, country, device, visitor, q, label)
       VALUES (${event}, ${s(b.path, 200)}, ${u('source')}, ${u('medium')}, ${u('campaign')}, ${u('content')},
               ${u('term')}, ${s(b.gclid, 120)}, ${refHost(s(b.ref, 300) || req.headers.get('referer'))},
-              ${country}, ${device(ua)}, ${visitor})`;
+              ${country}, ${device(ua)}, ${visitor}, ${q}, ${label})`;
     return ok();
   } catch {
     return ok();
