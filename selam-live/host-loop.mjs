@@ -1022,8 +1022,9 @@ function marketReviewPrompt(data) {
 ${rows.join("\n")}
 In about 4 to 6 flowing spoken sentences, walk viewers through it region by region — US first, then Europe, then Asia (China, Japan, Hong Kong), then crypto — calling out who's up, who's down, and the overall mood, with your own lively, plain-English take on what it signals. Use ONLY these numbers; do NOT invent any other figures, price levels, or reasons you don't have. Keep it energetic and easy to follow for a general audience. ${_TONE} ${_PRIV}`;
 }
+let _panelActive = false;   // while the Model Panel is on, suppress the markets strip (it would re-render over the seats)
 async function renderMarketStrip(data) {
-  if (!data) return;
+  if (!data || _panelActive) return;
   try {
     await pg.evaluate((d) => {
       const o = document.getElementById("selam-live-overlay"); if (!o) return;
@@ -1043,6 +1044,7 @@ async function renderMarketStrip(data) {
   } catch (_) {}
 }
 async function marketTick(force) {
+  if (_panelActive) return;
   if (!force && Date.now() - lastMarketAt < 60 * 1000) return;
   lastMarketAt = Date.now();
   const d = await fetchMarketData();
@@ -1232,49 +1234,70 @@ const PANEL_SOLO = [
 const PANEL_TOPICS = ["Will AI agents replace apps?", "Is remote work here to stay?", "Should AI run on-device or in the cloud?", "Will crypto go mainstream this decade?", "Is AGI closer than we think?", "Do people still need to learn to code?", "Is social media good for society?", "Will we all have an AI of our own in five years?"];
 let _panelIdx = 0;
 
+// The panel REPLACES the single moderator avatar with a row of seated panelists
+// side by side. Her 3D avatar is hidden for the segment (her VOICE still carries
+// the moderation — audio is captured from the adapter regardless of visibility).
 async function showPanel(topic, panelists) {
   await hideRightCards();
-  const tiles = panelists.map((p, i) => ({ i, name: p.name, label: p.label || "Persona", color: p.color, uri: portraitURI(p.portrait) }));
+  const seats = panelists.map((p, i) => ({ i, name: p.name, label: p.label || "Persona", color: p.color, uri: portraitURI(p.portrait) }));
   try {
-    await pg.evaluate(({ topic, tiles }) => {
+    await pg.evaluate(({ topic, seats }) => {
       const o = document.getElementById("selam-live-overlay"); if (!o) return;
-      const mk = document.getElementById("slo-prices"); if (mk) mk.style.display = "none";   // free the bottom-right for the panel
+      const mk = document.getElementById("slo-prices"); if (mk) mk.style.display = "none";
+      const ac = document.getElementById("avatar-container"); if (ac) { ac.dataset.sloPrevDisplay = ac.style.display || ""; ac.style.display = "none"; }
       let t = document.getElementById("slo-panel-topic"); if (!t) { t = document.createElement("div"); t.id = "slo-panel-topic"; o.appendChild(t); }
-      t.style.cssText = "position:absolute;top:72px;left:50%;transform:translateX(-50%);z-index:6;max-width:72%;text-align:center;font:700 23px/1.3 -apple-system,'Segoe UI',system-ui,sans-serif;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7)";
+      t.style.cssText = "position:absolute;top:74px;left:50%;transform:translateX(-50%);z-index:6;max-width:80%;text-align:center;font:700 25px/1.3 -apple-system,'Segoe UI',system-ui,sans-serif;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7)";
       t.textContent = "“" + topic + "”";
-      let s = document.getElementById("slo-panel-strip"); if (!s) { s = document.createElement("div"); s.id = "slo-panel-strip"; o.appendChild(s); }
-      s.style.cssText = "position:absolute;left:0;right:0;bottom:90px;z-index:5;display:flex;justify-content:center;gap:26px;font-family:-apple-system,system-ui,sans-serif";
-      s.innerHTML = tiles.map((t) => `<div id="slo-pt-${t.i}" style="display:flex;flex-direction:column;align-items:center;gap:7px;opacity:.5;transition:opacity .35s,transform .35s"><div class="slo-pt-ring" style="width:78px;height:78px;border-radius:50%;overflow:hidden;border:3px solid ${t.color}55;box-shadow:0 6px 18px rgba(0,0,0,.55)"><img src="${t.uri}" style="width:100%;height:100%;object-fit:cover" alt=""></div><div style="font:800 15px -apple-system,system-ui,sans-serif;color:#fff">${t.name}</div><div style="font:600 11px -apple-system,system-ui,sans-serif;letter-spacing:.5px;color:${t.color}">${t.label}</div></div>`).join("");
-    }, { topic, tiles });
+      // Row of big side-by-side seats.
+      let s = document.getElementById("slo-panel-seats"); if (!s) { s = document.createElement("div"); s.id = "slo-panel-seats"; o.appendChild(s); }
+      s.style.cssText = "position:absolute;left:3%;right:3%;top:130px;bottom:170px;z-index:4;display:flex;justify-content:center;align-items:stretch;gap:2.5%;font-family:-apple-system,system-ui,sans-serif";
+      s.innerHTML = seats.map((p) => `<div id="slo-seat-${p.i}" style="flex:1;max-width:30%;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:#0a0c13;border:3px solid ${p.color}44;box-shadow:0 14px 40px rgba(0,0,0,.5);opacity:.6;transition:opacity .35s,transform .35s,box-shadow .35s">
+        <div style="flex:1;overflow:hidden;position:relative"><img src="${p.uri}" style="width:100%;height:100%;object-fit:cover;object-position:50% 22%" alt=""></div>
+        <div style="flex:none;padding:9px 12px;background:linear-gradient(180deg,rgba(10,12,19,.2),rgba(10,12,19,.95));text-align:center">
+          <div style="font:800 19px -apple-system,system-ui,sans-serif;color:#fff">${p.name}</div>
+          <div style="font:600 12px -apple-system,system-ui,sans-serif;letter-spacing:.6px;color:${p.color};margin-top:2px">${p.label}</div>
+        </div></div>`).join("");
+    }, { topic, seats });
   } catch (_) {}
 }
+// idx >= 0 → a panelist is speaking (highlight their seat); idx < 0 → the host
+// (Selam) is speaking (no seat highlighted). Either way the line shows in the bar.
 async function setPanelActive(idx, name, label, color, text) {
   try {
     await pg.evaluate(({ idx, name, label, color, text }) => {
       const o = document.getElementById("selam-live-overlay"); if (!o) return;
-      document.querySelectorAll('[id^="slo-pt-"]').forEach((el) => { el.style.opacity = ".45"; el.style.transform = "none"; const r = el.querySelector(".slo-pt-ring"); if (r) r.style.boxShadow = "0 6px 18px rgba(0,0,0,.55)"; });
-      const act = document.getElementById("slo-pt-" + idx); if (act) { act.style.opacity = "1"; act.style.transform = "translateY(-8px) scale(1.07)"; const r = act.querySelector(".slo-pt-ring"); if (r) { r.style.borderColor = color; r.style.boxShadow = `0 0 0 3px ${color}66, 0 10px 26px rgba(0,0,0,.6)`; } }
-      let c = document.getElementById("slo-panel-card"); if (!c) { c = document.createElement("div"); c.id = "slo-panel-card"; o.appendChild(c); }
-      c.style.cssText = `position:absolute;top:118px;right:32px;width:42%;max-width:560px;z-index:5;border-radius:16px;background:#0a0c13;border:2px solid ${color}aa;box-shadow:0 18px 52px rgba(0,0,0,.6);padding:18px 20px;font-family:-apple-system,system-ui,sans-serif;opacity:0;transition:opacity .3s`;
-      c.innerHTML = `<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><span style="width:10px;height:10px;border-radius:50%;background:${color};box-shadow:0 0 10px ${color}"></span><span style="font:800 17px -apple-system,system-ui,sans-serif;color:#fff">${name}</span><span style="font:600 12px -apple-system,system-ui,sans-serif;color:${color};margin-left:auto;letter-spacing:.5px">${label}</span></div><div style="font:600 20px/1.5 -apple-system,'Segoe UI',system-ui,sans-serif;color:#eef2ff;white-space:pre-wrap">${text}</div>`;
-      requestAnimationFrame(() => { c.style.opacity = "1"; });
+      document.querySelectorAll('[id^="slo-seat-"]').forEach((el) => { el.style.opacity = ".55"; el.style.transform = "none"; });
+      if (idx >= 0) { const act = document.getElementById("slo-seat-" + idx); if (act) { act.style.opacity = "1"; act.style.transform = "translateY(-10px) scale(1.04)"; act.style.boxShadow = `0 0 0 3px ${color}, 0 18px 46px rgba(0,0,0,.6)`; act.style.borderColor = color; } }
+      let bar = document.getElementById("slo-panel-bar"); if (!bar) { bar = document.createElement("div"); bar.id = "slo-panel-bar"; o.appendChild(bar); }
+      bar.style.cssText = `position:absolute;left:4%;right:4%;bottom:90px;z-index:6;border-radius:14px;background:linear-gradient(90deg,rgba(10,12,19,.95),rgba(10,12,19,.86));border-left:5px solid ${color};box-shadow:0 12px 34px rgba(0,0,0,.55);padding:13px 18px;font-family:-apple-system,system-ui,sans-serif;opacity:0;transition:opacity .25s`;
+      bar.innerHTML = `<span style="font:800 16px -apple-system,system-ui,sans-serif;color:${color};margin-right:10px">${name}${label ? ` <span style="font-weight:600;font-size:12px;opacity:.85">· ${label}</span>` : ""}</span><span style="font:600 19px/1.45 -apple-system,'Segoe UI',system-ui,sans-serif;color:#eef2ff">${text}</span>`;
+      requestAnimationFrame(() => { bar.style.opacity = "1"; });
     }, { idx, name, label, color, text });
   } catch (_) {}
 }
-async function hidePanel() { try { await pg.evaluate(() => { for (const id of ["slo-panel-topic", "slo-panel-strip", "slo-panel-card"]) { const e = document.getElementById(id); if (e) e.remove(); } }); } catch (_) {} }
+async function hidePanel() {
+  try {
+    await pg.evaluate(() => {
+      for (const id of ["slo-panel-topic", "slo-panel-seats", "slo-panel-bar"]) { const e = document.getElementById(id); if (e) e.remove(); }
+      const ac = document.getElementById("avatar-container"); if (ac) { ac.style.display = ac.dataset.sloPrevDisplay || ""; delete ac.dataset.sloPrevDisplay; }
+    });
+  } catch (_) {}
+}
 
 let lastPanelAt = Date.now();
 async function modelPanel(topicArg, solo) {
   const multi = !solo;
   const panelists = multi ? PANEL_MULTI : PANEL_SOLO;
   const topic = (topicArg || "").trim() || PANEL_TOPICS[(_panelIdx++) % PANEL_TOPICS.length];
+  _panelActive = true;
   await setSegmentBanner("THE MODEL PANEL");
   await showPanel(topic, panelists);
   const origVoice = await pg.evaluate(() => { try { return window.__selamAdapter._charOpenAIVoice || null; } catch (_) { return null; } }).catch(() => null);
   const speakAs = async (voice, text) => { await setVoice(voice); await speakLine(text); };
+  const hostSay = async (text) => { await setPanelActive(-1, "Selam", "Host", "#c1c7e7", text); await speakAs(origVoice, text); };
   try {
     const names = panelists.map((p) => p.name).join(", ");
-    await speakAs(origVoice, `Welcome to the Model Panel! Today's question — ${topic}. On the panel: ${names}. ${multi ? "Three different A.I. models, same question — let's see how differently they actually think." : "Three very different personalities, one topic."} Let's hear the opening takes.`);
+    await hostSay(`Welcome to the Model Panel! Today's question — ${topic}. On the panel: ${names}. ${multi ? "Three different A.I. models, same question — let's see how differently they actually think." : "Three very different personalities, one topic."} Let's hear the opening takes.`);
     const takes = [];
     for (let i = 0; i < panelists.length; i++) {
       const p = panelists[i];
@@ -1288,7 +1311,7 @@ async function modelPanel(topicArg, solo) {
       await speakAs(p.voice, txt);
       if (await (async () => { const s = await capState(); return s.gone; })()) { await hidePanel(); return; }
     }
-    await speakAs(origVoice, "Love it. Now the fun part — where do you push back on the others?");
+    await hostSay("Love it. Now the fun part — where do you push back on the others?");
     for (let i = 0; i < panelists.length; i++) {
       const p = panelists[i];
       const others = takes.filter((_, j) => j !== i).map((t) => `${t.name} said: ${t.text}`).join("\n");
@@ -1300,10 +1323,11 @@ async function modelPanel(topicArg, solo) {
       await setPanelActive(i, p.name, p.label || "Persona", p.color, txt);
       await speakAs(p.voice, txt);
     }
-    await speakAs(origVoice, `And that's our panel! ${multi ? "Same question, three different machines — fascinating how each one reasons, right?" : "One question, three minds."} Drop a comment — whose take did YOU side with?`);
+    await hostSay(`And that's our panel! ${multi ? "Same question, three different machines — fascinating how each one reasons, right?" : "One question, three minds."} Drop a comment — whose take did YOU side with?`);
   } catch (e) { console.log("panel err:", e.message); }
   await hidePanel();
   await setVoice(origVoice);
+  _panelActive = false;
   try { await pg.evaluate(() => { const mk = document.getElementById("slo-prices"); if (mk) mk.style.display = ""; }); if (_lastMarket) await renderMarketStrip(_lastMarket); } catch (_) {}   // restore markets strip
 }
 // One-time stage layout: shift the avatar LEFT (presenter position) and paint the
