@@ -1677,6 +1677,20 @@ window.addEventListener('load',function(){
   // Landing view (with campaign attribution) — once per load.
   track("landing_view", ctx());
 
+  // Carry campaign attribution into the buy flow so a PAID order can be traced
+  // back to the ad/source (ref+campaign ride the /buy URL → checkout → Stripe).
+  try {
+    var qp = [];
+    if (utm.source) qp.push("ref=" + encodeURIComponent(utm.source));
+    if (utm.campaign) qp.push("campaign=" + encodeURIComponent(utm.campaign));
+    if (qp.length) {
+      document.querySelectorAll('a[href*="/buy"], a[href*="/pay-crypto"]').forEach(function (a) {
+        var h = a.getAttribute("href"); if (!h) return;
+        a.setAttribute("href", h + (h.indexOf("?") > -1 ? "&" : "?") + qp.join("&"));
+      });
+    }
+  } catch (_) {}
+
   // One delegated listener → duplicate buttons across the page all count.
   document.addEventListener("click", function (e) {
     var el = e.target.closest && e.target.closest("a,button"); if (!el) return;

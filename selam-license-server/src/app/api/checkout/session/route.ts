@@ -218,13 +218,29 @@ export async function POST(req: NextRequest) {
       cancel_url:  `${origin}${CANCEL_PATH}`,
     };
 
-    // For update-pass subscriptions, add subscription data
+    // Carry attribution onto the PaymentIntent too, so the resulting Charge
+    // carries ref/campaign — that's what revenue-by-campaign reads (and it's
+    // refund-aware, unlike the Checkout Session).
+    if (stripeMode === 'payment') {
+      sessionParams.payment_intent_data = {
+        metadata: {
+          product: 'selam-v1',
+          flow,
+          ...(payload.ref ? { ref: payload.ref } : {}),
+          ...(payload.campaign ? { campaign: payload.campaign } : {}),
+        },
+      };
+    }
+
+    // For update-pass subscriptions, add subscription data (+ attribution).
     if (stripeMode === 'subscription') {
       sessionParams.subscription_data = {
         metadata: {
           product: 'selam-v1',
           flow: 'update-pass',
           purchase_type: 'update_pass',
+          ...(payload.ref ? { ref: payload.ref } : {}),
+          ...(payload.campaign ? { campaign: payload.campaign } : {}),
         },
       };
     }

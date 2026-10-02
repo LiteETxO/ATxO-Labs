@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -99,6 +100,39 @@ export async function GET(req: NextRequest) {
     for (const r of byEvent) byEventMap[r.event] = r.n;
     const f = funnel[0] || { views: 0, engaged: 0, buy: 0, crypto: 0 };
 
+    // Revenue attribution — real paid $ by campaign, from Stripe charges
+    // (refund-aware; charges carry ref/campaign via payment_intent metadata).
+    const revByCampaign: Record<string, { paid: number; revenue: number }> = {};
+    let attributedRevenue = 0, currency = 'usd', stripeError: string | undefined;
+    try {
+      const skey = process.env.STRIPE_SECRET_KEY;
+      if (skey) {
+        const stripe = new Stripe(skey);
+        const since = Math.floor(Date.now() / 1000 - days * 86400);
+        const charges = await stripe.charges.list({ limit: 100, created: { gte: since } }).autoPagingToArray({ limit: 1000 });
+        for (const c of charges) {
+          if (c.status !== 'succeeded' || !c.paid) continue;
+          const net = (c.amount - (c.amount_refunded || 0)) / 100;
+          if (net <= 0) continue;
+          currency = c.currency || currency;
+          const camp = (c.metadata && c.metadata.campaign) || '(none)';
+          const e = revByCampaign[camp] || { paid: 0, revenue: 0 };
+          e.paid += 1; e.revenue += net; revByCampaign[camp] = e;
+          attributedRevenue += net;
+        }
+      }
+    } catch (e) { stripeError = String((e as Error)?.message || e).slice(0, 120); }
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    // Merge paid $ onto the campaign rows; append revenue-only campaigns.
+    const campaignRows = campaigns.map((c) => ({
+      ...c, paid: revByCampaign[c.campaign]?.paid || 0, revenue: r2(revByCampaign[c.campaign]?.revenue || 0),
+    }));
+    const known = new Set(campaigns.map((c) => c.campaign));
+    for (const [camp, v] of Object.entries(revByCampaign)) {
+      if (camp !== '(none)' && !known.has(camp)) campaignRows.push({ campaign: camp, views: 0, clicks: 0, buy: 0, paid: v.paid, revenue: r2(v.revenue) });
+    }
+    campaignRows.sort((a, b) => b.revenue - a.revenue || b.views - a.views);
+
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
@@ -117,7 +151,10 @@ export async function GET(req: NextRequest) {
         viewToBuy: f.views ? +(100 * f.buy / f.views).toFixed(1) : 0,
         engagedToBuy: f.engaged ? +(100 * f.buy / f.engaged).toFixed(1) : 0,
       },
-      campaigns,
+      campaigns: campaignRows,
+      attributedRevenue: r2(attributedRevenue),
+      currency,
+      stripeError,
       content,
       referrers,
       countries,

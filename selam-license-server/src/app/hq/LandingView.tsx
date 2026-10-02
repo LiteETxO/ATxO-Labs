@@ -9,7 +9,8 @@ export type AnalyticsData = {
   ctas: Array<{ name: string; count: number }>;
   funnel: { views: number; engaged: number; buy: number; crypto: number };
   funnelRates: { viewToEngaged: number; viewToBuy: number; engagedToBuy: number };
-  campaigns: Array<{ campaign: string; views: number; clicks: number; buy: number }>;
+  attributedRevenue: number; currency: string; stripeError?: string;
+  campaigns: Array<{ campaign: string; views: number; clicks: number; buy: number; paid: number; revenue: number }>;
   content: Array<{ content: string; clicks: number }>;
   referrers: Array<{ ref: string; n: number }>;
   countries: Array<{ country: string; n: number }>;
@@ -35,6 +36,7 @@ const GAME_LABEL: Record<string, string> = {
 };
 const nf = (n: number) => (n ?? 0).toLocaleString();
 const pct = (num: number, den: number) => (den ? ((100 * num) / den).toFixed(1) + '%' : '—');
+const money = (n: number) => '$' + (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 export default function LandingView({ d }: { d: AnalyticsData }) {
   const maxDaily = Math.max(1, ...(d.daily || []).map((x) => x.views));
@@ -53,6 +55,7 @@ export default function LandingView({ d }: { d: AnalyticsData }) {
         <div className="kpi"><div className="k">Engaged</div><div className="v">{nf(d.funnel.engaged)}</div><div className="sub">visitors w/ a CTA</div></div>
         <div className="kpi"><div className="k">Questions asked</div><div className="v">{nf(eng('ask'))}</div><div className="sub">Ask Selam</div></div>
         <div className="kpi"><div className="k">Games played</div><div className="v">{nf(eng('game'))}</div><div className="sub">free in-browser</div></div>
+        <div className="kpi hero"><div className="k">Attributed revenue</div><div className="v">{money(d.attributedRevenue)}</div><div className="sub">paid orders by campaign · last {d.days}d{d.stripeError ? ' · stripe err' : ''}</div></div>
       </div>
 
       <div className="panel">
@@ -134,11 +137,21 @@ export default function LandingView({ d }: { d: AnalyticsData }) {
       </div>
 
       <div className="panel scroll">
-        <h2>By campaign (utm_campaign)</h2>
-        <table><thead><tr><th>Campaign</th><th>Views</th><th>CTA clicks</th><th>Buy</th></tr></thead>
-          <tbody>{d.campaigns.length === 0 ? <tr><td className="name" colSpan={4}>No campaign traffic yet.</td></tr> :
-            d.campaigns.map((c) => <tr key={c.campaign}><td className="name">{c.campaign}</td><td>{nf(c.views)}</td><td>{nf(c.clicks)}</td><td>{nf(c.buy)}</td></tr>)}
+        <h2>By campaign — views → clicks → paid $</h2>
+        <table><thead><tr><th>Campaign</th><th style={{ textAlign: 'right' }}>Views</th><th style={{ textAlign: 'right' }}>Buy clicks</th><th style={{ textAlign: 'right' }}>Paid</th><th style={{ textAlign: 'right' }}>Revenue</th><th style={{ textAlign: 'right' }}>View→paid</th></tr></thead>
+          <tbody>{d.campaigns.length === 0 ? <tr><td className="name" colSpan={6}>No campaign traffic yet.</td></tr> :
+            d.campaigns.map((c) => <tr key={c.campaign}>
+              <td className="name">{c.campaign}</td>
+              <td style={{ textAlign: 'right' }}>{nf(c.views)}</td>
+              <td style={{ textAlign: 'right' }}>{nf(c.buy)}</td>
+              <td style={{ textAlign: 'right', color: c.paid ? 'var(--good)' : 'var(--ink3)' }}>{nf(c.paid)}</td>
+              <td style={{ textAlign: 'right', color: c.revenue ? 'var(--good)' : 'var(--ink3)' }}>{money(c.revenue)}</td>
+              <td style={{ textAlign: 'right', color: 'var(--ink3)' }}>{pct(c.paid, c.views)}</td>
+            </tr>)}
           </tbody></table>
+        <div style={{ marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink3)' }}>
+          Paid $ is real Stripe revenue (refund-aware), tied to the campaign that drove the click. Direct/untagged purchases show under “(none)”.
+        </div>
       </div>
 
       <div className="cols2">

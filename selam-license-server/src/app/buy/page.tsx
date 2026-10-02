@@ -51,10 +51,19 @@ export default function BuyPage() {
     setBusyFlow(flow);
     setError('');
     try {
+      // Carry ad attribution (passed from the landing as ?ref=&campaign=) into
+      // checkout so the paid order can be traced back to the campaign.
+      const sp = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+      const ref = sp.get('ref') || undefined;
+      const campaign = sp.get('campaign') || undefined;
       const res = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(flow === 'upgrade' ? { flow, key: upgradeKey } : { flow }),
+        body: JSON.stringify(
+          flow === 'upgrade'
+            ? { flow, key: upgradeKey, ref, campaign }
+            : { flow, ref, campaign },
+        ),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
