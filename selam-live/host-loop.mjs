@@ -1189,6 +1189,123 @@ async function creationBeat() {
   if (body) { try { await showTextCard(kind.title(topic), body); } catch (_) {} }
   await sleep(4000);
 }
+
+// ── THE MODEL PANEL ──────────────────────────────────────────────────────────
+// 3 panelists debate a topic. MULTI-MODEL: each panelist is a different LLM via
+// OpenRouter (Claude / GPT / Gemini) — shows how differently real models reason.
+// SINGLE-MODEL: three personas on one model (Optimist / Skeptic / Pragmatist).
+// Selam moderates in her own voice; each panelist speaks in a distinct voice with
+// its portrait tile lit and its answer on a card.
+let _ORKEY = null;
+function _orKey() { if (_ORKEY !== null) return _ORKEY; try { _ORKEY = execSync("security find-generic-password -s selam.byok -a openrouter_api_key -w", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch (_) { _ORKEY = ""; } return _ORKEY; }
+const _portraitCache = {};
+function portraitURI(fn) {
+  if (fn in _portraitCache) return _portraitCache[fn];
+  let uri = ""; try { const b = fs.readFileSync(path.join(process.env.HOME, "assets", fn)); uri = "data:image/jpeg;base64," + b.toString("base64"); } catch (_) {}
+  _portraitCache[fn] = uri; return uri;
+}
+async function callPanelist(model, system, user, maxTok = 170) {
+  const key = _orKey(); if (!key) return "";
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 30000);
+    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" }, signal: ctl.signal,
+      body: JSON.stringify({ model, max_tokens: maxTok, temperature: 0.85, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+    });
+    clearTimeout(to);
+    const j = await r.json(); return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || "").trim();
+  } catch (_) { return ""; }
+}
+async function setVoice(v) { try { await pg.evaluate((v) => { try { window.__selamAdapter._charOpenAIVoice = v || null; } catch (_) {} }, v || null); } catch (_) {} }
+
+const SOLO_MODEL = "anthropic/claude-sonnet-5";
+const PANEL_MULTI = [
+  { name: "Claude", model: "anthropic/claude-sonnet-5", label: "Anthropic", voice: "sage", portrait: "char-mei.jpg", color: "#d19a66" },
+  { name: "GPT-4.1", model: "openai/gpt-4.1", label: "OpenAI", voice: "onyx", portrait: "char-keen.jpg", color: "#10b981" },
+  { name: "Gemini", model: "google/gemini-3.7-flash", label: "Google", voice: "nova", portrait: "char-naima.jpg", color: "#5b8dff" },
+];
+const PANEL_SOLO = [
+  { name: "The Optimist", persona: "an upbeat optimist who sees the opportunity in everything", voice: "nova", portrait: "char-hope.jpg", color: "#3ecf8e" },
+  { name: "The Skeptic", persona: "a sharp, careful skeptic who pokes holes and asks the hard question", voice: "onyx", portrait: "char-keen.jpg", color: "#ff8a5c" },
+  { name: "The Pragmatist", persona: "a grounded pragmatist focused only on what actually works in practice", voice: "sage", portrait: "char-kiya.jpg", color: "#8ab6ff" },
+];
+const PANEL_TOPICS = ["Will AI agents replace apps?", "Is remote work here to stay?", "Should AI run on-device or in the cloud?", "Will crypto go mainstream this decade?", "Is AGI closer than we think?", "Do people still need to learn to code?", "Is social media good for society?", "Will we all have an AI of our own in five years?"];
+let _panelIdx = 0;
+
+async function showPanel(topic, panelists) {
+  await hideRightCards();
+  const tiles = panelists.map((p, i) => ({ i, name: p.name, label: p.label || "Persona", color: p.color, uri: portraitURI(p.portrait) }));
+  try {
+    await pg.evaluate(({ topic, tiles }) => {
+      const o = document.getElementById("selam-live-overlay"); if (!o) return;
+      const mk = document.getElementById("slo-prices"); if (mk) mk.style.display = "none";   // free the bottom-right for the panel
+      let t = document.getElementById("slo-panel-topic"); if (!t) { t = document.createElement("div"); t.id = "slo-panel-topic"; o.appendChild(t); }
+      t.style.cssText = "position:absolute;top:72px;left:50%;transform:translateX(-50%);z-index:6;max-width:72%;text-align:center;font:700 23px/1.3 -apple-system,'Segoe UI',system-ui,sans-serif;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7)";
+      t.textContent = "“" + topic + "”";
+      let s = document.getElementById("slo-panel-strip"); if (!s) { s = document.createElement("div"); s.id = "slo-panel-strip"; o.appendChild(s); }
+      s.style.cssText = "position:absolute;left:0;right:0;bottom:90px;z-index:5;display:flex;justify-content:center;gap:26px;font-family:-apple-system,system-ui,sans-serif";
+      s.innerHTML = tiles.map((t) => `<div id="slo-pt-${t.i}" style="display:flex;flex-direction:column;align-items:center;gap:7px;opacity:.5;transition:opacity .35s,transform .35s"><div class="slo-pt-ring" style="width:78px;height:78px;border-radius:50%;overflow:hidden;border:3px solid ${t.color}55;box-shadow:0 6px 18px rgba(0,0,0,.55)"><img src="${t.uri}" style="width:100%;height:100%;object-fit:cover" alt=""></div><div style="font:800 15px -apple-system,system-ui,sans-serif;color:#fff">${t.name}</div><div style="font:600 11px -apple-system,system-ui,sans-serif;letter-spacing:.5px;color:${t.color}">${t.label}</div></div>`).join("");
+    }, { topic, tiles });
+  } catch (_) {}
+}
+async function setPanelActive(idx, name, label, color, text) {
+  try {
+    await pg.evaluate(({ idx, name, label, color, text }) => {
+      const o = document.getElementById("selam-live-overlay"); if (!o) return;
+      document.querySelectorAll('[id^="slo-pt-"]').forEach((el) => { el.style.opacity = ".45"; el.style.transform = "none"; const r = el.querySelector(".slo-pt-ring"); if (r) r.style.boxShadow = "0 6px 18px rgba(0,0,0,.55)"; });
+      const act = document.getElementById("slo-pt-" + idx); if (act) { act.style.opacity = "1"; act.style.transform = "translateY(-8px) scale(1.07)"; const r = act.querySelector(".slo-pt-ring"); if (r) { r.style.borderColor = color; r.style.boxShadow = `0 0 0 3px ${color}66, 0 10px 26px rgba(0,0,0,.6)`; } }
+      let c = document.getElementById("slo-panel-card"); if (!c) { c = document.createElement("div"); c.id = "slo-panel-card"; o.appendChild(c); }
+      c.style.cssText = `position:absolute;top:118px;right:32px;width:42%;max-width:560px;z-index:5;border-radius:16px;background:#0a0c13;border:2px solid ${color}aa;box-shadow:0 18px 52px rgba(0,0,0,.6);padding:18px 20px;font-family:-apple-system,system-ui,sans-serif;opacity:0;transition:opacity .3s`;
+      c.innerHTML = `<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><span style="width:10px;height:10px;border-radius:50%;background:${color};box-shadow:0 0 10px ${color}"></span><span style="font:800 17px -apple-system,system-ui,sans-serif;color:#fff">${name}</span><span style="font:600 12px -apple-system,system-ui,sans-serif;color:${color};margin-left:auto;letter-spacing:.5px">${label}</span></div><div style="font:600 20px/1.5 -apple-system,'Segoe UI',system-ui,sans-serif;color:#eef2ff;white-space:pre-wrap">${text}</div>`;
+      requestAnimationFrame(() => { c.style.opacity = "1"; });
+    }, { idx, name, label, color, text });
+  } catch (_) {}
+}
+async function hidePanel() { try { await pg.evaluate(() => { for (const id of ["slo-panel-topic", "slo-panel-strip", "slo-panel-card"]) { const e = document.getElementById(id); if (e) e.remove(); } }); } catch (_) {} }
+
+let lastPanelAt = Date.now();
+async function modelPanel(topicArg, solo) {
+  const multi = !solo;
+  const panelists = multi ? PANEL_MULTI : PANEL_SOLO;
+  const topic = (topicArg || "").trim() || PANEL_TOPICS[(_panelIdx++) % PANEL_TOPICS.length];
+  await setSegmentBanner("THE MODEL PANEL");
+  await showPanel(topic, panelists);
+  const origVoice = await pg.evaluate(() => { try { return window.__selamAdapter._charOpenAIVoice || null; } catch (_) { return null; } }).catch(() => null);
+  const speakAs = async (voice, text) => { await setVoice(voice); await speakLine(text); };
+  try {
+    const names = panelists.map((p) => p.name).join(", ");
+    await speakAs(origVoice, `Welcome to the Model Panel! Today's question — ${topic}. On the panel: ${names}. ${multi ? "Three different A.I. models, same question — let's see how differently they actually think." : "Three very different personalities, one topic."} Let's hear the opening takes.`);
+    const takes = [];
+    for (let i = 0; i < panelists.length; i++) {
+      const p = panelists[i];
+      const sys = multi
+        ? `You are ${p.name}, appearing as yourself on a live AI panel show. Answer in YOUR authentic voice and reasoning style. Be concise: 2-3 punchy spoken sentences, a clear opinion, no hedging, no lists, no markdown, no emojis. It will be read aloud.`
+        : `You are "${p.name}", ${p.persona}. You're on a live panel. Give your take in 2-3 punchy spoken sentences, firmly in character, a clear opinion, no lists/markdown/emojis. Read aloud.`;
+      await setPanelActive(i, p.name, p.label || "Persona", p.color, "…thinking…");
+      let txt = cleanSpoken(await callPanelist(multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}. Give your opening take.`)) || "I'll keep my powder dry on this one.";
+      takes.push({ name: p.name, text: txt });
+      await setPanelActive(i, p.name, p.label || "Persona", p.color, txt);
+      await speakAs(p.voice, txt);
+      if (await (async () => { const s = await capState(); return s.gone; })()) { await hidePanel(); return; }
+    }
+    await speakAs(origVoice, "Love it. Now the fun part — where do you push back on the others?");
+    for (let i = 0; i < panelists.length; i++) {
+      const p = panelists[i];
+      const others = takes.filter((_, j) => j !== i).map((t) => `${t.name} said: ${t.text}`).join("\n");
+      const sys = multi
+        ? `You are ${p.name} on a live AI panel. In 1-2 spoken sentences, directly push back on or sharpen the others' takes — characterful and specific. No lists/markdown/emojis. Read aloud.`
+        : `You are "${p.name}", ${p.persona}. In 1-2 spoken sentences, push back on the others, in character. No lists/markdown. Read aloud.`;
+      let txt = cleanSpoken(await callPanelist(multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}.\n${others}\n\nYour quick rebuttal:`));
+      if (!txt) continue;
+      await setPanelActive(i, p.name, p.label || "Persona", p.color, txt);
+      await speakAs(p.voice, txt);
+    }
+    await speakAs(origVoice, `And that's our panel! ${multi ? "Same question, three different machines — fascinating how each one reasons, right?" : "One question, three minds."} Drop a comment — whose take did YOU side with?`);
+  } catch (e) { console.log("panel err:", e.message); }
+  await hidePanel();
+  await setVoice(origVoice);
+  try { await pg.evaluate(() => { const mk = document.getElementById("slo-prices"); if (mk) mk.style.display = ""; }); if (_lastMarket) await renderMarketStrip(_lastMarket); } catch (_) {}   // restore markets strip
+}
 // One-time stage layout: shift the avatar LEFT (presenter position) and paint the
 // exposed backdrop navy — set ONCE so she never slides around during the show.
 async function setupStageLayout() {
@@ -1315,6 +1432,8 @@ async function handleControl(c) {
     }
   }
   else if (cmd === "create") { lastCreateAt = Date.now(); await creationBeat(); }
+  else if (cmd === "panel") { lastPanelAt = Date.now(); await modelPanel(arg || "", false); }
+  else if (cmd === "panelsolo" || cmd === "panel-solo" || cmd === "panel_solo") { lastPanelAt = Date.now(); await modelPanel(arg || "", true); }
   else if (cmd === "product") {
     const line = nextLine();
     try { const f = featureImage(line); const fu = await fetchFeatureImage(f); if (fu) await showNewsImage(fu, "SELAM · " + f.label, ""); } catch (_) {}
@@ -1668,6 +1787,13 @@ for (;;) {
     if (Date.now() - lastCreateAt > 8.5 * 60 * 1000) {
       lastCreateAt = Date.now();
       await creationBeat();
+      await sleep(1500); continue;
+    }
+    // The Model Panel every ~20 min — flagship: 3 different LLMs (or 3 personas on
+    // one model) debate a topic, each with its own voice + portrait tile.
+    if (Date.now() - lastPanelAt > 20 * 60 * 1000) {
+      lastPanelAt = Date.now();
+      await modelPanel("", false);
       await sleep(1500); continue;
     }
     // Let viewers steer the next topic every ~7 min — invite, collect ~75s, then cover.
