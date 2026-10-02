@@ -195,8 +195,8 @@ nav.scrolled{border-color:var(--line);background:rgba(10,11,17,.82)}
 .af-op{background:var(--surface);border:1px solid var(--line-2);border-radius:999px;padding:8px 14px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:transform .12s ease,border-color .2s,color .2s}
 .af-op:hover{transform:translateY(-1px);border-color:var(--dawn);color:#fff}
 .af-op:disabled{opacity:.5;cursor:default;transform:none}
-.af-op-play{background:linear-gradient(135deg,rgba(231,177,92,.18),rgba(231,177,92,.05));border-color:rgba(231,177,92,.42);color:var(--dawn-soft)}
-.af-op-play:hover{border-color:var(--dawn);color:#fff}
+.af-op-game{display:inline-flex;align-items:center;gap:7px}
+.af-op-game span{font-size:14px;line-height:1}
 @media(prefers-reduced-motion:reduce){.app-frame{animation:none}.af-iconbtn.voice-on{animation:none}}
 @media(max-width:760px){
   .app-frame{width:100%;margin:0 auto;border-radius:16px}
@@ -485,8 +485,11 @@ footer{border-top:1px solid var(--line);padding:40px 0;margin-top:40px}
         </div>
       </div>
       <div class="af-ops reveal" id="hero-ops">
-        <span class="af-ops-lead">Not here to work? Play her — free, right here</span>
-        <button type="button" class="af-op af-op-play" data-selam-game="connect4"><span aria-hidden="true">🎮</span> Play a round</button>
+        <span class="af-ops-lead">Play her right now — free, no download</span>
+        <button type="button" class="af-op af-op-game" data-selam-game="chess"><span aria-hidden="true">♟️</span> Chess</button>
+        <button type="button" class="af-op af-op-game" data-selam-game="poker"><span aria-hidden="true">🂡</span> Poker</button>
+        <button type="button" class="af-op af-op-game" data-selam-game="connect4"><span aria-hidden="true">🔴</span> Four in a Row</button>
+        <button type="button" class="af-op af-op-game" data-selam-game="wordle"><span aria-hidden="true">🔤</span> Word Guess</button>
       </div>
     </div>
   </div>
