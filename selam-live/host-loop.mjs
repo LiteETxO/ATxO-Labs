@@ -1206,30 +1206,46 @@ function portraitURI(fn) {
   let uri = ""; try { const b = fs.readFileSync(path.join(process.env.HOME, "assets", fn)); uri = "data:image/jpeg;base64," + b.toString("base64"); } catch (_) {}
   _portraitCache[fn] = uri; return uri;
 }
-async function callPanelist(model, system, user, maxTok = 170) {
-  const key = _orKey(); if (!key) return "";
+let _ANTHKEY = null;
+function _anthKey() { if (_ANTHKEY !== null) return _ANTHKEY; try { _ANTHKEY = execSync("security find-generic-password -s selam.byok -a anthropic_api_key -w", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch (_) { _ANTHKEY = ""; } return _ANTHKEY; }
+// Route each panelist to the provider that has credit: Anthropic + OpenAI direct
+// (credited — her brain + TTS use them); OpenRouter only for models we lack a
+// direct key for (e.g. Gemini), with a smaller token budget.
+async function callPanelist(provider, model, system, user) {
   try {
     const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 30000);
-    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ model, max_tokens: maxTok, temperature: 0.85, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
-    });
-    clearTimeout(to);
-    const j = await r.json(); return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || "").trim();
+    let txt = "";
+    if (provider === "anthropic") {
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: ctl.signal, headers: { "x-api-key": _anthKey(), "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 600, system, messages: [{ role: "user", content: user }] }) });
+      const j = await r.json(); txt = ((j.content || []).find((c) => c.type === "text") || {}).text || "";
+      if (!txt && j.error) console.log("panelist anthropic:", j.error.message);
+    } else if (provider === "openai") {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + _oaiKey(), "Content-Type": "application/json" }, body: JSON.stringify({ model, max_tokens: 320, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
+      const j = await r.json(); txt = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+      if (!txt && j.error) console.log("panelist openai:", j.error.message);
+    } else {
+      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + _orKey(), "Content-Type": "application/json" }, body: JSON.stringify({ model, max_tokens: 170, temperature: 0.85, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
+      const j = await r.json(); txt = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+      if (!txt && j.error) console.log("panelist openrouter:", j.error.message);
+    }
+    clearTimeout(to); return (txt || "").trim();
   } catch (_) { return ""; }
 }
 async function setVoice(v) { try { await pg.evaluate((v) => { try { window.__selamAdapter._charOpenAIVoice = v || null; } catch (_) {} }, v || null); } catch (_) {} }
 
-const SOLO_MODEL = "anthropic/claude-sonnet-5";
+const SOLO_PROVIDER = "anthropic", SOLO_MODEL = "claude-sonnet-5";
+// All voices are feminine (every panelist wears Selam's face) but distinct.
 const PANEL_MULTI = [
-  { name: "Claude", model: "anthropic/claude-sonnet-5", label: "Anthropic", voice: "sage", portrait: "char-mei.jpg", color: "#d19a66" },
-  { name: "GPT-4.1", model: "openai/gpt-4.1", label: "OpenAI", voice: "onyx", portrait: "char-keen.jpg", color: "#10b981" },
-  { name: "Gemini", model: "google/gemini-3.7-flash", label: "Google", voice: "nova", portrait: "char-naima.jpg", color: "#5b8dff" },
+  { name: "Claude", provider: "anthropic", model: "claude-sonnet-5", label: "Anthropic", voice: "shimmer", portrait: "char-mei.jpg", color: "#d19a66" },
+  { name: "GPT-4.1", provider: "openai", model: "gpt-4.1", label: "OpenAI", voice: "coral", portrait: "char-keen.jpg", color: "#10b981" },
+  // Gemini needs OpenRouter credit (currently dry) — using a credited 3rd model
+  // so all three reason fully. Swap back to Gemini once OpenRouter is funded.
+  { name: "GPT-4o", provider: "openai", model: "gpt-4o", label: "OpenAI", voice: "nova", portrait: "char-naima.jpg", color: "#5b8dff" },
 ];
 const PANEL_SOLO = [
   { name: "The Optimist", persona: "an upbeat optimist who sees the opportunity in everything", voice: "nova", portrait: "char-hope.jpg", color: "#3ecf8e" },
-  { name: "The Skeptic", persona: "a sharp, careful skeptic who pokes holes and asks the hard question", voice: "onyx", portrait: "char-keen.jpg", color: "#ff8a5c" },
-  { name: "The Pragmatist", persona: "a grounded pragmatist focused only on what actually works in practice", voice: "sage", portrait: "char-kiya.jpg", color: "#8ab6ff" },
+  { name: "The Skeptic", persona: "a sharp, careful skeptic who pokes holes and asks the hard question", voice: "coral", portrait: "char-keen.jpg", color: "#ff8a5c" },
+  { name: "The Pragmatist", persona: "a grounded pragmatist focused only on what actually works in practice", voice: "shimmer", portrait: "char-kiya.jpg", color: "#8ab6ff" },
 ];
 const PANEL_TOPICS = ["Will AI agents replace apps?", "Is remote work here to stay?", "Should AI run on-device or in the cloud?", "Will crypto go mainstream this decade?", "Is AGI closer than we think?", "Do people still need to learn to code?", "Is social media good for society?", "Will we all have an AI of our own in five years?"];
 let _panelIdx = 0;
@@ -1305,7 +1321,7 @@ async function modelPanel(topicArg, solo) {
         ? `You are ${p.name}, appearing as yourself on a live AI panel show. Answer in YOUR authentic voice and reasoning style. Be concise: 2-3 punchy spoken sentences, a clear opinion, no hedging, no lists, no markdown, no emojis. It will be read aloud.`
         : `You are "${p.name}", ${p.persona}. You're on a live panel. Give your take in 2-3 punchy spoken sentences, firmly in character, a clear opinion, no lists/markdown/emojis. Read aloud.`;
       await setPanelActive(i, p.name, p.label || "Persona", p.color, "…thinking…");
-      let txt = cleanSpoken(await callPanelist(multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}. Give your opening take.`)) || "I'll keep my powder dry on this one.";
+      let txt = cleanSpoken(await callPanelist(multi ? p.provider : SOLO_PROVIDER, multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}. Give your opening take.`)) || "I'll keep my powder dry on this one.";
       takes.push({ name: p.name, text: txt });
       await setPanelActive(i, p.name, p.label || "Persona", p.color, txt);
       await speakAs(p.voice, txt);
@@ -1318,7 +1334,7 @@ async function modelPanel(topicArg, solo) {
       const sys = multi
         ? `You are ${p.name} on a live AI panel. In 1-2 spoken sentences, directly push back on or sharpen the others' takes — characterful and specific. No lists/markdown/emojis. Read aloud.`
         : `You are "${p.name}", ${p.persona}. In 1-2 spoken sentences, push back on the others, in character. No lists/markdown. Read aloud.`;
-      let txt = cleanSpoken(await callPanelist(multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}.\n${others}\n\nYour quick rebuttal:`));
+      let txt = cleanSpoken(await callPanelist(multi ? p.provider : SOLO_PROVIDER, multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}.\n${others}\n\nYour quick rebuttal:`));
       if (!txt) continue;
       await setPanelActive(i, p.name, p.label || "Persona", p.color, txt);
       await speakAs(p.voice, txt);
@@ -1452,10 +1468,10 @@ async function livePanel(topicArg, solo) {
     for (let i = 0; i < panelists.length; i++) {
       const p = panelists[i];
       const sys = multi
-        ? `You are ${p.name}, appearing as yourself on a live AI panel. Answer in YOUR authentic voice. 2-3 punchy spoken sentences, a clear opinion, no hedging/lists/markdown/emojis. Read aloud.`
-        : `You are "${p.name}", ${p.persona}. On a live panel: 2-3 punchy spoken sentences, in character, clear opinion, no lists/markdown/emojis. Read aloud.`;
+        ? `You are ${p.name}, appearing as yourself on a live AI panel debating a question. Give your genuine position AND reason it out loud — state your view, then the core argument or evidence behind it, in your own distinctive voice. 3-4 natural spoken sentences. Be specific and substantive; bring an angle the others might miss — don't settle for the obvious take or vague platitudes. No lists, markdown, or emojis; it's read aloud.`
+        : `You are "${p.name}", ${p.persona}. On a live panel, give your position on the question and the reasoning behind it, firmly in character. 3-4 natural spoken sentences, specific and substantive. No lists/markdown/emojis. Read aloud.`;
       await setLivePanelBar(i, p.name, p.label || "Persona", p.color, "…thinking…");
-      const txt = cleanSpoken(await callPanelist(multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}. Your opening take.`)) || "I'll keep my powder dry on this one.";
+      const txt = cleanSpoken(await callPanelist(multi ? p.provider : SOLO_PROVIDER, multi ? p.model : SOLO_MODEL, sys, `The question up for debate: "${topic}". Give your opening take — your position and why.`)) || "I'll keep my powder dry on this one.";
       takes.push({ name: p.name, text: txt });
       await sayTurn(i, p, txt);
     }
@@ -1465,9 +1481,9 @@ async function livePanel(topicArg, solo) {
       const p = panelists[i];
       const others = takes.filter((_, j) => j !== i).map((t) => `${t.name} said: ${t.text}`).join("\n");
       const sys = multi
-        ? `You are ${p.name} on a live AI panel. 1-2 spoken sentences pushing back on the others, characterful. No lists/markdown/emojis. Read aloud.`
-        : `You are "${p.name}", ${p.persona}. 1-2 spoken sentences pushing back on the others, in character. Read aloud.`;
-      const txt = cleanSpoken(await callPanelist(multi ? p.model : SOLO_MODEL, sys, `The question: ${topic}.\n${others}\n\nYour rebuttal:`));
+        ? `You are ${p.name} on a live AI panel. You've heard the others. In 2-3 spoken sentences, engage a SPECIFIC point one of them made — name whose, then either sharpen it with a reason or challenge it with a counter-argument. Show real reasoning and stay characterful. No lists/markdown/emojis. Read aloud.`
+        : `You are "${p.name}", ${p.persona}. In 2-3 spoken sentences, respond to a specific point the others made — agree-and-extend it, or challenge it with a reason, in character. No lists/markdown/emojis. Read aloud.`;
+      const txt = cleanSpoken(await callPanelist(multi ? p.provider : SOLO_PROVIDER, multi ? p.model : SOLO_MODEL, sys, `The question: "${topic}".\nThe others said:\n${others}\n\nYour rebuttal — engage a specific point:`));
       if (!txt) continue;
       await sayTurn(i, p, txt);
     }
