@@ -1378,7 +1378,7 @@ async function mountLivePanel(topic, configs) {
         // Hide the overlay cards (they live ABOVE this layer and would float over the seats).
         ["slo-prices", "slo-newsimg", "slo-poll", "slo-textcard"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = "none"; });
         const tp = document.createElement("div"); tp.style.cssText = "position:absolute;top:70px;left:0;right:0;text-align:center;z-index:3;font:700 25px/1.3 -apple-system,'Segoe UI',system-ui,sans-serif;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);padding:0 6%"; tp.textContent = "“" + topic + "”"; layer.appendChild(tp);
-        const row = document.createElement("div"); row.style.cssText = "position:absolute;left:3%;right:3%;top:120px;bottom:140px;display:flex;justify-content:center;align-items:stretch;gap:2%"; layer.appendChild(row);
+        const row = document.createElement("div"); row.style.cssText = "position:absolute;left:3%;right:3%;top:118px;bottom:196px;display:flex;justify-content:center;align-items:stretch;gap:2%"; layer.appendChild(row);
         const ac = document.getElementById("avatar-container"); if (ac) { ac.dataset.sloPrev = ac.style.display || ""; ac.style.display = "none"; }
         const mod = await import("./selam-web-avatar.bundle.js");
         window.__livePanel = { instances: [], seats: [] };
@@ -1406,31 +1406,46 @@ async function setLivePanelBar(idx, name, label, color, text) {
       lp.seats.forEach((s, i) => { const on = i === idx; s.style.opacity = on ? "1" : ".58"; s.style.transform = on ? "translateY(-8px) scale(1.03)" : "none"; s.style.boxShadow = on ? `0 0 0 3px ${color}, 0 18px 46px rgba(0,0,0,.6)` : "0 14px 40px rgba(0,0,0,.5)"; if (on) s.style.borderColor = color; });
       const layer = document.getElementById("slo-livepanel"); if (!layer) return;
       let bar = document.getElementById("slo-lp-bar"); if (!bar) { bar = document.createElement("div"); bar.id = "slo-lp-bar"; layer.appendChild(bar); }
-      bar.style.cssText = `position:absolute;left:4%;right:4%;bottom:64px;z-index:4;border-radius:14px;background:linear-gradient(90deg,rgba(10,12,19,.95),rgba(10,12,19,.86));border-left:5px solid ${color};box-shadow:0 12px 34px rgba(0,0,0,.55);padding:13px 18px;font-family:-apple-system,system-ui,sans-serif`;
-      bar.innerHTML = `<span style="font:800 16px -apple-system,system-ui,sans-serif;color:${color};margin-right:10px">${name}${label ? ` <span style="font-weight:600;font-size:12px;opacity:.85">· ${label}</span>` : ""}</span><span style="font:600 19px/1.45 -apple-system,'Segoe UI',system-ui,sans-serif;color:#eef2ff">${text}</span>`;
+      bar.style.cssText = `position:absolute;left:4%;right:4%;bottom:52px;z-index:6;border-radius:14px;background:linear-gradient(90deg,rgba(10,12,19,.97),rgba(10,12,19,.9));border-left:5px solid ${color};box-shadow:0 12px 34px rgba(0,0,0,.55);padding:12px 20px 14px;font-family:-apple-system,system-ui,sans-serif`;
+      bar.innerHTML = `<div style="font:800 15px -apple-system,system-ui,sans-serif;color:${color};margin-bottom:6px">${name}${label ? ` <span style="font-weight:600;font-size:11px;opacity:.85">· ${label}</span>` : ""}</div>`
+        + `<div id="slo-lp-vp" style="position:relative;max-height:3.2em;overflow:hidden"><div id="slo-lp-inner" style="font:600 20px/1.6 -apple-system,'Segoe UI',system-ui,sans-serif;color:#eef2ff;transform:translateY(0);will-change:transform">${text}</div></div>`;
     }, { idx, name, label, color, text });
   } catch (_) {}
 }
 // Play one clip: captured voice via the primary graph + muted lip-sync on instance idx.
-async function panelSpeak(idx, dataUrl, text) {
+async function panelSpeak(idx, dataUrl, text, gestures) {
   try {
-    await pg.evaluate(async ({ idx, dataUrl, text }) => {
+    await pg.evaluate(async ({ idx, dataUrl, text, gestures }) => {
       const lp = window.__livePanel; if (!lp) return;
       const prim = window.__selamAdapter && window.__selamAdapter.avatar;
       const ctx = prim && prim.audioCtx;
       const arr = await (await fetch(dataUrl)).arrayBuffer();
+      let dur = 0;
       if (prim && ctx) {
         try {
           if (ctx.state === "suspended") await ctx.resume();
-          const ab = await ctx.decodeAudioData(arr.slice(0));
+          const ab = await ctx.decodeAudioData(arr.slice(0)); dur = ab.duration;
           const f32 = ab.getChannelData(0); const i16 = new Int16Array(f32.length);
           for (let k = 0; k < f32.length; k++) { const s = f32[k] < -1 ? -1 : f32[k] > 1 ? 1 : f32[k]; i16[k] = s < 0 ? s * 32768 : s * 32767; }
           prim.sendAudioChunk(i16, ab.sampleRate);   // → captured on the stream
         } catch (_) {}
       }
+      // Teleprompter: scroll the speaker bar text, paced to the clip length.
+      try {
+        const vp = document.getElementById("slo-lp-vp"), inner = document.getElementById("slo-lp-inner");
+        if (vp && inner && dur > 0) {
+          const overflow = inner.scrollHeight - vp.clientHeight;
+          if (overflow > 2) {
+            vp.style.webkitMaskImage = "linear-gradient(to bottom,transparent 0,#000 34%,#000 100%)"; vp.style.maskImage = vp.style.webkitMaskImage;
+            const hold = Math.min(900, dur * 120), move = Math.max(400, dur * 1000 - hold - 350); let t0 = null;
+            const step = (ts) => { if (t0 == null) t0 = ts; const el = ts - t0 - hold; const p = el <= 0 ? 0 : Math.min(1, el / move); inner.style.transform = "translateY(-" + (overflow * p) + "px)"; if (p < 1) requestAnimationFrame(step); };
+            requestAnimationFrame(step);
+          }
+        }
+      } catch (_) {}
       const api = lp.instances[idx];
-      if (api) { try { api.setMuted(true); } catch (_) {} try { await api.speakClip(dataUrl, { text }); } catch (_) {} }   // visual lip-sync, silent
-    }, { idx, dataUrl, text });
+      if (api) { try { api.setMuted(true); } catch (_) {} try { await api.speakClip(dataUrl, { text, emotion: "warm", gestures: gestures || [] }); } catch (_) {} }   // lip-sync + gestures, silent
+    }, { idx, dataUrl, text, gestures });
   } catch (_) {}
 }
 async function destroyLivePanel() {
@@ -1454,10 +1469,12 @@ async function livePanel(topicArg, solo) {
   const configs = panelists.map((p, i) => ({ name: p.name, label: p.label || "Persona", color: p.color, colors: PANEL_COLORS[i % PANEL_COLORS.length] }));
   const mounted = await mountLivePanel(topic, configs);
   if (!mounted) { console.log("live rigs unavailable → card panel fallback"); _panelActive = false; return await modelPanel(topicArg, solo); }
+  const G = ["open_palms", "point", "think", "shrug"];
+  const pickGestures = () => { const a = G.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); const t = a[k]; a[k] = a[j]; a[j] = t; } return a.slice(0, 2); };
   const sayTurn = async (i, p, txt) => {
     await setLivePanelBar(i, p.name, p.label || "Persona", p.color, txt);
     const clip = await ttsClip(txt, p.voice);
-    if (clip) await panelSpeak(i, clip, txt);
+    if (clip) await panelSpeak(i, clip, txt, pickGestures());
     else { await setVoice(p.voice); await speakLine(txt); }   // fallback: primary voices it
   };
   try {
