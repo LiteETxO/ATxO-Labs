@@ -1220,7 +1220,7 @@ async function callPanelist(provider, model, system, user) {
       const j = await r.json(); txt = ((j.content || []).find((c) => c.type === "text") || {}).text || "";
       if (!txt && j.error) console.log("panelist anthropic:", j.error.message);
     } else if (provider === "openai") {
-      const r = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + _oaiKey(), "Content-Type": "application/json" }, body: JSON.stringify({ model, max_tokens: 320, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
+      const r = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + _oaiKey(), "Content-Type": "application/json" }, body: JSON.stringify({ model, max_tokens: 180, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
       const j = await r.json(); txt = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
       if (!txt && j.error) console.log("panelist openai:", j.error.message);
     } else {
@@ -1485,8 +1485,8 @@ async function livePanel(topicArg, solo) {
     for (let i = 0; i < panelists.length; i++) {
       const p = panelists[i];
       const sys = multi
-        ? `You are ${p.name}, appearing as yourself on a live AI panel debating a question. Give your genuine position AND reason it out loud — state your view, then the core argument or evidence behind it, in your own distinctive voice. 3-4 natural spoken sentences. Be specific and substantive; bring an angle the others might miss — don't settle for the obvious take or vague platitudes. No lists, markdown, or emojis; it's read aloud.`
-        : `You are "${p.name}", ${p.persona}. On a live panel, give your position on the question and the reasoning behind it, firmly in character. 3-4 natural spoken sentences, specific and substantive. No lists/markdown/emojis. Read aloud.`;
+        ? `You are ${p.name} on a live AI panel. State your position and ONE core reason, in your distinctive voice. EXACTLY 2-3 short spoken sentences — punchy, specific, a clear angle — then stop. No lists, markdown, or emojis; it's read aloud.`
+        : `You are "${p.name}", ${p.persona}. Give your position and one core reason, in character. EXACTLY 2-3 short spoken sentences, then stop. No lists/markdown/emojis. Read aloud.`;
       await setLivePanelBar(i, p.name, p.label || "Persona", p.color, "…thinking…");
       const txt = cleanSpoken(await callPanelist(multi ? p.provider : SOLO_PROVIDER, multi ? p.model : SOLO_MODEL, sys, `The question up for debate: "${topic}". Give your opening take — your position and why.`)) || "I'll keep my powder dry on this one.";
       takes.push({ name: p.name, text: txt });
@@ -1498,8 +1498,8 @@ async function livePanel(topicArg, solo) {
       const p = panelists[i];
       const others = takes.filter((_, j) => j !== i).map((t) => `${t.name} said: ${t.text}`).join("\n");
       const sys = multi
-        ? `You are ${p.name} on a live AI panel. You've heard the others. In 2-3 spoken sentences, engage a SPECIFIC point one of them made — name whose, then either sharpen it with a reason or challenge it with a counter-argument. Show real reasoning and stay characterful. No lists/markdown/emojis. Read aloud.`
-        : `You are "${p.name}", ${p.persona}. In 2-3 spoken sentences, respond to a specific point the others made — agree-and-extend it, or challenge it with a reason, in character. No lists/markdown/emojis. Read aloud.`;
+        ? `You are ${p.name} on a live AI panel. In EXACTLY 1-2 short spoken sentences, engage ONE specific point someone made — name whose, then sharpen or challenge it. Then stop. No lists/markdown/emojis. Read aloud.`
+        : `You are "${p.name}", ${p.persona}. In 1-2 short spoken sentences, respond to a specific point the others made, in character. Then stop. No lists/markdown/emojis. Read aloud.`;
       const txt = cleanSpoken(await callPanelist(multi ? p.provider : SOLO_PROVIDER, multi ? p.model : SOLO_MODEL, sys, `The question: "${topic}".\nThe others said:\n${others}\n\nYour rebuttal — engage a specific point:`));
       if (!txt) continue;
       await sayTurn(i, p, txt);
@@ -1997,7 +1997,7 @@ for (;;) {
     }
     // The Model Panel every ~20 min — flagship: 3 different LLMs (or 3 personas on
     // one model) debate a topic, each with its own voice + portrait tile.
-    if (Date.now() - lastPanelAt > 20 * 60 * 1000) {
+    if (Date.now() - lastPanelAt > 30 * 60 * 1000) {
       lastPanelAt = Date.now();
       await livePanel("", false);
       await sleep(1500); continue;
