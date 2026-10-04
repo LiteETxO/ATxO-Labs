@@ -1728,23 +1728,28 @@ async function restoreLayoutAndExit(reason) {
 // platform drops the public broadcast, but ffmpeg has no idea). Then she keeps
 // reporting "live" while nobody can watch. So we ask the platform itself whether
 // it's still serving, and if it's been dropped for a sustained window, end.
-let _platGoneSince = 0, _lastPlatCheck = 0;
+let _platGoneSince = 0, _lastPlatCheck = 0, _platDropStreak = 0;
+// Tri-state: true = confirmed serving · false = confirmed dropped · null =
+// inconclusive (API error, malformed/empty response on a slow link, not resolved
+// yet). On a very slow network the health call often returns empty/garbled — that
+// must NOT be read as "dropped" (it was, and it cut healthy shows off-air).
 async function platformServingLive() {
   try {
     if (PLATFORM === "facebook") {
-      if (!FB_VIDEO) return true;                       // not resolved yet — don't false-alarm
+      if (!FB_VIDEO) return null;                        // not resolved yet
       const r = await gget(`${FB_VIDEO}?fields=status`, COMMENT_TOKEN || FB_TOKEN);
-      return LIVE_STATES.includes(r.status);            // LIVE / LIVE_NOW = serving; else dropped
+      if (!r || typeof r.status !== "string") return null;   // malformed → inconclusive, not "dropped"
+      return LIVE_STATES.includes(r.status);
     }
     if (PLATFORM === "youtube") {
-      if (!CKEY || !YT_CID) return true;                // can't check yet — don't false-alarm
+      if (!CKEY || !YT_CID) return null;                 // can't check yet
       const d = await ytProxy("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=status&broadcastStatus=active&broadcastType=all&maxResults=5");
-      const items = (d && d.items) || [];
-      if (!items.length) return false;                  // nothing active on YouTube → not serving
-      return items.some((i) => ["live", "liveStarting"].includes((i.status || {}).lifeCycleStatus));
+      if (!d || !Array.isArray(d.items)) return null;    // proxy error / garbled on slow link → inconclusive
+      if (!d.items.length) return false;                 // well-formed AND empty → genuinely nothing active
+      return d.items.some((i) => ["live", "liveStarting"].includes((i.status || {}).lifeCycleStatus));
     }
-  } catch (_) { return true; }                          // API blip → don't false-alarm (encoderGone still covers a dead stream)
-  return true;                                          // none/mock → nothing to check
+  } catch (_) { return null; }                           // API blip → inconclusive
+  return true;                                           // none/mock → nothing to check
 }
 
 await setupStageLayout();   // shift her to the presenter position ONCE (no sliding per beat)
@@ -1818,11 +1823,18 @@ for (;;) {
   // fully go live), and end after ~90s sustained-dropped so a transient API/health
   // blip never cuts a healthy show. This is what stops her claiming "live" when
   // the platform has quietly dropped the broadcast.
-  if (!REHEARSE && Date.now() - _liveStartTs > 60000 && Date.now() - _lastPlatCheck > 45000) {
+  if (!REHEARSE && Date.now() - _liveStartTs > 90000 && Date.now() - _lastPlatCheck > 45000) {
     _lastPlatCheck = Date.now();
     const serving = await platformServingLive();
-    if (!serving) { if (!_platGoneSince) _platGoneSince = Date.now(); else if (Date.now() - _platGoneSince > 90000) { await restoreLayoutAndExit("platform stopped serving the live for ~90s"); } }
-    else { _platGoneSince = 0; }
+    // Only a CONFIRMED drop (false) counts. Inconclusive (null — common on a slow
+    // network) is ignored so a degraded health-check never cuts a healthy show.
+    // End only after 3 consecutive confirmed drops (~135s+) AND the encoder gap.
+    if (serving === false) {
+      _platDropStreak++;
+      if (!_platGoneSince) _platGoneSince = Date.now();
+      if (_platDropStreak >= 3 && Date.now() - _platGoneSince > 135000) { await restoreLayoutAndExit("platform confirmed not serving (3× over ~135s)"); }
+    } else if (serving === true) { _platGoneSince = 0; _platDropStreak = 0; }
+    // serving === null → leave counters as-is (inconclusive, don't punish)
   }
   // Timed-session auto-wrap: heads-up near the end, then a graceful wrap + end.
   if (LIVE_MINUTES > 0) {
