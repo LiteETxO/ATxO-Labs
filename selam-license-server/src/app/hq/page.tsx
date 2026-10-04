@@ -7,6 +7,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import RevenueView, { Metrics } from './RevenueView';
 import LandingView, { AnalyticsData } from './LandingView';
+import AskUsageView, { AskUsage } from './AskUsageView';
+import BroadcastView, { BroadcastData } from './BroadcastView';
 
 const CSS = `
 :root{
@@ -108,7 +110,7 @@ td.name{font-family:var(--mono);font-size:12px;color:var(--ink2)}
 @media(max-width:520px){.hq{padding:14px}.hqkpi .v{font-size:22px}.kpi .v{font-size:22px}}
 `;
 
-type Tab = 'revenue' | 'landing';
+type Tab = 'revenue' | 'landing' | 'ask' | 'broadcast';
 
 export default function HQ() {
   const [token, setToken] = useState('');
@@ -117,6 +119,8 @@ export default function HQ() {
   const [tab, setTab] = useState<Tab>('revenue');
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [adata, setAdata] = useState<AnalyticsData | null>(null);
+  const [ask, setAsk] = useState<AskUsage | null>(null);
+  const [bcast, setBcast] = useState<BroadcastData | null>(null);
   const [days, setDays] = useState(30);
   const [live, setLive] = useState(true);
   const [updated, setUpdated] = useState('');
@@ -141,20 +145,43 @@ export default function HQ() {
     } catch { setLive(false); }
   }, []);
 
+  const loadAsk = useCallback(async (tok: string) => {
+    try {
+      const r = await fetch('/api/ask-usage?key=' + encodeURIComponent(tok), { cache: 'no-store' });
+      if (r.status === 401) { setErr('Wrong token.'); setEntered(false); try { localStorage.removeItem('selamhq:key'); } catch {} return; }
+      const j = await r.json();
+      if (!r.ok) { setAsk({ configured: true, error: j.error || ('Failed (' + r.status + ')') }); return; }
+      setAsk(j); setErr('');
+    } catch { setLive(false); }
+  }, []);
+
+  const loadBcast = useCallback(async (tok: string) => {
+    try {
+      const r = await fetch('/api/broadcast?key=' + encodeURIComponent(tok), { cache: 'no-store' });
+      if (r.status === 401) { setErr('Wrong token.'); setEntered(false); try { localStorage.removeItem('selamhq:key'); } catch {} return; }
+      const j = await r.json();
+      if (!r.ok) { setBcast({ error: j.error || ('Failed (' + r.status + ')'), broadcasts: [], aggregate: { count: 0, avgMin: 0, totalMin: 0, peakViewers: 0, questions: 0, cost: 0, segments: {} } }); return; }
+      setBcast(j); setErr('');
+    } catch { setLive(false); }
+  }, []);
+
   const start = useCallback((tok: string, initialTab: Tab) => {
     setToken(tok); setEntered(true);
     try { localStorage.setItem('selamhq:key', tok); } catch {}
     try { history.replaceState({}, '', location.pathname); } catch {}
     loadMetrics(tok);
     if (initialTab === 'landing') loadLanding(tok, days);
+    if (initialTab === 'ask') loadAsk(tok);
+    if (initialTab === 'broadcast') loadBcast(tok);
     if (timer.current) clearInterval(timer.current);
     timer.current = setInterval(() => loadMetrics(tok), 60000);
-  }, [loadMetrics, loadLanding, days]);
+  }, [loadMetrics, loadLanding, loadAsk, loadBcast, days]);
 
   useEffect(() => {
     const qs = new URLSearchParams(location.search);
     const q = qs.get('key');
-    const t: Tab = qs.get('tab') === 'landing' ? 'landing' : 'revenue';
+    const qt = qs.get('tab');
+    const t: Tab = qt === 'landing' ? 'landing' : qt === 'ask' ? 'ask' : qt === 'broadcast' ? 'broadcast' : 'revenue';
     setTab(t);
     let stored = ''; try { stored = localStorage.getItem('selamhq:key') || ''; } catch {}
     const tok = q || stored;
@@ -165,9 +192,11 @@ export default function HQ() {
   const switchTab = (t: Tab) => {
     setTab(t);
     if (t === 'landing' && !adata && token) loadLanding(token, days);
+    if (t === 'ask' && !ask && token) loadAsk(token);
+    if (t === 'broadcast' && !bcast && token) loadBcast(token);
   };
   const changeDays = (d: number) => { setDays(d); loadLanding(token, d); };
-  const refresh = () => { if (tab === 'revenue') loadMetrics(token); else loadLanding(token, days); };
+  const refresh = () => { if (tab === 'revenue') loadMetrics(token); else if (tab === 'landing') loadLanding(token, days); else if (tab === 'ask') loadAsk(token); else loadBcast(token); };
   const signOut = () => { try { localStorage.removeItem('selamhq:key'); } catch {}; if (timer.current) clearInterval(timer.current); setEntered(false); setMetrics(null); setAdata(null); };
 
   if (!entered) {
@@ -197,6 +226,8 @@ export default function HQ() {
             <div className="tabs">
               <button className={tab === 'revenue' ? 'on' : ''} onClick={() => switchTab('revenue')}>Revenue</button>
               <button className={tab === 'landing' ? 'on' : ''} onClick={() => switchTab('landing')}>Landing</button>
+              <button className={tab === 'ask' ? 'on' : ''} onClick={() => switchTab('ask')}>Ask Selam</button>
+              <button className={tab === 'broadcast' ? 'on' : ''} onClick={() => switchTab('broadcast')}>Broadcast</button>
             </div>
           </div>
           <div className="hqmeta">
@@ -215,10 +246,14 @@ export default function HQ() {
 
         {tab === 'revenue'
           ? <RevenueView d={metrics || {}} />
-          : (adata ? <LandingView d={adata} /> : <div className="hqloading">Loading landing analytics…</div>)}
+          : tab === 'landing'
+          ? (adata ? <LandingView d={adata} /> : <div className="hqloading">Loading landing analytics…</div>)
+          : tab === 'ask'
+          ? (ask ? <AskUsageView d={ask} /> : <div className="hqloading">Loading Ask-Selam usage…</div>)
+          : (bcast ? <BroadcastView d={bcast} /> : <div className="hqloading">Loading broadcast metrics…</div>)}
 
         <div style={{ color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'center', marginTop: 8 }}>
-          {tab === 'landing' && adata ? `generated ${adata.generatedAt} · first-party · cookieless` : 'real Stripe + Neon · token-gated'}
+          {tab === 'landing' && adata ? `generated ${adata.generatedAt} · first-party · cookieless` : tab === 'ask' ? 'Ask-Selam API budget · Upstash · token-gated' : tab === 'broadcast' ? 'Live-show metrics · Neon · token-gated' : 'real Stripe + Neon · token-gated'}
         </div>
       </div>
     </div>

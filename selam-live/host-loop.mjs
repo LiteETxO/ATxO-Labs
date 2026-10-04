@@ -374,6 +374,7 @@ ${lines}
 In about 4 to 5 spoken sentences, tie these threads together into the bigger AI / crypto / tech arc, give your honest take on where it's all heading, and warmly invite viewers to drop their own take in the comments. Do NOT invent facts beyond these headlines. ${_TONE} ${_PRIV}`;
 }
 async function deepDive() {
+  bumpSeg("deepdive");
   // Build a 4-story lineup. With a FOCUS set, lead with the best-matched
   // stories; otherwise AI/crypto-led with some variety.
   const picks = [];
@@ -477,6 +478,7 @@ async function fetchFeatureImage(feat) { return feat.url || (await openverseImag
 // live overlays for the duration, then restore. It auto-advances and stops on the
 // last step, so we close it once it reaches "Done".
 async function runTour() {
+  bumpSeg("tour");
   console.log("🎬 launching the built-in product tour");
   try {
     await pg.evaluate(() => {
@@ -621,6 +623,7 @@ async function refreshViewers() {
       const r = await gget(`${FB_VIDEO}?fields=live_views`, COMMENT_TOKEN || FB_TOKEN);
       if (r && typeof r.live_views === "number") liveViewers = r.live_views;
     }
+    sampleViewers();
   } catch (_) {}
 }
 // Injected into content prompts so she can naturally reference the crowd size.
@@ -1115,6 +1118,7 @@ async function setSegmentBanner(label) {
 
 // Live poll card with A/B bars that fill as votes land.
 async function showPoll(p) {
+  bumpSeg("poll");
   await hideRightCards("slo-poll");
   try {
     await pg.evaluate(({ q, al, bl }) => {
@@ -1177,6 +1181,7 @@ async function showTextCard(title, body) {
   } catch (_) {}
 }
 async function creationBeat() {
+  bumpSeg("creator");
   const pool = ["your Monday", "coffee", "the stock market", "working from home", "artificial intelligence", "the weekend", "procrastination", "the chat", "your to-do list"];
   let topic = "", fromViewer = null;
   const c = recentComments.slice().reverse().find((x) => { const w = (x.text || "").trim(); return w && w.split(/\s+/).length <= 6 && w.length <= 40; });
@@ -1302,6 +1307,7 @@ async function hidePanel() {
 
 let lastPanelAt = Date.now();
 async function modelPanel(topicArg, solo) {
+  bumpSeg("panel");
   const multi = !solo;
   const panelists = multi ? PANEL_MULTI : PANEL_SOLO;
   const topic = (topicArg || "").trim() || PANEL_TOPICS[(_panelIdx++) % PANEL_TOPICS.length];
@@ -1460,6 +1466,7 @@ async function destroyLivePanel() {
   } catch (_) {}
 }
 async function livePanel(topicArg, solo) {
+  bumpSeg("panel");
   const multi = !solo;
   const panelists = multi ? PANEL_MULTI : PANEL_SOLO;
   const topic = (topicArg || "").trim() || PANEL_TOPICS[(_panelIdx++) % PANEL_TOPICS.length];
@@ -1597,6 +1604,7 @@ function urgentStopPending() {
   } catch (_) { return false; }
 }
 async function newsBeatOf(n) {
+  bumpSeg("news");
   if (!n) return;
   let img = null; try { img = await fetchNewsImage(n); } catch (_) {}
   if (img) await showNewsImage(img, n.cat.toUpperCase() + " · IN THE NEWS", n.title);
@@ -1619,7 +1627,7 @@ async function handleControl(c) {
     if (arg) tq = TRIVIA.find((t) => t.q.toLowerCase().includes(arg.toLowerCase()) || t.a.some((a) => a.toLowerCase() === arg.toLowerCase()));
     tq = tq || triviaQueue.shift();
     lastTriviaAt = Date.now();
-    activeTrivia = { q: tq.q, a: tq.a, at: Date.now() };
+    activeTrivia = { q: tq.q, a: tq.a, at: Date.now() }; bumpSeg("trivia");
     console.log("🎯 trivia (steered):", tq.q, "| answer:", tq.a[0]);
     try { await showNewsImage(SELAM_HERO, "SELAM · TRIVIA 🎉", ""); } catch (_) {}
     await speakLine(tq.q);
@@ -1661,6 +1669,7 @@ async function handleControl(c) {
     await speakLine(WRAP_LINE);
     await sleep(1500);
     console.log("🎬 wrap complete → ending live");
+    await flushBroadcast(true).catch(() => {});
     spawn("node", ["end-live.mjs"], { cwd: ROOT, stdio: "ignore", detached: true }).unref();
   } else if (cmd === "say" && arg) {
     await speakLine(arg);
@@ -1691,6 +1700,8 @@ function encoderGone() {
 }
 async function restoreLayoutAndExit(reason) {
   console.log(`⚠ ${reason} — broadcast stream is gone; restoring layout and exiting.`);
+  await flushBroadcast(true).catch(() => {});   // final metrics summary for HQ
+
   try {
     await pg.evaluate(async () => {
       try { await window.__selamLive.stop(); } catch (_) {}   // live_stop → window restore
@@ -1761,6 +1772,34 @@ const _liveStartTs = Date.now();
 let _wrapWarned = false;
 if (LIVE_MINUTES > 0) console.log(`⏱ timed session: ${LIVE_MINUTES} min`);
 
+// ── Broadcast metrics: accumulate a per-show summary + flush it to HQ ─────────
+// (/api/broadcast on the license server → Neon → HQ "Broadcast" tab). Best-effort;
+// a flush failure never disrupts the show.
+const _bcast = { seg: {}, peakViewers: 0, _vSum: 0, _vN: 0, questionsAnswered: 0, _lastFlush: 0 };
+function bumpSeg(name) { try { _bcast.seg[name] = (_bcast.seg[name] || 0) + 1; } catch (_) {} }
+function sampleViewers() { if (typeof liveViewers === "number" && liveViewers >= 0) { if (liveViewers > _bcast.peakViewers) _bcast.peakViewers = liveViewers; _bcast._vSum += liveViewers; _bcast._vN += 1; } }
+async function flushBroadcast(final) {
+  const tok = process.env.SELAM_BROADCAST_TOKEN; if (!tok) return;
+  try {
+    const now = Date.now();
+    const id = (YT_VIDEO_ID && ("yt:" + YT_VIDEO_ID)) || (PLATFORM + ":" + _liveStartTs);
+    const body = {
+      id, platform: PLATFORM, videoId: YT_VIDEO_ID || null,
+      startedAt: new Date(_liveStartTs).toISOString(),
+      endedAt: final ? new Date(now).toISOString() : null,
+      durationS: Math.round((now - _liveStartTs) / 1000),
+      peakViewers: _bcast.peakViewers,
+      avgViewers: _bcast._vN ? Math.round(_bcast._vSum / _bcast._vN) : 0,
+      questionsAnswered: _bcast.questionsAnswered,
+      segments: _bcast.seg,
+      rehearse: REHEARSE,
+    };
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
+    await fetch("https://api.heyselam.app/api/broadcast", { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "X-Ingest-Token": tok }, body: JSON.stringify(body) });
+    clearTimeout(to); _bcast._lastFlush = now;
+  } catch (_) {}
+}
+
 for (;;) {
   try {
   // Stream-died watchdog: if the encoder has been gone ~30s (tolerates blips +
@@ -1796,6 +1835,7 @@ for (;;) {
       console.log(`⏱ timed session (${LIVE_MINUTES} min) reached — wrapping + ending.`);
       try { await speakLine(WRAP_LINE); } catch (_) {}
       await sleep(1500);
+      await flushBroadcast(true).catch(() => {});
       if (REHEARSE) {
         try { const r = await pg.evaluate(() => window.__selamRecorder && window.__selamRecorder.stop ? window.__selamRecorder.stop() : { ok: false }); console.log("🎬 rehearsal saved:", JSON.stringify(r)); } catch (e) { console.log("save err:", e.message); }
         try { await pg.evaluate(() => window.__selamLive && window.__selamLive.stopOverlay && window.__selamLive.stopOverlay()); } catch (_) {}
@@ -1807,6 +1847,7 @@ for (;;) {
   }
   marketTick(false).catch(() => {});   // keep prices fresh (self-throttled to ~60s)
   refreshViewers().catch(() => {});     // keep the live viewer count fresh (self-throttled ~45s)
+  if (Date.now() - _bcast._lastFlush > 120000) flushBroadcast(false).catch(() => {});   // periodic metrics flush (~2 min)
   // Defensive: keep the broadcast clean every tick — studio-clean on, input box
   // empty (never let a stray prompt or the app chrome surface on stream).
   // studio-clean + empty input, and re-assert the presenter shift — a session/
@@ -1886,6 +1927,7 @@ for (;;) {
         }
       } catch (_) {}
       try { await showQABar(who, c.text); } catch (_) {}
+      _bcast.questionsAnswered++;
       const raw = await sayAndCapture(commentPrompt(c));
       const clean = cleanSpoken(raw);
       if (c.id && clean) await postReply(c.id, clean);
@@ -1948,7 +1990,7 @@ for (;;) {
       lastTriviaAt = Date.now();
       if (!triviaQueue.length) triviaQueue = shuffle(TRIVIA);
       const tq = triviaQueue.shift();
-      activeTrivia = { q: tq.q, a: tq.a, at: Date.now() };
+      activeTrivia = { q: tq.q, a: tq.a, at: Date.now() }; bumpSeg("trivia"); bumpSeg("trivia");
       try { await showNewsImage(SELAM_HERO, "SELAM · TRIVIA 🎉", ""); } catch (_) {}
       await speakLine(tq.q);
       await sleep(3500); continue;
@@ -2021,7 +2063,7 @@ for (;;) {
     try { await refreshNews(false); } catch (_) {}
     // Global market review every ~16 min — crypto + US/Europe/Asia indices, spoken.
     if (Date.now() - lastMarketReviewAt > 16 * 60 * 1000) {
-      lastMarketReviewAt = Date.now();
+      lastMarketReviewAt = Date.now(); bumpSeg("market");
       const md = await fetchGlobalMarkets();
       if (md.US.length || md.Europe.length || md.Asia.length || md.crypto.length) {
         try { await showNewsImage(SELAM_HERO, "SELAM · MARKETS 📈", "US · Europe · Asia · Crypto"); } catch (_) {}
