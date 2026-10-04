@@ -1629,15 +1629,60 @@ async function cohostStart(room) {
       guests[id].v.srcObject = stream;
       seat.querySelector(".slo-g-lab").textContent = name || "Guest";
       try { window.__selamLive && window.__selamLive.addGuestAudio && window.__selamLive.addGuestAudio(id, stream); } catch (_) {}
+      try { startGuestVAD(id, stream, name); } catch (_) {}
     }
-    function dropSeat(id) { const g = guests[id]; if (g) { try { g.seat.remove(); } catch (_) {} try { window.__selamLive.removeGuestAudio(id); } catch (_) {} delete guests[id]; } }
+    // Per-guest voice activity detection: when a guest speaks then pauses, capture
+    // that utterance as an audio blob and queue it for host-loop to transcribe +
+    // respond to. This is what lets Selam actually CONVERSE with the guest.
+    window.__cohostUtterances = window.__cohostUtterances || [];
+    function startGuestVAD(id, stream, name) {
+      const av = window.__selamAdapter && window.__selamAdapter.avatar;
+      const ac = av && av.audioCtx; if (!ac) return;
+      const atracks = stream.getAudioTracks(); if (!atracks.length) return;
+      const audioOnly = new MediaStream(atracks);
+      const src = ac.createMediaStreamSource(stream);
+      const an = ac.createAnalyser(); an.fftSize = 512; src.connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      let speaking = false, silenceAt = 0, speechStart = 0, rec = null, chunks = [];
+      const THRESH = 0.025, SIL_MS = 1100, MIN_MS = 500, MAX_MS = 20000;
+      function rms() { an.getByteTimeDomainData(buf); let s = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; s += v * v; } return Math.sqrt(s / buf.length); }
+      function finish() {
+        const dur = performance.now() - speechStart; speaking = false;
+        if (rec && rec.state !== "inactive") {
+          rec.onstop = function () {
+            const blob = new Blob(chunks, { type: "audio/webm" }); chunks = [];
+            if (dur < MIN_MS || blob.size < 1600) return;        // too short → ignore noise
+            const fr = new FileReader();
+            fr.onload = function () { try { window.__cohostUtterances.push({ id, name, b64: String(fr.result).split(",")[1], mime: "audio/webm", dur: Math.round(dur), ts: Date.now() }); } catch (_) {} };
+            fr.readAsDataURL(blob);
+          };
+          try { rec.stop(); } catch (_) {}
+        }
+      }
+      const tick = setInterval(function () {
+        const g = guests[id]; if (!g) { clearInterval(tick); return; }
+        const level = rms();
+        if (level > THRESH) {
+          silenceAt = 0;
+          if (!speaking) { speaking = true; speechStart = performance.now(); chunks = [];
+            try { rec = new MediaRecorder(audioOnly, { mimeType: "audio/webm" }); rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(); } catch (_) {}
+            try { g.seat.style.borderColor = "#3ecf8e"; } catch (_) {}   // green = speaking
+          } else if (performance.now() - speechStart > MAX_MS) { finish(); }   // cap runaway
+        } else if (speaking) {
+          if (!silenceAt) silenceAt = performance.now();
+          else if (performance.now() - silenceAt > SIL_MS) { try { g.seat.style.borderColor = "rgba(34,211,238,.6)"; } catch (_) {} finish(); }
+        }
+      }, 100);
+      guests[id].vad = { tick, src };
+    }
+    function dropSeat(id) { const g = guests[id]; if (g) { try { if (g.vad) { clearInterval(g.vad.tick); g.vad.src.disconnect(); } } catch (_) {} try { g.seat.remove(); } catch (_) {} try { window.__selamLive.removeGuestAudio(id); } catch (_) {} delete guests[id]; } }
     let peer = null;
     try {
       peer = new window.Peer("selam-live-host-" + room, { debug: 1 });
       peer.on("call", function (call) {
         const id = (call.peer || "g" + Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
         const name = (call.metadata && call.metadata.name) || "Guest";
-        try { call.answer(); } catch (_) {}                 // she's on the main canvas; no return stream
+        try { call.answer(window.__selamLive && window.__selamLive.guestReturnStream && window.__selamLive.guestReturnStream() || undefined); } catch (_) { try { call.answer(); } catch (__) {} }   // send her voice back so the guest HEARS her
         call.on("stream", function (remote) { addSeat(id, remote, name); });
         call.on("close", function () { dropSeat(id); });
         call.on("error", function () { dropSeat(id); });
@@ -1654,9 +1699,38 @@ async function cohostStart(room) {
   console.log(`🎙 co-host OPEN — guests join at heyselam.ai/join?room=${room}`);
 }
 async function cohostStop() {
-  try { await pg.evaluate(() => { try { window.__selamCohost && window.__selamCohost.stop && window.__selamCohost.stop(); } catch (_) {} }); } catch (_) {}
+  try { await pg.evaluate(() => { try { window.__selamCohost && window.__selamCohost.stop && window.__selamCohost.stop(); } catch (_) {} window.__cohostUtterances = []; }); } catch (_) {}
   _cohostRoom = null;
   console.log("🎙 co-host closed");
+}
+
+// Transcribe a guest utterance (base64 webm/opus) via OpenAI Whisper.
+async function transcribeAudio(b64, mime) {
+  const key = _oaiKey(); if (!key || !b64) return "";
+  try {
+    const bytes = Buffer.from(b64, "base64");
+    const fd = new FormData();
+    fd.append("file", new Blob([bytes], { type: mime || "audio/webm" }), "guest.webm");
+    fd.append("model", "whisper-1");
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + key }, body: fd });
+    clearTimeout(to);
+    const j = await r.json(); return (j.text || "").trim();
+  } catch (e) { console.log("🎙 STT err:", e.message); return ""; }
+}
+
+// A guest spoke → transcribe → Selam responds to them on-air, conversationally.
+let _cohostBusy = false;
+async function handleGuestUtterance(utt) {
+  const text = await transcribeAudio(utt.b64, utt.mime);
+  const clean = (text || "").replace(/\s+/g, " ").trim();
+  // Whisper on silence/noise often returns empty, "you", "thank you", "." etc.
+  if (!clean || clean.length < 3 || /^(you|thanks?|thank you|bye|\.|uh|um)[.!?]?$/i.test(clean)) return;
+  console.log(`🎙 ${utt.name}: "${clean}"`);
+  try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = "0 0 0 3px #3ecf8e, 0 14px 40px rgba(0,0,0,.55)"; }, utt.id); } catch (_) {}
+  const prompt = `You are Selam, CO-HOSTING a LIVE broadcast with a real human guest named ${utt.name}. ${utt.name} just said to you, out loud: "${clean}". Respond to THEM directly and naturally — a warm, quick-witted co-host having a genuine back-and-forth. React to what they actually said; 1 to 3 short spoken sentences; it's great to ask them a follow-up question to keep the conversation going. Speak only your reply — no preamble, meta, or brackets. ${_PRIV}`;
+  await sayAndCapture(prompt);
+  try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = ""; }, utt.id); } catch (_) {}
 }
 
 // ── Operator talkback (mode A: steer the show) ──────────────────────────
@@ -1959,6 +2033,13 @@ for (;;) {
   // Operator steering first — act on it immediately, then resume the show.
   const _ctl = readControl();
   if (_ctl) { try { await handleControl(_ctl); } catch (e) { console.log("ctl err:", e.message); } await sleep(1500); continue; }
+  // Co-host: a guest just finished speaking → transcribe + respond (one at a time,
+  // so she never talks over herself; the queue holds any that pile up).
+  if (_cohostRoom && !_cohostBusy) {
+    let utt = null;
+    try { utt = await pg.evaluate(() => { const q = window.__cohostUtterances || []; return q.length ? q.shift() : null; }); } catch (_) {}
+    if (utt && utt.b64) { _cohostBusy = true; try { await handleGuestUtterance(utt); } catch (e) { console.log("guest err:", e.message); } finally { _cohostBusy = false; } continue; }
+  }
   let fresh = [];
   try { fresh = await fetchComments(); } catch (e) { console.log("fetch err:", e.message); }
   if (fresh.length) {
