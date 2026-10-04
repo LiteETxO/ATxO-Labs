@@ -168,11 +168,25 @@
       call = peer.call(HOST_ID, localStream, { metadata:{ name:name } });
       if(!call){ setRoomStatus("wait","waiting for Selam to start…"); scheduleRetry(name); return; }
       var settled=false;
-      call.on("stream", function(){ settled=true; connected=true; onLive(name); });
+      function markLive(){ if(settled) return; settled=true; connected=true; onLive(name); }
+      call.on("stream", markLive);                 // if Selam ever sends a return feed
       call.on("close", function(){ connected=false; setRoomStatus("wait","Selam ended your segment — standing by…"); scheduleRetry(name); });
       call.on("error", function(){ if(!settled){ scheduleRetry(name); } });
-      // If Selam answers (even without sending a return stream), the call opens.
-      setTimeout(function(){ if(!settled && call && call.open){ connected=true; onLive(name); } }, 1500);
+      // Selam answers without returning a stream, so watch the WebRTC connection
+      // state directly — "connected" means our mic/cam is flowing to her broadcast.
+      var pc = call.peerConnection;
+      if(pc){
+        pc.addEventListener("connectionstatechange", function(){
+          if(pc.connectionState==="connected") markLive();
+          else if(pc.connectionState==="failed" || pc.connectionState==="disconnected"){ if(!settled) scheduleRetry(name); }
+        });
+      }
+      // Fallback poll in case the event is missed on a slow link.
+      var polls=0, pt=setInterval(function(){ polls++;
+        if(settled || polls>20){ clearInterval(pt); return; }
+        var s=call.peerConnection && call.peerConnection.connectionState;
+        if(s==="connected") { clearInterval(pt); markLive(); }
+      }, 700);
     }catch(e){ scheduleRetry(name); }
   }
 

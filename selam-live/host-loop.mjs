@@ -1593,6 +1593,72 @@ async function setupStageLayout() {
   } catch (_) {}
 }
 
+// ── Live co-host: human guests join the broadcast via WebRTC (PeerJS) ────────
+// A guest opens heyselam.ai/join?room=<room>, which calls the peer id
+// "selam-live-host-<room>". We answer in the renderer, render their webcam as a
+// seat beside the avatar (composited into the window-capture → on-stream), and
+// mix their mic into the broadcast audio via __selamLive.addGuestAudio. Phase 2
+// of the AI co-host — guests APPEAR + are HEARD. (Conversation = later phase.)
+let _cohostRoom = null;
+async function cohostStart(room) {
+  room = (room || "main").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "main";
+  _cohostRoom = room;
+  try {
+    const hasPeer = await pg.evaluate(() => typeof window.Peer === "function");
+    if (!hasPeer) await pg.addScriptTag({ url: "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" });
+  } catch (e) { console.log("🎙 co-host: PeerJS load failed:", e.message); return; }
+  await pg.evaluate((room) => {
+    try { if (window.__selamCohost && window.__selamCohost.room === room) return; } catch (_) {}
+    try { if (window.__selamCohost && window.__selamCohost.stop) window.__selamCohost.stop(); } catch (_) {}
+    let layer = document.getElementById("slo-cohost");
+    if (!layer) { layer = document.createElement("div"); layer.id = "slo-cohost";
+      layer.style.cssText = "position:fixed;right:24px;bottom:120px;z-index:45;display:flex;gap:12px;align-items:flex-end;font-family:-apple-system,'Segoe UI',system-ui,sans-serif";
+      document.body.appendChild(layer); }
+    const guests = {};
+    function addSeat(id, stream, name) {
+      let seat = document.getElementById("slo-g-" + id);
+      if (!seat) { seat = document.createElement("div"); seat.id = "slo-g-" + id;
+        seat.style.cssText = "width:280px;border-radius:14px;overflow:hidden;background:#0a0c13;border:3px solid rgba(34,211,238,.6);box-shadow:0 14px 40px rgba(0,0,0,.55);display:flex;flex-direction:column";
+        const v = document.createElement("video"); v.autoplay = true; v.playsInline = true; v.muted = true; // local-muted; audio reaches the stream via addGuestAudio
+        v.style.cssText = "width:100%;aspect-ratio:4/3;object-fit:cover;background:#06080f;transform:scaleX(-1)";
+        const lab = document.createElement("div"); lab.className = "slo-g-lab";
+        lab.style.cssText = "padding:8px 10px;text-align:center;font:800 16px -apple-system,system-ui,sans-serif;color:#fff;background:linear-gradient(180deg,rgba(10,12,19,.15),rgba(10,12,19,.96))";
+        seat.appendChild(v); seat.appendChild(lab); layer.appendChild(seat);
+        guests[id] = { seat, v };
+      }
+      guests[id].v.srcObject = stream;
+      seat.querySelector(".slo-g-lab").textContent = name || "Guest";
+      try { window.__selamLive && window.__selamLive.addGuestAudio && window.__selamLive.addGuestAudio(id, stream); } catch (_) {}
+    }
+    function dropSeat(id) { const g = guests[id]; if (g) { try { g.seat.remove(); } catch (_) {} try { window.__selamLive.removeGuestAudio(id); } catch (_) {} delete guests[id]; } }
+    let peer = null;
+    try {
+      peer = new window.Peer("selam-live-host-" + room, { debug: 1 });
+      peer.on("call", function (call) {
+        const id = (call.peer || "g" + Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
+        const name = (call.metadata && call.metadata.name) || "Guest";
+        try { call.answer(); } catch (_) {}                 // she's on the main canvas; no return stream
+        call.on("stream", function (remote) { addSeat(id, remote, name); });
+        call.on("close", function () { dropSeat(id); });
+        call.on("error", function () { dropSeat(id); });
+      });
+      peer.on("disconnected", function () { try { peer.reconnect(); } catch (_) {} });
+    } catch (_) {}
+    window.__selamCohost = {
+      room: room,
+      count: function () { return Object.keys(guests).length; },
+      guests: function () { return Object.keys(guests); },
+      stop: function () { try { peer && peer.destroy(); } catch (_) {} Object.keys(guests).forEach(dropSeat); try { layer.remove(); } catch (_) {} window.__selamCohost = null; },
+    };
+  }, room);
+  console.log(`🎙 co-host OPEN — guests join at heyselam.ai/join?room=${room}`);
+}
+async function cohostStop() {
+  try { await pg.evaluate(() => { try { window.__selamCohost && window.__selamCohost.stop && window.__selamCohost.stop(); } catch (_) {} }); } catch (_) {}
+  _cohostRoom = null;
+  console.log("🎙 co-host closed");
+}
+
 // ── Operator talkback (mode A: steer the show) ──────────────────────────
 // The core writes ~/selam-live/control.json when the owner sends a steering
 // directive from the private Talkback window; we consume + clear it at the top
@@ -1661,6 +1727,8 @@ async function handleControl(c) {
     }
   }
   else if (cmd === "create") { lastCreateAt = Date.now(); await creationBeat(); }
+  else if (cmd === "cohost") { await cohostStart(arg || "main"); }
+  else if (cmd === "cohoststop" || cmd === "cohost-stop" || cmd === "cohost_stop") { await cohostStop(); }
   else if (cmd === "panel") { lastPanelAt = Date.now(); await livePanel(arg || "", false); }
   else if (cmd === "panelsolo" || cmd === "panel-solo" || cmd === "panel_solo") { lastPanelAt = Date.now(); await livePanel(arg || "", true); }
   else if (cmd === "panelcards" || cmd === "panel-cards") { lastPanelAt = Date.now(); await modelPanel(arg || "", false); }
