@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Join Selam Live</title>
+<style>
+  :root{
+    --bg:#0a0c13;--surface:#141726;--surface-2:#191d2e;--line:rgba(202,210,240,.10);--line-2:rgba(202,210,240,.18);
+    --ink:#f2f4fb;--ink-2:#b6bbd2;--ink-3:#7d829e;--dawn:#8aa4ea;--dawn-deep:#5f7ac6;--good:#3ecf8e;--warn:#f2c65c;--bad:#ff5c6c;
+    --sans:-apple-system,"Hanken Grotesk","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:radial-gradient(130% 100% at 50% 0%,#1b2147 0%,#0a0c13 60%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100%;display:flex;flex-direction:column;align-items:center;padding:24px 18px 40px}
+  .brand{display:flex;align-items:center;gap:9px;margin:8px 0 22px;font-weight:800;letter-spacing:2px;font-size:18px}
+  .brand b{background:linear-gradient(90deg,#7c6cff,#22d3ee,#ff5c8a,#ffb74d,#7c6cff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .card{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--line-2);border-radius:18px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.01em;margin-bottom:6px}
+  .sub{color:var(--ink-3);font-size:14px;margin-bottom:18px}
+  .preview{position:relative;width:100%;aspect-ratio:4/3;background:#06080f;border:1px solid var(--line-2);border-radius:14px;overflow:hidden;margin-bottom:16px}
+  .preview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+  .preview .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:14px;text-align:center;padding:0 20px}
+  .status{position:absolute;left:12px;bottom:12px;display:inline-flex;align-items:center;gap:7px;background:rgba(10,12,19,.82);border:1px solid var(--line-2);border-radius:999px;padding:6px 12px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .status .d{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+  .status.live .d{background:var(--good);box-shadow:0 0 9px var(--good);animation:pulse 1.4s infinite}
+  .status.wait .d{background:var(--warn);box-shadow:0 0 9px var(--warn);animation:pulse 1.4s infinite}
+  .status.err .d{background:var(--bad);box-shadow:0 0 9px var(--bad)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:6px}
+  input[type=text]{width:100%;background:#0c0d16;border:1px solid var(--line-2);border-radius:10px;padding:11px 13px;color:var(--ink);font-family:inherit;font-size:14.5px;outline:none;margin-bottom:14px}
+  input[type=text]:focus{border-color:var(--dawn)}
+  .controls{display:flex;gap:10px;margin-bottom:14px}
+  .ctl{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:11px;padding:11px;font-size:13.5px;color:var(--ink-2);cursor:pointer;user-select:none}
+  .ctl.off{color:var(--bad);border-color:rgba(255,92,108,.4)}
+  .ctl svg{width:17px;height:17px}
+  .btn{width:100%;background:linear-gradient(135deg,var(--dawn),var(--dawn-deep));color:#0b0e1c;border:none;border-radius:12px;padding:14px;font-weight:800;font-size:15px;cursor:pointer;transition:filter .15s,opacity .15s}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .note{margin-top:14px;font-size:12px;color:var(--ink-3);line-height:1.5;text-align:center}
+  .err-box{background:rgba(255,92,108,.1);border:1px solid rgba(255,92,108,.4);color:#ffb3bb;border-radius:11px;padding:10px 13px;font-size:13px;margin-bottom:14px;display:none}
+  .green{text-align:center;padding:10px 0}
+  .green h2{font-size:18px;margin-bottom:6px}
+  .green p{color:var(--ink-3);font-size:14px}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+  <div class="brand">⟡ <b>SELAM LIVE</b></div>
+  <div class="card">
+    <!-- SETUP -->
+    <div id="setup">
+      <h1>Join the show</h1>
+      <p class="sub">You're about to go live on Selam's broadcast. Set up your camera and mic, then enter the green room.</p>
+      <div class="err-box" id="errbox"></div>
+      <div class="preview">
+        <video id="pv" autoplay playsinline muted></video>
+        <div class="ph" id="ph">Camera preview appears here once you allow access.</div>
+        <div class="status" id="pvstatus"><span class="d"></span><span id="pvstatustxt">camera off</span></div>
+      </div>
+      <div class="controls">
+        <div class="ctl" id="camBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="3.3"/></svg> <span>Camera</span></div>
+        <div class="ctl" id="micBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3"/></svg> <span>Mic</span></div>
+      </div>
+      <label for="name">Your name (shown on screen)</label>
+      <input id="name" type="text" maxlength="24" placeholder="e.g. Alex" autocomplete="off">
+      <button class="btn" id="join" disabled>Allow camera &amp; mic to continue</button>
+      <div class="note">Your video and audio go only to Selam's live broadcast while you're on. Close this tab to leave anytime.</div>
+    </div>
+
+    <!-- GREEN ROOM -->
+    <div id="room" class="hidden">
+      <div class="preview">
+        <video id="pv2" autoplay playsinline muted></video>
+        <div class="status" id="roomstatus"><span class="d"></span><span id="roomstatustxt">connecting…</span></div>
+      </div>
+      <div class="green">
+        <h2 id="greet">You're in the green room 🎬</h2>
+        <p id="greensub">Hang tight — Selam will bring you on when it's your turn. Keep this tab open.</p>
+      </div>
+      <div class="controls" style="margin-top:16px">
+        <div class="ctl" id="camBtn2"><span>📷 Camera on</span></div>
+        <div class="ctl" id="micBtn2"><span>🎤 Mic on</span></div>
+      </div>
+      <button class="btn" id="leave" style="background:linear-gradient(135deg,#7a2740,#5e1d31);color:#ffd9e1">Leave the room</button>
+    </div>
+  </div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function(){
+  var qs = new URLSearchParams(location.search);
+  var ROOM = (qs.get("room") || "main").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,32) || "main";
+  var HOST_ID = "selam-live-host-" + ROOM;   // Selam's renderer answers on this peer id
+
+  var localStream = null, camOn = true, micOn = true;
+  var peer = null, call = null, retryTimer = null, connected = false;
+
+  var $ = function(id){ return document.getElementById(id); };
+  function setErr(msg){ var e=$("errbox"); if(!msg){e.style.display="none";return;} e.textContent=msg; e.style.display="block"; }
+  function setPvStatus(cls,txt){ var s=$("pvstatus"); s.className="status "+cls; $("pvstatustxt").textContent=txt; }
+  function setRoomStatus(cls,txt){ var s=$("roomstatus"); s.className="status "+cls; $("roomstatustxt").textContent=txt; }
+
+  // ── Media setup ────────────────────────────────────────────────────────────
+  async function getMedia(){
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video:{ width:{ideal:1280}, height:{ideal:720}, facingMode:"user" },
+        audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true }
+      });
+      $("pv").srcObject = localStream;
+      $("ph").style.display="none";
+      setPvStatus("live","camera ready");
+      $("join").disabled = false;
+      $("join").textContent = "Enter the green room →";
+      setErr("");
+    }catch(e){
+      setErr("Couldn't access camera/mic: " + (e && e.message || e) + ". Check your browser permissions and reload.");
+      setPvStatus("err","no access");
+    }
+  }
+  function toggleTrack(kind){
+    if(!localStream) return true;
+    var tracks = kind==="video" ? localStream.getVideoTracks() : localStream.getAudioTracks();
+    var on = tracks.length ? !tracks[0].enabled : false;
+    tracks.forEach(function(t){ t.enabled = on; });
+    return on;
+  }
+
+  $("camBtn").addEventListener("click", function(){ camOn=toggleTrack("video"); this.classList.toggle("off",!camOn); this.querySelector("span").textContent = camOn?"Camera":"Camera off"; });
+  $("micBtn").addEventListener("click", function(){ micOn=toggleTrack("audio"); this.classList.toggle("off",!micOn); this.querySelector("span").textContent = micOn?"Mic":"Mic off"; });
+  $("camBtn2").addEventListener("click", function(){ camOn=toggleTrack("video"); this.querySelector("span").textContent = camOn?"📷 Camera on":"📷 Camera off"; });
+  $("micBtn2").addEventListener("click", function(){ micOn=toggleTrack("audio"); this.querySelector("span").textContent = micOn?"🎤 Mic on":"🎤 Mic off"; });
+
+  // ── Join → green room → connect to Selam ────────────────────────────────────
+  $("join").addEventListener("click", function(){
+    if(!localStream) return;
+    var name = ($("name").value||"").trim().slice(0,24) || "Guest";
+    $("setup").classList.add("hidden");
+    $("room").classList.remove("hidden");
+    $("pv2").srcObject = localStream;
+    $("greet").textContent = "You're in the green room, " + name + " 🎬";
+    connectToSelam(name);
+  });
+
+  function connectToSelam(name){
+    setRoomStatus("wait","connecting…");
+    peer = new Peer(null, { debug:1 });
+    peer.on("open", function(){ tryCall(name); });
+    peer.on("error", function(err){
+      if(err && err.type==="peer-unavailable"){
+        // Selam's not live yet — stay in the green room and retry.
+        setRoomStatus("wait","waiting for Selam to start…");
+        scheduleRetry(name);
+      } else {
+        setRoomStatus("err","connection error");
+        scheduleRetry(name);
+      }
+    });
+    peer.on("disconnected", function(){ try{ peer.reconnect(); }catch(e){} });
+  }
+
+  function tryCall(name){
+    if(!peer || peer.destroyed) return;
+    try{
+      // Send name as call metadata so Selam can label the seat.
+      call = peer.call(HOST_ID, localStream, { metadata:{ name:name } });
+      if(!call){ setRoomStatus("wait","waiting for Selam to start…"); scheduleRetry(name); return; }
+      var settled=false;
+      call.on("stream", function(){ settled=true; connected=true; onLive(name); });
+      call.on("close", function(){ connected=false; setRoomStatus("wait","Selam ended your segment — standing by…"); scheduleRetry(name); });
+      call.on("error", function(){ if(!settled){ scheduleRetry(name); } });
+      // If Selam answers (even without sending a return stream), the call opens.
+      setTimeout(function(){ if(!settled && call && call.open){ connected=true; onLive(name); } }, 1500);
+    }catch(e){ scheduleRetry(name); }
+  }
+
+  function scheduleRetry(name){
+    if(connected || retryTimer) return;
+    retryTimer = setTimeout(function(){ retryTimer=null; if(!connected) tryCall(name); }, 3000);
+  }
+
+  function onLive(name){
+    setRoomStatus("live","connected to Selam ✓");
+    $("greet").textContent = "You're connected, " + name + "! 🎉";
+    $("greensub").textContent = "Selam can bring you on-screen anytime now. Speak naturally when she turns to you.";
+  }
+
+  $("leave").addEventListener("click", function(){
+    try{ if(call) call.close(); }catch(e){}
+    try{ if(peer) peer.destroy(); }catch(e){}
+    try{ if(localStream) localStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+    location.href = "https://heyselam.ai/";
+  });
+
+  // Kick off camera/mic request on load.
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setErr("This browser doesn't support camera access. Try Chrome, Safari, or Edge.");
+  } else {
+    getMedia();
+  }
+})();
+</script>
+</body>
+</html>
