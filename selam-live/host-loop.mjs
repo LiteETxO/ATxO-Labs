@@ -565,6 +565,22 @@ function polyglotPrompt() {
 }
 function triviaMatch(text) { return activeTrivia && activeTrivia.a.some((k) => (text || "").toLowerCase().includes(k)); }
 
+// Shared "what's on screen right now" context so a comment that's really an
+// answer/vote is never replied to cold. Covers the active segment AND a short
+// grace window after it closes (late answers still read as answers, not random
+// remarks — the bug where "the answer to a trivia/poll is talked about as a
+// separate comment, losing why the viewer said it").
+let _recentQ = null;   // { kind:"poll"|"trivia", q, opts, until }
+function liveQNote() {
+  if (activePoll) return ` CONTEXT: a LIVE POLL is on screen right now — "${activePoll.q}" (options: ${activePoll.a.label} vs ${activePoll.b.label}). This comment is very likely this viewer's VOTE or a reaction to it — read it that way and acknowledge their pick warmly in that context; do NOT treat it as a random, out-of-nowhere remark.`;
+  if (activeTrivia) return ` CONTEXT: a LIVE TRIVIA question is on screen right now — "${activeTrivia.q}". This comment is very likely this viewer's ANSWER — react to it as a trivia guess (right or wrong) in that context, not as a random remark. Do NOT reveal the correct answer.`;
+  if (_recentQ && Date.now() < _recentQ.until) {
+    if (_recentQ.kind === "poll") return ` CONTEXT: a POLL just wrapped — "${_recentQ.q}" (${_recentQ.opts}). This viewer may be voting a beat late — acknowledge their pick in that context, don't treat it as a random comment.`;
+    return ` CONTEXT: a TRIVIA question just wrapped — "${_recentQ.q}". This viewer may be answering a beat late — react to it as a trivia guess in that context, warmly.`;
+  }
+  return "";
+}
+
 // ── Interactive segments: polls, comment spotlight, roll call, viewer topics ──
 // Rolling buffer of recent viewer comments — feeds the spotlight + roll call.
 const recentComments = [];
@@ -890,7 +906,7 @@ function commentPrompt(c) {
   const named = c.name && c.name !== "Viewer" && c.name !== "(name hidden)";
   return `${PRODUCT_FACTS}
 
-You are Selam, hosting a LIVE broadcast and you're GREAT with a crowd — warm, quick-witted, and genuinely funny, like a host who loves bantering with the chat. A viewer${named ? ` named ${c.name}` : ""} commented: "${c.text}"
+You are Selam, hosting a LIVE broadcast and you're GREAT with a crowd — warm, quick-witted, and genuinely funny, like a host who loves bantering with the chat. A viewer${named ? ` named ${c.name}` : ""} commented: "${c.text}"${liveQNote()}
 
 CRITICAL PRIVACY — this is a PUBLIC broadcast: never reveal ANYTHING about your owner/operator. No names, no personal details, nothing about their files, their screen, their work, their location, their schedule, or their identity. Never say "my owner", "my user", or imply you belong to one specific person, and never repeat anything you happen to know about them. Speak about Selam as a product anyone can buy — use a generic "you" / "your Mac" for the potential customer, never a real individual.
 
@@ -1896,6 +1912,7 @@ for (;;) {
         const named = c.name && c.name !== "Viewer" && c.name !== "(name hidden)";
         const winQ = (activeTrivia && activeTrivia.q) || "", winA = (activeTrivia && activeTrivia.a && activeTrivia.a[0]) || "";
         activeTrivia = null;
+        _recentQ = { kind: "trivia", q: winQ, until: Date.now() + 45000 };
         console.log(`🎉 trivia win: ${c.name || "viewer"}`);
         // Put the winner's name on-screen so the shout-out is visual, not just spoken.
         try { await showNewsImage(SELAM_HERO, "🎉 CORRECT!", named ? `${c.name} nailed it! 👏` : "Nailed it! 👏"); } catch (_) {}
@@ -1967,7 +1984,7 @@ for (;;) {
     // Live poll closed (~100s) → tally + announce the winner with percentages.
     if (activePoll && Date.now() - activePoll.at > 100000) {
       const na = activePoll.votes.a.size, nb = activePoll.votes.b.size, tot = na + nb;
-      const p = activePoll; activePoll = null;
+      const p = activePoll; activePoll = null; _recentQ = { kind: "poll", q: p.q, opts: p.a.label + " vs " + p.b.label, until: Date.now() + 45000 };
       await hidePoll();
       if (tot === 0) {
         try { await showNewsImage(SELAM_HERO, "SELAM · POLL", "No votes this time!"); } catch (_) {}
@@ -1993,7 +2010,7 @@ for (;;) {
     }
     // trivia timed out with no correct answer → reveal it
     if (activeTrivia && Date.now() - activeTrivia.at > 120000) {
-      const ans = activeTrivia.a[0]; activeTrivia = null;
+      const ans = activeTrivia.a[0];  _recentQ = { kind: "trivia", q: activeTrivia.q, until: Date.now() + 45000 }; activeTrivia = null;
       await speakLine(`Time's up on that one — the answer was ${ans}. Great guesses, everyone — keep them coming!`);
       await sleep(3000); continue;
     }
