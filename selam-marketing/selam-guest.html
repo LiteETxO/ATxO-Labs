@@ -195,10 +195,22 @@
     retryTimer = setTimeout(function(){ retryTimer=null; if(!connected) tryCall(name); }, 3000);
   }
 
+  var _wentLive=false;
   function onLive(name){
     setRoomStatus("live","connected to Selam ✓");
-    $("greet").textContent = "You're connected, " + name + "! 🎉";
-    $("greensub").textContent = "Selam can bring you on-screen anytime now. Speak naturally when she turns to you.";
+    if(_wentLive) return; _wentLive=true;
+    // Clear warning that they're about to be on the broadcast — a 3-2-1 countdown,
+    // then a persistent ON-AIR banner (so no one is surprised to find they're live).
+    $("greet").textContent = "Get ready, " + name + " — you're going live!";
+    var n=3;
+    $("greensub").innerHTML = '<span style="font-size:40px;font-weight:800;color:#ff5c6c">'+n+'</span>';
+    var cd=setInterval(function(){ n--;
+      if(n>0){ $("greensub").innerHTML='<span style="font-size:40px;font-weight:800;color:#ff5c6c">'+n+'</span>'; }
+      else { clearInterval(cd);
+        $("greet").innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff3b4e;box-shadow:0 0 10px #ff3b4e;animation:pulse 1.2s infinite"></span>🔴 YOU\'RE ON AIR</span>';
+        $("greensub").textContent = "You're live on the broadcast now — speak naturally, Selam will talk with you. 🎧 Keep your headphones on.";
+      }
+    },1000);
   }
 
   $("leave").addEventListener("click", function(){

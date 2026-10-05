@@ -1716,7 +1716,9 @@ async function cohostStart(room) {
         const id = (call.peer || "g" + Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
         const name = (call.metadata && call.metadata.name) || "Guest";
         try { call.answer(window.__selamLive && window.__selamLive.guestReturnStream && window.__selamLive.guestReturnStream() || undefined); } catch (_) { try { call.answer(); } catch (__) {} }   // send her voice back so the guest HEARS her
-        call.on("stream", function (remote) { addSeat(id, remote, name); });
+        // Bring the guest onto the broadcast ~3.5s after connect — matches the
+        // 3-2-1 countdown they see, so they're never surprised to find they're live.
+        call.on("stream", function (remote) { setTimeout(function () { try { addSeat(id, remote, name); } catch (_) {} }, 3500); });
         call.on("close", function () { dropSeat(id); });
         call.on("error", function () { dropSeat(id); });
         // Drop ghost seats ONLY on a TERMINAL connection state (failed/closed) —
@@ -1750,13 +1752,14 @@ async function transcribeAudio(b64, mime) {
   const key = _oaiKey(); if (!key || !b64) return "";
   try {
     const bytes = Buffer.from(b64, "base64");
-    const fd = new FormData();
-    fd.append("file", new Blob([bytes], { type: mime || "audio/webm" }), "guest.webm");
-    fd.append("model", "whisper-1");
-    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
-    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + key }, body: fd });
-    clearTimeout(to);
-    const j = await r.json(); return (j.text || "").trim();
+    const mk = () => { const fd = new FormData(); fd.append("file", new Blob([bytes], { type: mime || "audio/webm" }), "guest.webm"); fd.append("language", "en"); fd.append("prompt", "Live talk-show guest speaking conversationally to the host Selam."); return fd; };
+    async function call(model) {
+      const fd = mk(); fd.append("model", model);
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 25000);
+      try { const r = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", signal: ctl.signal, headers: { Authorization: "Bearer " + key }, body: fd }); clearTimeout(to); const j = await r.json(); if (j && j.text) return j.text.trim(); if (j && j.error) console.log("[stt] " + model + ": " + j.error.message); return ""; } catch (e) { clearTimeout(to); console.log("[stt] " + model + " err: " + e.message); return ""; }
+    }
+    // gpt-4o-mini-transcribe is markedly more accurate than whisper-1; fall back if unavailable.
+    return (await call("gpt-4o-mini-transcribe")) || (await call("whisper-1"));
   } catch (e) { console.log("🎙 STT err:", e.message); return ""; }
 }
 
