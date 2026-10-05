@@ -1700,10 +1700,14 @@ async function cohostStart(room) {
         call.on("stream", function (remote) { addSeat(id, remote, name); });
         call.on("close", function () { dropSeat(id); });
         call.on("error", function () { dropSeat(id); });
-        // Drop ghost seats when a guest leaves ungracefully (closes tab / loses
-        // connection) — the 'close' event often doesn't fire, so watch the PC state.
+        // Drop ghost seats ONLY on a TERMINAL connection state (failed/closed) —
+        // "disconnected" is transient and routinely recovers (a heavy news beat
+        // briefly starves the link); dropping on it caused the PIP to flicker
+        // connect/disconnect. Confirm after a grace window before removing.
         const pc = call.peerConnection;
-        if (pc) pc.addEventListener("connectionstatechange", function () { if (/failed|disconnected|closed/.test(pc.connectionState)) setTimeout(function () { if (/failed|disconnected|closed/.test(pc.connectionState)) dropSeat(id); }, 2000); });
+        if (pc) pc.addEventListener("connectionstatechange", function () {
+          if (/failed|closed/.test(pc.connectionState)) setTimeout(function () { if (/failed|closed/.test(pc.connectionState)) { console.log("[cohost] " + name + " connection " + pc.connectionState + " — dropping seat"); dropSeat(id); } }, 6000);
+        });
       });
       peer.on("disconnected", function () { try { peer.reconnect(); } catch (_) {} });
     } catch (_) {}
