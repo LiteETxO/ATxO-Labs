@@ -879,7 +879,23 @@ async function sayAndCapture(prompt) {
   }
   const sentences = await pg.evaluate(() => window.__hostCap ? window.__hostCap.sentences.slice() : []);
   const uniq = sentences.filter((s, i) => i === 0 || s !== sentences[i - 1]);
-  return uniq.join(" ").replace(/\s+/g, " ").trim();
+  const said = uniq.join(" ").replace(/\s+/g, " ").trim();
+  if (said) rememberSelamSaid(said);   // feedback guard: so we can tell her own voice from a guest's
+  return said;
+}
+// Track her recent speech so the co-host can detect feedback — a guest NOT on
+// headphones whose mic picks up her voice (we'd otherwise "hear" her own words
+// back and reply to ourselves). Keep the last ~6 lines, word-tokenized.
+const _selamSaid = [];
+function _words(s) { return (s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3); }
+function rememberSelamSaid(text) { _selamSaid.push(new Set(_words(text))); while (_selamSaid.length > 6) _selamSaid.shift(); }
+function looksLikeFeedback(text) {
+  const w = _words(text); if (w.length < 4) return false;
+  for (const said of _selamSaid) {
+    let hit = 0; for (const x of w) if (said.has(x)) hit++;
+    if (hit / w.length > 0.6) return true;   // >60% of the "heard" words were in something SHE just said → echo
+  }
+  return false;
 }
 // Strip any meta / control tokens so nothing weird gets posted (or flagged).
 function cleanSpoken(t) {
@@ -1640,6 +1656,9 @@ async function cohostStart(room) {
     // respond to. This is what lets Selam actually CONVERSE with the guest.
     window.__cohostUtterances = window.__cohostUtterances || [];
     function startGuestVAD(id, stream, name) {
+      // Guard: never run two VADs for one guest (reconnects reused the seat but
+      // re-started VAD → duplicate transcripts + leaked pumps). Clear any prior.
+      try { const prev = guests[id] && guests[id].vad; if (prev) { clearInterval(prev.tick); if (prev.src) prev.src.disconnect(); if (prev.pump) prev.pump.remove(); } } catch (_) {}
       const av = window.__selamAdapter && window.__selamAdapter.avatar;
       const ac = av && av.audioCtx; if (!ac) { console.log("[cohost] no audioCtx for VAD"); return; }
       const atracks = stream.getAudioTracks(); if (!atracks.length) { console.log("[cohost] guest has no audio track"); return; }
@@ -1764,6 +1783,8 @@ async function handleGuestUtterance(utt) {
   console.log(`🎙 heard ${utt.name} (${utt.dur}ms, ${kb}KB): "${clean}"`);
   // Whisper on silence/noise often returns empty, "you", "thank you", "." etc.
   const noise = !clean || clean.length < 3 || /^(you|thanks?|thank you|bye|\.|uh|um|okay|ok)[.!?]*$/i.test(clean);
+  // Feedback: guest not on headphones → their mic echoes HER voice back to us.
+  if (!noise && looksLikeFeedback(clean)) { console.log("   (ignored — echo of her own voice; guest needs headphones)"); return; }
   if (clean) await showHeard(utt.name, clean, noise);   // SHOW it either way (so STT is visible)
   if (noise) { console.log("   (filtered as noise/empty — no reply)"); setTimeout(() => hideHeard().catch(() => {}), 2500); return; }
   try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = "0 0 0 3px #3ecf8e, 0 14px 40px rgba(0,0,0,.55)"; }, utt.id); } catch (_) {}
