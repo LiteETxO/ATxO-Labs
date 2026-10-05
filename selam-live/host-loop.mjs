@@ -1043,7 +1043,7 @@ In about 4 to 6 flowing spoken sentences, walk viewers through it region by regi
 }
 let _panelActive = false;   // while the Model Panel is on, suppress the markets strip (it would re-render over the seats)
 async function renderMarketStrip(data) {
-  if (!data || _panelActive) return;
+  if (!data || _panelActive || _cohostGuests > 0) return;
   try {
     await pg.evaluate((d) => {
       const o = document.getElementById("selam-live-overlay"); if (!o) return;
@@ -1063,7 +1063,7 @@ async function renderMarketStrip(data) {
   } catch (_) {}
 }
 async function marketTick(force) {
-  if (_panelActive) return;
+  if (_panelActive || _cohostGuests > 0) return;
   if (!force && Date.now() - lastMarketAt < 60 * 1000) return;
   lastMarketAt = Date.now();
   const d = await fetchMarketData();
@@ -1599,7 +1599,7 @@ async function setupStageLayout() {
 // seat beside the avatar (composited into the window-capture → on-stream), and
 // mix their mic into the broadcast audio via __selamLive.addGuestAudio. Phase 2
 // of the AI co-host — guests APPEAR + are HEARD. (Conversation = later phase.)
-let _cohostRoom = null;
+let _cohostRoom = null, _cohostGuests = 0;
 async function cohostStart(room) {
   room = (room || "main").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "main";
   _cohostRoom = room;
@@ -1612,8 +1612,11 @@ async function cohostStart(room) {
     try { if (window.__selamCohost && window.__selamCohost.stop) window.__selamCohost.stop(); } catch (_) {}
     let layer = document.getElementById("slo-cohost");
     if (!layer) { layer = document.createElement("div"); layer.id = "slo-cohost";
-      layer.style.cssText = "position:fixed;right:24px;bottom:120px;z-index:45;display:flex;gap:12px;align-items:flex-end;font-family:-apple-system,'Segoe UI',system-ui,sans-serif";
+      layer.style.cssText = "position:fixed;right:32px;top:50%;transform:translateY(-50%);z-index:46;display:flex;flex-direction:column;gap:14px;align-items:flex-end;font-family:-apple-system,'Segoe UI',system-ui,sans-serif";
       document.body.appendChild(layer); }
+    // When a human guest is on they're the focus — hide the competing right-side
+    // cards (markets/news/poll/etc.) so nothing overlaps the guest PIP.
+    function _hideCompeting() { ["slo-prices", "slo-newsimg", "slo-poll", "slo-textcard"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = "none"; }); }
     const guests = {};
     function addSeat(id, stream, name) {
       let seat = document.getElementById("slo-g-" + id);
@@ -1628,6 +1631,7 @@ async function cohostStart(room) {
       }
       guests[id].v.srcObject = stream;
       seat.querySelector(".slo-g-lab").textContent = name || "Guest";
+      _hideCompeting();
       try { window.__selamLive && window.__selamLive.addGuestAudio && window.__selamLive.addGuestAudio(id, stream); } catch (_) {}
       try { startGuestVAD(id, stream, name); } catch (_) {}
     }
@@ -2036,10 +2040,11 @@ for (;;) {
   // Co-host: a guest just finished speaking → transcribe + respond (one at a time,
   // so she never talks over herself; the queue holds any that pile up).
   if (_cohostRoom && !_cohostBusy) {
-    let utt = null;
-    try { utt = await pg.evaluate(() => { const q = window.__cohostUtterances || []; return q.length ? q.shift() : null; }); } catch (_) {}
-    if (utt && utt.b64) { _cohostBusy = true; try { await handleGuestUtterance(utt); } catch (e) { console.log("guest err:", e.message); } finally { _cohostBusy = false; } continue; }
-  }
+    let r = null;
+    try { r = await pg.evaluate(() => ({ utt: (window.__cohostUtterances && window.__cohostUtterances.length) ? window.__cohostUtterances.shift() : null, n: (window.__selamCohost && window.__selamCohost.count && window.__selamCohost.count()) || 0 })); } catch (_) {}
+    _cohostGuests = (r && r.n) || 0;
+    if (r && r.utt && r.utt.b64) { _cohostBusy = true; try { await handleGuestUtterance(r.utt); } catch (e) { console.log("guest err:", e.message); } finally { _cohostBusy = false; } continue; }
+  } else if (!_cohostRoom) { _cohostGuests = 0; }
   let fresh = [];
   try { fresh = await fetchComments(); } catch (e) { console.log("fetch err:", e.message); }
   if (fresh.length) {
@@ -2113,6 +2118,10 @@ for (;;) {
       await sleep(1000);
     }
   } else {
+    // A human co-host guest is on → she's in conversation with them; pause the
+    // solo auto-segments (news/trivia/poll/panel/markets) so nothing pops over
+    // the guest PIP and she stays attentive. The guest-utterance handler drives.
+    if (_cohostGuests > 0) { await sleep(600); continue; }
     // The very first viewer just joined → a special, warm one-on-one welcome (once).
     if (!_welcomedFirst && liveViewers != null && liveViewers >= 1) {
       _welcomedFirst = true;
