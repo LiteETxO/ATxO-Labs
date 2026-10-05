@@ -1700,6 +1700,10 @@ async function cohostStart(room) {
         call.on("stream", function (remote) { addSeat(id, remote, name); });
         call.on("close", function () { dropSeat(id); });
         call.on("error", function () { dropSeat(id); });
+        // Drop ghost seats when a guest leaves ungracefully (closes tab / loses
+        // connection) — the 'close' event often doesn't fire, so watch the PC state.
+        const pc = call.peerConnection;
+        if (pc) pc.addEventListener("connectionstatechange", function () { if (/failed|disconnected|closed/.test(pc.connectionState)) setTimeout(function () { if (/failed|disconnected|closed/.test(pc.connectionState)) dropSeat(id); }, 2000); });
       });
       peer.on("disconnected", function () { try { peer.reconnect(); } catch (_) {} });
     } catch (_) {}
@@ -2062,6 +2066,11 @@ for (;;) {
   // on reload. setupPage() is idempotent — a no-op when they're already present,
   // and re-injects them the tick after any reload. Cheap insurance every beat.
   try { await setupPage(); } catch (_) {}
+  // Co-host survives a renderer reload: a session re-init wipes the injected
+  // PeerJS + receiver, so re-inject if the room is open but the receiver is gone.
+  if (_cohostRoom) {
+    try { const alive = await pg.evaluate(() => !!window.__selamCohost); if (!alive) { console.log("🎙 co-host receiver lost (reload) — re-injecting"); await cohostStart(_cohostRoom); } } catch (_) {}
+  }
   // Operator steering first — act on it immediately, then resume the show.
   const _ctl = readControl();
   if (_ctl) { try { await handleControl(_ctl); } catch (e) { console.log("ctl err:", e.message); } await sleep(1500); continue; }
