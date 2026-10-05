@@ -1641,35 +1641,45 @@ async function cohostStart(room) {
     window.__cohostUtterances = window.__cohostUtterances || [];
     function startGuestVAD(id, stream, name) {
       const av = window.__selamAdapter && window.__selamAdapter.avatar;
-      const ac = av && av.audioCtx; if (!ac) return;
-      const atracks = stream.getAudioTracks(); if (!atracks.length) return;
-      const audioOnly = new MediaStream(atracks);
-      const src = ac.createMediaStreamSource(stream);
+      const ac = av && av.audioCtx; if (!ac) { console.log("[cohost] no audioCtx for VAD"); return; }
+      const atracks = stream.getAudioTracks(); if (!atracks.length) { console.log("[cohost] guest has no audio track"); return; }
+      // Use a CLONED track for VAD + recording so we don't create a second
+      // MediaStreamAudioSourceNode from the same stream (Chromium gives the 2nd
+      // one silence — addGuestAudio already sourced the original). A hidden muted
+      // <audio> playing the clone also "pumps" the remote track into Web Audio.
+      const vadTrack = atracks[0].clone();
+      const vadStream = new MediaStream([vadTrack]);
+      const pump = document.createElement("audio"); pump.srcObject = vadStream; pump.muted = true; pump.autoplay = true; pump.style.display = "none"; document.body.appendChild(pump); try { pump.play(); } catch (_) {}
+      const audioOnly = new MediaStream([vadTrack]);
+      const src = ac.createMediaStreamSource(vadStream);
       const an = ac.createAnalyser(); an.fftSize = 512; src.connect(an);
       const buf = new Uint8Array(an.fftSize);
-      let speaking = false, silenceAt = 0, speechStart = 0, rec = null, chunks = [];
-      const THRESH = 0.025, SIL_MS = 1100, MIN_MS = 500, MAX_MS = 20000;
+      let speaking = false, silenceAt = 0, speechStart = 0, rec = null, chunks = [], peak = 0, logT = 0;
+      const THRESH = 0.02, SIL_MS = 1100, MIN_MS = 500, MAX_MS = 20000;
+      console.log("[cohost] VAD started for " + name);
       function rms() { an.getByteTimeDomainData(buf); let s = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; s += v * v; } return Math.sqrt(s / buf.length); }
       function finish() {
         const dur = performance.now() - speechStart; speaking = false;
         if (rec && rec.state !== "inactive") {
           rec.onstop = function () {
             const blob = new Blob(chunks, { type: "audio/webm" }); chunks = [];
-            if (dur < MIN_MS || blob.size < 1600) return;        // too short → ignore noise
+            if (dur < MIN_MS || blob.size < 1600) { console.log("[cohost] utterance dropped (short: " + Math.round(dur) + "ms / " + blob.size + "B)"); return; }
             const fr = new FileReader();
-            fr.onload = function () { try { window.__cohostUtterances.push({ id, name, b64: String(fr.result).split(",")[1], mime: "audio/webm", dur: Math.round(dur), ts: Date.now() }); } catch (_) {} };
+            fr.onload = function () { try { window.__cohostUtterances.push({ id, name, b64: String(fr.result).split(",")[1], mime: "audio/webm", dur: Math.round(dur), ts: Date.now() }); console.log("[cohost] utterance queued: " + name + " " + Math.round(dur) + "ms " + blob.size + "B"); } catch (_) {} };
             fr.readAsDataURL(blob);
           };
           try { rec.stop(); } catch (_) {}
         }
       }
       const tick = setInterval(function () {
-        const g = guests[id]; if (!g) { clearInterval(tick); return; }
-        const level = rms();
+        const g = guests[id]; if (!g) { clearInterval(tick); try { pump.remove(); } catch (_) {} return; }
+        const level = rms(); if (level > peak) peak = level;
+        // Heartbeat every ~5s so we can SEE whether audio is even reaching VAD.
+        if (performance.now() - logT > 5000) { logT = performance.now(); console.log("[cohost] " + name + " audio level peak=" + peak.toFixed(3) + " (thresh " + THRESH + ")"); peak = 0; }
         if (level > THRESH) {
           silenceAt = 0;
           if (!speaking) { speaking = true; speechStart = performance.now(); chunks = [];
-            try { rec = new MediaRecorder(audioOnly, { mimeType: "audio/webm" }); rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(); } catch (_) {}
+            try { rec = new MediaRecorder(audioOnly, { mimeType: "audio/webm" }); rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(); console.log("[cohost] " + name + " started speaking"); } catch (e) { console.log("[cohost] recorder err: " + e.message); }
             try { g.seat.style.borderColor = "#3ecf8e"; } catch (_) {}   // green = speaking
           } else if (performance.now() - speechStart > MAX_MS) { finish(); }   // cap runaway
         } else if (speaking) {
@@ -1677,9 +1687,9 @@ async function cohostStart(room) {
           else if (performance.now() - silenceAt > SIL_MS) { try { g.seat.style.borderColor = "rgba(34,211,238,.6)"; } catch (_) {} finish(); }
         }
       }, 100);
-      guests[id].vad = { tick, src };
+      guests[id].vad = { tick, src, pump };
     }
-    function dropSeat(id) { const g = guests[id]; if (g) { try { if (g.vad) { clearInterval(g.vad.tick); g.vad.src.disconnect(); } } catch (_) {} try { g.seat.remove(); } catch (_) {} try { window.__selamLive.removeGuestAudio(id); } catch (_) {} delete guests[id]; } }
+    function dropSeat(id) { const g = guests[id]; if (g) { try { if (g.vad) { clearInterval(g.vad.tick); g.vad.src.disconnect(); if (g.vad.pump) g.vad.pump.remove(); } } catch (_) {} try { g.seat.remove(); } catch (_) {} try { window.__selamLive.removeGuestAudio(id); } catch (_) {} delete guests[id]; } }
     let peer = null;
     try {
       peer = new window.Peer("selam-live-host-" + room, { debug: 1 });
@@ -1725,16 +1735,34 @@ async function transcribeAudio(b64, mime) {
 
 // A guest spoke → transcribe → Selam responds to them on-air, conversationally.
 let _cohostBusy = false;
+// Show what she HEARD from the guest, on-screen (and in the operator log). Makes
+// the STT visible so you can see exactly what she's picking up.
+async function showHeard(name, text, dim) {
+  try {
+    await pg.evaluate(({ name, text, dim }) => {
+      let b = document.getElementById("slo-heard"); const o = document.getElementById("selam-live-overlay") || document.body;
+      if (!b) { b = document.createElement("div"); b.id = "slo-heard"; o.appendChild(b); }
+      b.style.cssText = `position:fixed;left:4%;right:4%;bottom:92px;z-index:47;border-radius:14px;background:linear-gradient(90deg,rgba(10,12,19,.95),rgba(10,12,19,.86));border-left:5px solid ${dim ? "#7d829e" : "#3ecf8e"};box-shadow:0 12px 34px rgba(0,0,0,.55);padding:12px 18px;font-family:-apple-system,system-ui,sans-serif;opacity:${dim ? ".6" : "1"};transition:opacity .25s`;
+      b.innerHTML = `<span style="font:800 13px -apple-system,system-ui,sans-serif;letter-spacing:.4px;color:${dim ? "#9aa0bc" : "#5fe0a0"};margin-right:10px">🎙 ${name} ${dim ? "(unclear)" : "is saying"}</span><span style="font:600 18px/1.4 -apple-system,'Segoe UI',system-ui,sans-serif;color:#eef2ff">${text}</span>`;
+    }, { name: name || "Guest", text: text || "…", dim: !!dim });
+  } catch (_) {}
+}
+async function hideHeard() { try { await pg.evaluate(() => { const b = document.getElementById("slo-heard"); if (b) b.remove(); }); } catch (_) {} }
+
 async function handleGuestUtterance(utt) {
   const text = await transcribeAudio(utt.b64, utt.mime);
   const clean = (text || "").replace(/\s+/g, " ").trim();
+  const kb = Math.round((utt.b64 || "").length * 0.75 / 1024);
+  console.log(`🎙 heard ${utt.name} (${utt.dur}ms, ${kb}KB): "${clean}"`);
   // Whisper on silence/noise often returns empty, "you", "thank you", "." etc.
-  if (!clean || clean.length < 3 || /^(you|thanks?|thank you|bye|\.|uh|um)[.!?]?$/i.test(clean)) return;
-  console.log(`🎙 ${utt.name}: "${clean}"`);
+  const noise = !clean || clean.length < 3 || /^(you|thanks?|thank you|bye|\.|uh|um|okay|ok)[.!?]*$/i.test(clean);
+  if (clean) await showHeard(utt.name, clean, noise);   // SHOW it either way (so STT is visible)
+  if (noise) { console.log("   (filtered as noise/empty — no reply)"); setTimeout(() => hideHeard().catch(() => {}), 2500); return; }
   try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = "0 0 0 3px #3ecf8e, 0 14px 40px rgba(0,0,0,.55)"; }, utt.id); } catch (_) {}
   const prompt = `You are Selam, CO-HOSTING a LIVE broadcast with a real human guest named ${utt.name}. ${utt.name} just said to you, out loud: "${clean}". Respond to THEM directly and naturally — a warm, quick-witted co-host having a genuine back-and-forth. React to what they actually said; 1 to 3 short spoken sentences; it's great to ask them a follow-up question to keep the conversation going. Speak only your reply — no preamble, meta, or brackets. ${_PRIV}`;
   await sayAndCapture(prompt);
   try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = ""; }, utt.id); } catch (_) {}
+  await hideHeard();
 }
 
 // ── Operator talkback (mode A: steer the show) ──────────────────────────
