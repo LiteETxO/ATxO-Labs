@@ -1615,7 +1615,7 @@ async function setupStageLayout() {
 // seat beside the avatar (composited into the window-capture → on-stream), and
 // mix their mic into the broadcast audio via __selamLive.addGuestAudio. Phase 2
 // of the AI co-host — guests APPEAR + are HEARD. (Conversation = later phase.)
-let _cohostRoom = null, _cohostGuests = 0;
+let _cohostRoom = null, _cohostGuests = 0, _cohostBrief = "";   // operator's guest brief (who they are + topic)
 async function cohostStart(room) {
   room = (room || "main").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "main";
   _cohostRoom = room;
@@ -1802,7 +1802,8 @@ async function introduceGuest(join) {
   const name = (join.name || "a guest").slice(0, 40);
   console.log(`🎙 introducing guest: ${name}`);
   try { await showHeard("", "Welcoming " + name + " to the show…", true); } catch (_) {}
-  await sayAndCapture(`You are Selam, hosting your LIVE broadcast, and a guest named ${name} is about to join you on air RIGHT NOW. Give them a warm, genuine, upbeat on-air welcome in ONE or TWO spoken sentences — introduce ${name} to your viewers by name, say you're excited to have them, and invite them to say hello. Natural host energy, like bringing someone onto a talk show. Speak only the welcome — no preamble, meta, or brackets. ${_PRIV}`);
+  const brief = _cohostBrief ? ` Here's what you know about them (use it to introduce them accurately — who they are and why they're here): "${_cohostBrief}".` : "";
+  await sayAndCapture(`You are Selam, hosting your LIVE broadcast, and a guest named ${name} is about to join you on air RIGHT NOW.${brief} Give them a warm, genuine, upbeat on-air welcome in ONE or TWO spoken sentences — introduce ${name} to your viewers by name${_cohostBrief ? " and why they're here" : ""}, say you're excited to have them, and invite them to say hello. Natural host energy, like bringing someone onto a talk show. Speak only the welcome — no preamble, meta, or brackets. ${_PRIV}`);
   try { await pg.evaluate((id) => { try { window.__selamCohost && window.__selamCohost.bringOn && window.__selamCohost.bringOn(id); } catch (_) {} }, join.id); } catch (_) {}
   try { await hideHeard(); } catch (_) {}
   console.log(`🎙 ${name} is now ON AIR`);
@@ -1820,7 +1821,8 @@ async function handleGuestUtterance(utt) {
   if (clean) await showHeard(utt.name, clean, noise);   // SHOW it either way (so STT is visible)
   if (noise) { console.log("   (filtered as noise/empty — no reply)"); setTimeout(() => hideHeard().catch(() => {}), 2500); return; }
   try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = "0 0 0 3px #3ecf8e, 0 14px 40px rgba(0,0,0,.55)"; }, utt.id); } catch (_) {}
-  const prompt = `You are Selam, CO-HOSTING a LIVE broadcast with a real human guest named ${utt.name}. ${utt.name} just said to you, out loud: "${clean}". Respond to THEM directly and naturally — a warm, quick-witted co-host having a genuine back-and-forth. React to what they actually said; 1 to 3 short spoken sentences; it's great to ask them a follow-up question to keep the conversation going. Speak only your reply — no preamble, meta, or brackets. ${_PRIV}`;
+  const briefCtx = _cohostBrief ? ` Context on this guest + what the segment is about: "${_cohostBrief}". Keep the conversation anchored around this, and draw on it when it helps.` : "";
+  const prompt = `You are Selam, CO-HOSTING a LIVE broadcast with a real human guest named ${utt.name}.${briefCtx} ${utt.name} just said to you, out loud: "${clean}". Respond to THEM directly and naturally — a warm, quick-witted co-host having a genuine back-and-forth. React to what they actually said; 1 to 3 short spoken sentences; it's great to ask them a follow-up question to keep the conversation going. Speak only your reply — no preamble, meta, or brackets. ${_PRIV}`;
   await sayAndCapture(prompt);
   try { await pg.evaluate((id) => { const g = document.getElementById("slo-g-" + id); if (g) g.style.boxShadow = ""; }, utt.id); } catch (_) {}
   await hideHeard();
@@ -1895,7 +1897,8 @@ async function handleControl(c) {
   }
   else if (cmd === "create") { lastCreateAt = Date.now(); await creationBeat(); }
   else if (cmd === "cohost") { await cohostStart(arg || "main"); }
-  else if (cmd === "cohoststop" || cmd === "cohost-stop" || cmd === "cohost_stop") { await cohostStop(); }
+  else if (cmd === "cohoststop" || cmd === "cohost-stop" || cmd === "cohost_stop") { await cohostStop(); _cohostBrief = ""; }
+  else if (cmd === "cohostbrief" || cmd === "guestbrief" || cmd === "brief") { _cohostBrief = (arg || "").trim(); console.log(`🎙 guest brief → ${_cohostBrief || "(cleared)"}`); }
   else if (cmd === "panel") { lastPanelAt = Date.now(); await livePanel(arg || "", false); }
   else if (cmd === "panelsolo" || cmd === "panel-solo" || cmd === "panel_solo") { lastPanelAt = Date.now(); await livePanel(arg || "", true); }
   else if (cmd === "panelcards" || cmd === "panel-cards") { lastPanelAt = Date.now(); await modelPanel(arg || "", false); }
