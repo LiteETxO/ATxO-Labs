@@ -872,7 +872,7 @@ async function sayAndCapture(prompt) {
     if (s.gone) break;   // page reloaded mid-speech — hook + counters are wiped; stop waiting and let the loop re-heal
     if (s.n > lastN) { lastN = s.n; lastActiveAt = Date.now(); }
     if (s.f >= 0.06 || s.q > 0 || s.spk) lastActiveAt = Date.now();   // speaking OR more queued → still going
-    if (s.n > 0 && s.f < 0.06 && s.q === 0 && !s.spk && Date.now() - lastActiveAt > 11000) break;
+    if (s.n > 0 && s.f < 0.06 && s.q === 0 && !s.spk && Date.now() - lastActiveAt > 5000) break;   // 5s of true silence = done (was 11s; cuts dead air between segments). Tolerates a 5s inter-sentence pause.
     if (!REHEARSE && !s.live) break;  // stream stopped (live ended from the app) — stop hosting now
     if (urgentStopPending()) break;   // operator hit Wrap & End / End Live — stop waiting, unwind fast
     await sleep(150);
@@ -2218,7 +2218,7 @@ for (;;) {
         try { await showNewsImage(SELAM_HERO, "SELAM · POLL RESULTS 📊", `${p.a.label} ${aPct}%  ·  ${p.b.label} ${bPct}%`); } catch (_) {}
         await speakLine(`Poll results are in — ${winLabel} takes it with ${winPct} percent! That's ${p.a.label} at ${aPct} and ${p.b.label} at ${bPct}. Love seeing how you all think.`);
       }
-      await sleep(3000); continue;
+      await sleep(1500); continue;
     }
     // Viewer-topic window closed → cover the best suggestion.
     if (awaitingTopicsUntil && Date.now() > awaitingTopicsUntil) {
@@ -2235,7 +2235,7 @@ for (;;) {
     if (activeTrivia && Date.now() - activeTrivia.at > 120000) {
       const ans = activeTrivia.a[0];  _recentQ = { kind: "trivia", q: activeTrivia.q, until: Date.now() + 45000 }; activeTrivia = null;
       await speakLine(`Time's up on that one — the answer was ${ans}. Great guesses, everyone — keep them coming!`);
-      await sleep(3000); continue;
+      await sleep(1500); continue;
     }
     // ask a trivia question every ~6 min
     if (!activeTrivia && Date.now() - lastTriviaAt > 6 * 60 * 1000) {
@@ -2245,7 +2245,7 @@ for (;;) {
       activeTrivia = { q: tq.q, a: tq.a, at: Date.now() }; bumpSeg("trivia"); bumpSeg("trivia");
       try { await showNewsImage(SELAM_HERO, "SELAM · TRIVIA 🎉", ""); } catch (_) {}
       await speakLine(tq.q);
-      await sleep(3500); continue;
+      await sleep(1500); continue;
     }
     // show off her multilingual skills every ~4 min (English broadcasts only —
     // if she's already hosting in another language this would be redundant)
@@ -2264,7 +2264,7 @@ for (;;) {
       await setSegmentBanner("LIVE POLL");
       try { await showPoll(activePoll); await updatePoll(0, 0); } catch (_) {}
       await speakLine(pq.q);
-      await sleep(3500); continue;
+      await sleep(1500); continue;
     }
     // Featured-comment spotlight every ~5.5 min — pull a viewer comment up + riff.
     if (Date.now() - lastSpotlightAt > 5.5 * 60 * 1000 && recentComments.length) {
@@ -2302,7 +2302,7 @@ for (;;) {
       awaitingTopicsUntil = Date.now() + 75000;
       try { await showNewsImage(SELAM_HERO, "SELAM · YOU PICK 🗳", "Comment a topic — I'll cover the top pick!"); } catch (_) {}
       await speakLine("Here's your chance to steer the show — comment a topic you want me to cover, and in a minute I'll pick one and dive right in!");
-      await sleep(3500); continue;
+      await sleep(1500); continue;
     }
     // every now and then (not too often), invite viewers to the tour
     if (Date.now() - lastTourOfferAt > 8 * 60 * 1000) {
