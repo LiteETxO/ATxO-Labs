@@ -159,6 +159,17 @@
       }
     });
     peer.on("disconnected", function(){ try{ peer.reconnect(); }catch(e){} });
+    // Selam opens a data channel to cue us — "onair" fires the moment she brings
+    // us on (right after she introduces us), so our screen matches the broadcast.
+    peer.on("connection", function(conn){ conn.on("data", function(d){ if(d==="onair") goOnAir(name); }); });
+  }
+
+  var _onair=false;
+  function goOnAir(name){
+    if(_onair) return; _onair=true;
+    $("greet").innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff3b4e;box-shadow:0 0 10px #ff3b4e;animation:pulse 1.2s infinite"></span>🔴 YOU\'RE ON AIR</span>';
+    $("greensub").textContent = "You're live on the broadcast now — Selam just introduced you. Say hi! 🎧 Keep your headphones on.";
+    setRoomStatus("live","on air ✓");
   }
 
   function tryCall(name){
@@ -197,20 +208,13 @@
 
   var _wentLive=false;
   function onLive(name){
-    setRoomStatus("live","connected to Selam ✓");
+    setRoomStatus("live","connected ✓ — standing by");
     if(_wentLive) return; _wentLive=true;
-    // Clear warning that they're about to be on the broadcast — a 3-2-1 countdown,
-    // then a persistent ON-AIR banner (so no one is surprised to find they're live).
-    $("greet").textContent = "Get ready, " + name + " — you're going live!";
-    var n=3;
-    $("greensub").innerHTML = '<span style="font-size:40px;font-weight:800;color:#ff5c6c">'+n+'</span>';
-    var cd=setInterval(function(){ n--;
-      if(n>0){ $("greensub").innerHTML='<span style="font-size:40px;font-weight:800;color:#ff5c6c">'+n+'</span>'; }
-      else { clearInterval(cd);
-        $("greet").innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff3b4e;box-shadow:0 0 10px #ff3b4e;animation:pulse 1.2s infinite"></span>🔴 YOU\'RE ON AIR</span>';
-        $("greensub").textContent = "You're live on the broadcast now — speak naturally, Selam will talk with you. 🎧 Keep your headphones on.";
-      }
-    },1000);
+    // Connected, but NOT on-air yet. Selam introduces you first, then brings you
+    // on (goOnAir fires from her "onair" cue). Fallback below in case the cue drops.
+    $("greet").textContent = "You're in, " + name + "! 🎬";
+    $("greensub").innerHTML = '🎤 <b>Selam is about to introduce you</b> — get ready, you\'ll be live in a moment. 🎧 Headphones on.';
+    setTimeout(function(){ if(!_onair) goOnAir(name); }, 22000);   // safety: if the cue never arrives
   }
 
   $("leave").addEventListener("click", function(){

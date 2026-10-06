@@ -1633,7 +1633,8 @@ async function cohostStart(room) {
     // When a human guest is on they're the focus — hide the competing right-side
     // cards (markets/news/poll/etc.) so nothing overlaps the guest PIP.
     function _hideCompeting() { ["slo-prices", "slo-newsimg", "slo-poll", "slo-textcard"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = "none"; }); }
-    const guests = {};
+    const guests = {}, pending = {};
+    window.__cohostPending = window.__cohostPending || [];   // new guests awaiting Selam's intro
     function addSeat(id, stream, name) {
       let seat = document.getElementById("slo-g-" + id);
       if (!seat) { seat = document.createElement("div"); seat.id = "slo-g-" + id;
@@ -1716,9 +1717,16 @@ async function cohostStart(room) {
         const id = (call.peer || "g" + Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
         const name = (call.metadata && call.metadata.name) || "Guest";
         try { call.answer(window.__selamLive && window.__selamLive.guestReturnStream && window.__selamLive.guestReturnStream() || undefined); } catch (_) { try { call.answer(); } catch (__) {} }   // send her voice back so the guest HEARS her
-        // Bring the guest onto the broadcast ~3.5s after connect — matches the
-        // 3-2-1 countdown they see, so they're never surprised to find they're live.
-        call.on("stream", function (remote) { setTimeout(function () { try { addSeat(id, remote, name); } catch (_) {} }, 3500); });
+        // Open a data channel to the guest so we can cue their screen ("onair").
+        try { const dc = peer.connect(call.peer); pending[id] = pending[id] || {}; pending[id].dc = dc; } catch (_) {}
+        // DON'T auto-add the seat. Park the guest "backstage" and queue a join so
+        // host-loop can have Selam INTRODUCE them first, then bring them on-air.
+        call.on("stream", function (remote) {
+          pending[id] = Object.assign(pending[id] || {}, { name: name, stream: remote });
+          if (!pending[id].queued) { pending[id].queued = true; window.__cohostPending.push({ id: id, name: name }); console.log("[cohost] " + name + " backstage — awaiting intro"); }
+          // Safety: if host-loop never brings them on within 20s, bring on anyway.
+          pending[id].fallback = setTimeout(function () { try { if (!guests[id]) window.__selamCohost.bringOn(id); } catch (_) {} }, 20000);
+        });
         call.on("close", function () { dropSeat(id); });
         call.on("error", function () { dropSeat(id); });
         // Drop ghost seats ONLY on a TERMINAL connection state (failed/closed) —
@@ -1736,7 +1744,16 @@ async function cohostStart(room) {
       room: room,
       count: function () { return Object.keys(guests).length; },
       guests: function () { return Object.keys(guests); },
-      stop: function () { try { peer && peer.destroy(); } catch (_) {} Object.keys(guests).forEach(dropSeat); try { layer.remove(); } catch (_) {} window.__selamCohost = null; },
+      // Called by host-loop AFTER Selam introduces the guest: render their seat
+      // (they go on-air now) and cue their screen via the data channel.
+      bringOn: function (id) {
+        const p = pending[id]; if (!p || !p.stream || guests[id]) return;
+        try { if (p.fallback) clearTimeout(p.fallback); } catch (_) {}
+        try { addSeat(id, p.stream, p.name); } catch (_) {}
+        try { const dc = p.dc; if (dc) { if (dc.open) dc.send("onair"); else dc.on("open", function () { try { dc.send("onair"); } catch (_) {} }); } } catch (_) {}
+        delete pending[id];
+      },
+      stop: function () { try { peer && peer.destroy(); } catch (_) {} Object.keys(guests).forEach(dropSeat); try { layer.remove(); } catch (_) {} window.__cohostPending = []; window.__selamCohost = null; },
     };
   }, room);
   console.log(`🎙 co-host OPEN — guests join at heyselam.ai/join?room=${room}`);
@@ -1778,6 +1795,18 @@ async function showHeard(name, text, dim) {
   } catch (_) {}
 }
 async function hideHeard() { try { await pg.evaluate(() => { const b = document.getElementById("slo-heard"); if (b) b.remove(); }); } catch (_) {} }
+
+// A new guest is backstage → Selam welcomes them on-air BEFORE they appear, then
+// brings them on (their seat + audio go live, and their screen gets the cue).
+async function introduceGuest(join) {
+  const name = (join.name || "a guest").slice(0, 40);
+  console.log(`🎙 introducing guest: ${name}`);
+  try { await showHeard("", "Welcoming " + name + " to the show…", true); } catch (_) {}
+  await sayAndCapture(`You are Selam, hosting your LIVE broadcast, and a guest named ${name} is about to join you on air RIGHT NOW. Give them a warm, genuine, upbeat on-air welcome in ONE or TWO spoken sentences — introduce ${name} to your viewers by name, say you're excited to have them, and invite them to say hello. Natural host energy, like bringing someone onto a talk show. Speak only the welcome — no preamble, meta, or brackets. ${_PRIV}`);
+  try { await pg.evaluate((id) => { try { window.__selamCohost && window.__selamCohost.bringOn && window.__selamCohost.bringOn(id); } catch (_) {} }, join.id); } catch (_) {}
+  try { await hideHeard(); } catch (_) {}
+  console.log(`🎙 ${name} is now ON AIR`);
+}
 
 async function handleGuestUtterance(utt) {
   const text = await transcribeAudio(utt.b64, utt.mime);
@@ -2106,8 +2135,10 @@ for (;;) {
   // so she never talks over herself; the queue holds any that pile up).
   if (_cohostRoom && !_cohostBusy) {
     let r = null;
-    try { r = await pg.evaluate(() => ({ utt: (window.__cohostUtterances && window.__cohostUtterances.length) ? window.__cohostUtterances.shift() : null, n: (window.__selamCohost && window.__selamCohost.count && window.__selamCohost.count()) || 0 })); } catch (_) {}
+    try { r = await pg.evaluate(() => ({ join: (window.__cohostPending && window.__cohostPending.length) ? window.__cohostPending.shift() : null, utt: (window.__cohostUtterances && window.__cohostUtterances.length) ? window.__cohostUtterances.shift() : null, n: (window.__selamCohost && window.__selamCohost.count && window.__selamCohost.count()) || 0 })); } catch (_) {}
     _cohostGuests = (r && r.n) || 0;
+    // A new guest is backstage → Selam introduces them, THEN they go on-air.
+    if (r && r.join && r.join.id) { _cohostBusy = true; try { await introduceGuest(r.join); } catch (e) { console.log("intro err:", e.message); } finally { _cohostBusy = false; } continue; }
     if (r && r.utt && r.utt.b64) { _cohostBusy = true; try { await handleGuestUtterance(r.utt); } catch (e) { console.log("guest err:", e.message); } finally { _cohostBusy = false; } continue; }
   } else if (!_cohostRoom) { _cohostGuests = 0; }
   let fresh = [];
