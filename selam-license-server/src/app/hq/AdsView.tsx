@@ -26,6 +26,7 @@ export type GoogleAdsData = {
   accountId?: string;
   totalCost?: number;
   byCampaign?: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }>;
+  byChannel?: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }>;
 };
 export type LiveAdsData = GoogleAdsData;
 
@@ -97,6 +98,19 @@ export default function AdsView({
     const total = rows.reduce((a, r) => ({ spend: a.spend + r.spend, revenue: a.revenue + r.revenue, orders: a.orders + r.orders }), { spend: 0, revenue: 0, orders: 0 });
     return { rows, total };
   }, [activeLive, spend, rev, liveNames]);
+
+  // Channel/placement breakdown — spend, impressions, clicks per channel
+  // (YouTube / Search / Display / Facebook / Instagram / …). No revenue/ROAS:
+  // sales are attributed by utm_campaign, not by placement.
+  const channels = useMemo(() => {
+    const out: Array<{ label: string; cost: number; impressions: number; clicks: number }> = [];
+    for (const p of activeLive) {
+      for (const [label, v] of Object.entries(p.d!.byChannel || {})) {
+        out.push({ label: `${p.name} · ${label}`, cost: v.cost, impressions: v.impressions, clicks: v.clicks });
+      }
+    }
+    return out.sort((a, b) => b.cost - a.cost);
+  }, [activeLive]);
 
   const rows: Row[] = useMemo(() => {
     const names = new Set<string>(Object.keys(effSpend));
@@ -224,6 +238,35 @@ export default function AdsView({
               </tr>
             </tbody>
           </table>
+        </div>
+      )}
+
+      {channels.length > 0 && (
+        <div className="panel scroll">
+          <h2>Spend by channel — last {days}d</h2>
+          <table>
+            <thead><tr>
+              <th>Channel</th>
+              <th style={{ textAlign: 'right' }}>Spend</th>
+              <th style={{ textAlign: 'right' }}>Impressions</th>
+              <th style={{ textAlign: 'right' }}>Clicks</th>
+              <th style={{ textAlign: 'right' }}>CPC</th>
+            </tr></thead>
+            <tbody>
+              {channels.map((c) => (
+                <tr key={c.label}>
+                  <td className="name">{c.label}</td>
+                  <td style={{ textAlign: 'right' }}>{money(c.cost)}</td>
+                  <td style={{ textAlign: 'right' }}>{nf(c.impressions)}</td>
+                  <td style={{ textAlign: 'right' }}>{nf(c.clicks)}</td>
+                  <td style={{ textAlign: 'right' }}>{c.clicks > 0 ? money(c.cost / c.clicks) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 11, marginTop: 10 }}>
+            Instagram vs Facebook and YouTube vs Search are broken out here. Revenue/ROAS stays in the summary above — sales are attributed by campaign (utm_campaign), which can&apos;t be split across placements.
+          </div>
         </div>
       )}
 

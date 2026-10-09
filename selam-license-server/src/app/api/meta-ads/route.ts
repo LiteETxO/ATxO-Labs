@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
   const url = `https://graph.facebook.com/${VER}/${ACCT}/insights?` + new URLSearchParams({
     level: 'campaign',
     fields: 'campaign_name,spend,impressions,clicks,actions,action_values',
+    breakdowns: 'publisher_platform',   // → Facebook / Instagram / Audience Network / Messenger
     time_range: JSON.stringify({ since, until }),
     limit: '500',
     access_token: TOKEN,
@@ -63,23 +64,36 @@ export async function GET(req: NextRequest) {
     if (!resp.ok || body.error) {
       return NextResponse.json({ configured: true, error: String(body?.error?.message || ('HTTP ' + resp.status)).slice(0, 280) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
     }
-    const byCampaign: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }> = {};
-    let totalCost = 0;
-    for (const row of (body.data || []) as Array<Record<string, unknown>>) {
-      const name = String(row.campaign_name || '(unnamed)');
-      const cost = parseFloat(String(row.spend ?? '0')) || 0;
-      const e = byCampaign[name] || { cost: 0, clicks: 0, impressions: 0, conversions: 0, conversionsValue: 0 };
+    // Rows are now per campaign × publisher_platform. Aggregate by campaign
+    // and by channel (Facebook / Instagram / …).
+    type Bucket = { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number };
+    const blank = (): Bucket => ({ cost: 0, clicks: 0, impressions: 0, conversions: 0, conversionsValue: 0 });
+    const add = (map: Record<string, Bucket>, key: string, row: Record<string, unknown>, cost: number) => {
+      const e = map[key] || blank();
       e.cost += cost;
       e.clicks += parseInt(String(row.clicks ?? '0'), 10) || 0;
       e.impressions += parseInt(String(row.impressions ?? '0'), 10) || 0;
       e.conversions += sumActions(row.actions as Array<{ action_type?: string; value?: string }>);
       e.conversionsValue += sumActions(row.action_values as Array<{ action_type?: string; value?: string }>);
-      byCampaign[name] = e;
+      map[key] = e;
+    };
+    const channelOf = (p: string): string => ({
+      facebook: 'Facebook', instagram: 'Instagram', audience_network: 'Audience Network', messenger: 'Messenger',
+    } as Record<string, string>)[p] || 'Other';
+
+    const byCampaign: Record<string, Bucket> = {};
+    const byChannel: Record<string, Bucket> = {};
+    let totalCost = 0;
+    for (const row of (body.data || []) as Array<Record<string, unknown>>) {
+      const name = String(row.campaign_name || '(unnamed)');
+      const cost = parseFloat(String(row.spend ?? '0')) || 0;
+      add(byCampaign, name, row, cost);
+      add(byChannel, channelOf(String(row.publisher_platform || '')), row, cost);
       totalCost += cost;
     }
     return NextResponse.json({
       configured: true, days, generatedAt: new Date().toISOString(),
-      accountId: ACCT, totalCost: Math.round(totalCost * 100) / 100, byCampaign,
+      accountId: ACCT, totalCost: Math.round(totalCost * 100) / 100, byCampaign, byChannel,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ configured: true, error: String((e as Error)?.message || e).slice(0, 280) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });

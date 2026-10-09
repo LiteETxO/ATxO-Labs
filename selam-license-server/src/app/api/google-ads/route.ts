@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   const end = new Date();
   const start = new Date(Date.now() - (days - 1) * 86400000);
   const query =
-    `SELECT campaign.name, metrics.cost_micros, metrics.clicks, metrics.impressions, ` +
+    `SELECT campaign.name, segments.ad_network_type, metrics.cost_micros, metrics.clicks, metrics.impressions, ` +
     `metrics.conversions, metrics.conversions_value ` +
     `FROM campaign WHERE segments.date BETWEEN '${ymd(start)}' AND '${ymd(end)}'`;
 
@@ -100,25 +100,38 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ configured: true, error: String(detail).slice(0, 280) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
     }
 
-    // Aggregate by campaign (defensive — one row per campaign expected).
-    const byCampaign: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }> = {};
-    let totalCost = 0;
-    for (const row of (j.results || []) as Array<Record<string, { name?: string; costMicros?: string; clicks?: string; impressions?: string; conversions?: number; conversionsValue?: number }>>) {
-      const name = row.campaign?.name || '(unnamed)';
-      const m = row.metrics || {};
-      const cost = (parseInt(String(m.costMicros ?? '0'), 10) || 0) / 1e6;
-      const e = byCampaign[name] || { cost: 0, clicks: 0, impressions: 0, conversions: 0, conversionsValue: 0 };
+    // Rows are now per campaign × ad-network. Aggregate both by campaign and
+    // by channel (Search / Display / YouTube / …).
+    type Bucket = { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number };
+    const blank = (): Bucket => ({ cost: 0, clicks: 0, impressions: 0, conversions: 0, conversionsValue: 0 });
+    const add = (map: Record<string, Bucket>, key: string, cost: number, m: Record<string, unknown>) => {
+      const e = map[key] || blank();
       e.cost += cost;
       e.clicks += parseInt(String(m.clicks ?? '0'), 10) || 0;
       e.impressions += parseInt(String(m.impressions ?? '0'), 10) || 0;
       e.conversions += Number(m.conversions ?? 0) || 0;
       e.conversionsValue += Number(m.conversionsValue ?? 0) || 0;
-      byCampaign[name] = e;
+      map[key] = e;
+    };
+    const channelOf = (n: string): string => ({
+      SEARCH: 'Search', SEARCH_PARTNERS: 'Search partners', CONTENT: 'Display',
+      YOUTUBE_WATCH: 'YouTube', YOUTUBE_SEARCH: 'YouTube', MIXED: 'Mixed (PMax/Demand Gen)',
+    } as Record<string, string>)[n] || 'Other';
+
+    const byCampaign: Record<string, Bucket> = {};
+    const byChannel: Record<string, Bucket> = {};
+    let totalCost = 0;
+    for (const row of (j.results || []) as Array<{ campaign?: { name?: string }; segments?: { adNetworkType?: string }; metrics?: Record<string, unknown> }>) {
+      const name = row.campaign?.name || '(unnamed)';
+      const m = row.metrics || {};
+      const cost = (parseInt(String(m.costMicros ?? '0'), 10) || 0) / 1e6;
+      add(byCampaign, name, cost, m);
+      add(byChannel, channelOf(row.segments?.adNetworkType || ''), cost, m);
       totalCost += cost;
     }
     return NextResponse.json({
       configured: true, days, generatedAt: new Date().toISOString(),
-      customerId: CUSTOMER, totalCost: Math.round(totalCost * 100) / 100, byCampaign,
+      customerId: CUSTOMER, totalCost: Math.round(totalCost * 100) / 100, byCampaign, byChannel,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ configured: true, error: String((e as Error)?.message || e).slice(0, 240) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
