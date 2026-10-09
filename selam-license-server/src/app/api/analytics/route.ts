@@ -15,7 +15,11 @@ export async function GET(req: NextRequest) {
   const key =
     req.nextUrl.searchParams.get('key') ||
     (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!HQ_TOKEN || key !== HQ_TOKEN) {
+  // Accept the full HQ token or the marketing-scoped token — landing
+  // analytics is marketing data, so both roles may read it.
+  const MKT_TOKEN = process.env.HQ_MARKETING_TOKEN || '';
+  const authed = (!!HQ_TOKEN && key === HQ_TOKEN) || (!!MKT_TOKEN && key === MKT_TOKEN);
+  if (!authed) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

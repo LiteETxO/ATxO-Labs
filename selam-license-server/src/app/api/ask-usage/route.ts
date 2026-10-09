@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
   const key =
     req.nextUrl.searchParams.get('key') ||
     (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!HQ_TOKEN || key !== HQ_TOKEN) {
+  // Full HQ token or marketing-scoped token — Ask-Selam usage is marketing data.
+  const MKT_TOKEN = process.env.HQ_MARKETING_TOKEN || '';
+  const authed = (!!HQ_TOKEN && key === HQ_TOKEN) || (!!MKT_TOKEN && key === MKT_TOKEN);
+  if (!authed) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   if (!OPS_TOKEN) {

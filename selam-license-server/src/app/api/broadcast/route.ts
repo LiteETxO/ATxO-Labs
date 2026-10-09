@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key') || (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!HQ_TOKEN || key !== HQ_TOKEN) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  // Full HQ token or marketing-scoped token — broadcast metrics are marketing data.
+  const MKT_TOKEN = process.env.HQ_MARKETING_TOKEN || '';
+  if (!((!!HQ_TOKEN && key === HQ_TOKEN) || (!!MKT_TOKEN && key === MKT_TOKEN))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const url = dbUrl(); if (!url) return NextResponse.json({ error: 'no db' }, { status: 500 });
   const includeReh = req.nextUrl.searchParams.get('rehearse') === '1';
   try {

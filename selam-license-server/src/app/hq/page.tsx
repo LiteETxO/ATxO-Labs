@@ -117,6 +117,11 @@ export default function HQ() {
   const [entered, setEntered] = useState(false);
   const [err, setErr] = useState('');
   const [tab, setTab] = useState<Tab>('revenue');
+  // 'full' = owner (all tabs incl. Revenue); 'marketing' = scoped token
+  // (marketing tabs only, Revenue hidden). Determined by /api/metrics:
+  // 200 → full, 403 → marketing, 401 → wrong token.
+  const [role, setRole] = useState<'full' | 'marketing'>('full');
+  const roleRef = useRef<'full' | 'marketing'>('full');
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [adata, setAdata] = useState<AnalyticsData | null>(null);
   const [ask, setAsk] = useState<AskUsage | null>(null);
@@ -126,13 +131,22 @@ export default function HQ() {
   const [updated, setUpdated] = useState('');
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadMetrics = useCallback(async (tok: string) => {
+  const loadMetrics = useCallback(async (tok: string): Promise<'full' | 'marketing' | 'bad'> => {
     try {
       const r = await fetch('/api/metrics?key=' + encodeURIComponent(tok), { cache: 'no-store' });
-      if (r.status === 401) { setErr('Wrong token.'); setEntered(false); try { localStorage.removeItem('selamhq:key'); } catch {} return; }
+      if (r.status === 401) { setErr('Wrong token.'); setEntered(false); try { localStorage.removeItem('selamhq:key'); } catch {} return 'bad'; }
+      if (r.status === 403) {
+        // Valid marketing-scoped token — revenue is owner-only. Mark the
+        // role, keep the session, and let the caller route to a safe tab.
+        roleRef.current = 'marketing'; setRole('marketing');
+        setLive(true); setUpdated(new Date().toLocaleTimeString()); setErr('');
+        return 'marketing';
+      }
       const d = await r.json();
+      roleRef.current = 'full'; setRole('full');
       setMetrics(d); setLive(true); setUpdated(new Date().toLocaleTimeString());
-    } catch { setLive(false); }
+      return 'full';
+    } catch { setLive(false); return roleRef.current; }
   }, []);
 
   const loadLanding = useCallback(async (tok: string, d: number) => {
@@ -165,16 +179,21 @@ export default function HQ() {
     } catch { setLive(false); }
   }, []);
 
-  const start = useCallback((tok: string, initialTab: Tab) => {
+  const start = useCallback(async (tok: string, initialTab: Tab) => {
     setToken(tok); setEntered(true);
     try { localStorage.setItem('selamhq:key', tok); } catch {}
     try { history.replaceState({}, '', location.pathname); } catch {}
-    loadMetrics(tok);
-    if (initialTab === 'landing') loadLanding(tok, days);
-    if (initialTab === 'ask') loadAsk(tok);
-    if (initialTab === 'broadcast') loadBcast(tok);
+    const rl = await loadMetrics(tok);
+    if (rl === 'bad') return;   // wrong token — already kicked back to gate
+    // Marketing role can't see Revenue; land them on the first marketing tab.
+    let effTab = initialTab;
+    if (rl === 'marketing' && initialTab === 'revenue') { effTab = 'landing'; setTab('landing'); }
+    if (effTab === 'landing') loadLanding(tok, days);
+    if (effTab === 'ask') loadAsk(tok);
+    if (effTab === 'broadcast') loadBcast(tok);
     if (timer.current) clearInterval(timer.current);
-    timer.current = setInterval(() => loadMetrics(tok), 60000);
+    // Only the Revenue tab auto-refreshes; it exists for the full role only.
+    timer.current = setInterval(() => { if (roleRef.current === 'full') loadMetrics(tok); }, 60000);
   }, [loadMetrics, loadLanding, loadAsk, loadBcast, days]);
 
   useEffect(() => {
@@ -197,7 +216,7 @@ export default function HQ() {
   };
   const changeDays = (d: number) => { setDays(d); loadLanding(token, d); };
   const refresh = () => { if (tab === 'revenue') loadMetrics(token); else if (tab === 'landing') loadLanding(token, days); else if (tab === 'ask') loadAsk(token); else loadBcast(token); };
-  const signOut = () => { try { localStorage.removeItem('selamhq:key'); } catch {}; if (timer.current) clearInterval(timer.current); setEntered(false); setMetrics(null); setAdata(null); };
+  const signOut = () => { try { localStorage.removeItem('selamhq:key'); } catch {}; if (timer.current) clearInterval(timer.current); setEntered(false); setMetrics(null); setAdata(null); roleRef.current = 'full'; setRole('full'); };
 
   if (!entered) {
     return (
@@ -224,7 +243,7 @@ export default function HQ() {
           <div className="hqtop">
             <h1>Selam <span>HQ</span></h1>
             <div className="tabs">
-              <button className={tab === 'revenue' ? 'on' : ''} onClick={() => switchTab('revenue')}>Revenue</button>
+              {role === 'full' && <button className={tab === 'revenue' ? 'on' : ''} onClick={() => switchTab('revenue')}>Revenue</button>}
               <button className={tab === 'landing' ? 'on' : ''} onClick={() => switchTab('landing')}>Landing</button>
               <button className={tab === 'ask' ? 'on' : ''} onClick={() => switchTab('ask')}>Ask Selam</button>
               <button className={tab === 'broadcast' ? 'on' : ''} onClick={() => switchTab('broadcast')}>Broadcast</button>
@@ -244,7 +263,7 @@ export default function HQ() {
 
         {err && <div className="hqerr">{err}</div>}
 
-        {tab === 'revenue'
+        {tab === 'revenue' && role === 'full'
           ? <RevenueView d={metrics || {}} />
           : tab === 'landing'
           ? (adata ? <LandingView d={adata} /> : <div className="hqloading">Loading landing analytics…</div>)
