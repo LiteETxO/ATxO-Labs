@@ -241,7 +241,7 @@ export default function AdsView({
         </div>
       )}
 
-      {channels.length > 0 && (
+      {liveAny && (
         <div className="panel scroll">
           <h2>Spend by channel — last {days}d</h2>
           <table>
@@ -253,6 +253,9 @@ export default function AdsView({
               <th style={{ textAlign: 'right' }}>CPC</th>
             </tr></thead>
             <tbody>
+              {channels.length === 0 && (
+                <tr><td className="name" colSpan={5}>No channel spend yet — YouTube / Search / Display and Facebook / Instagram rows appear here once campaigns deliver.</td></tr>
+              )}
               {channels.map((c) => (
                 <tr key={c.label}>
                   <td className="name">{c.label}</td>
