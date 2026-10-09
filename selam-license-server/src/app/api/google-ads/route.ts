@@ -37,7 +37,7 @@ const CSECRET = process.env.GOOGLE_ADS_CLIENT_SECRET || '';
 const REFRESH = process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
 const CUSTOMER = (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/\D/g, '');
 const LOGIN_CID = (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '').replace(/\D/g, '');
-const VER = process.env.GOOGLE_ADS_API_VERSION || 'v21';
+const VER = process.env.GOOGLE_ADS_API_VERSION || 'v22';
 const isConfigured = () => !!(DEV && CID && CSECRET && REFRESH && CUSTOMER);
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
@@ -88,8 +88,15 @@ export async function GET(req: NextRequest) {
     );
     const j = await r.json();
     if (!r.ok) {
-      const detail = j?.error?.message || j?.[0]?.error?.message || ('HTTP ' + r.status);
-      return NextResponse.json({ configured: true, error: String(detail).slice(0, 240) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
+      // Dig out the specific GoogleAdsFailure message (the top-level one is
+      // just "Request contains an invalid argument").
+      const gerr = j?.error?.details?.[0]?.errors?.[0];
+      const qcode = gerr?.errorCode?.queryError;
+      let detail = gerr?.message || j?.error?.message || j?.[0]?.error?.message || ('HTTP ' + r.status);
+      if (qcode === 'REQUESTED_METRICS_FOR_MANAGER') {
+        detail = `${CUSTOMER} is a manager (MCC) account — set GOOGLE_ADS_CUSTOMER_ID to a client account under it (keep GOOGLE_ADS_LOGIN_CUSTOMER_ID as the manager).`;
+      }
+      return NextResponse.json({ configured: true, error: String(detail).slice(0, 280) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
     }
 
     // Aggregate by campaign (defensive — one row per campaign expected).
