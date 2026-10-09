@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
 
     const r = await fetch(
       `https://googleads.googleapis.com/${VER}/customers/${CUSTOMER}/googleAds:search`,
-      { method: 'POST', headers, body: JSON.stringify({ query, pageSize: 1000 }) },
+      // Newer API versions reject an explicit pageSize (fixed at 10000).
+      { method: 'POST', headers, body: JSON.stringify({ query }) },
     );
     const j = await r.json();
     if (!r.ok) {
