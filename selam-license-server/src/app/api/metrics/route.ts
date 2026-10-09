@@ -27,14 +27,12 @@ export async function GET(req: NextRequest) {
   const key =
     req.nextUrl.searchParams.get('key') ||
     (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  // Marketing-scoped token is a valid HQ login but revenue is owner-only.
-  // Return 403 (not 401) so the dashboard knows the token is good and just
-  // hides the Revenue tab, rather than treating it as a wrong token.
+  // Accept the full HQ token or the second (marketing) token — both have
+  // full access, including revenue. The second token exists so a contractor
+  // can be granted and later revoked independently of the owner's token.
   const MKT_TOKEN = process.env.HQ_MARKETING_TOKEN || '';
-  if (MKT_TOKEN && key === MKT_TOKEN) {
-    return NextResponse.json({ error: 'revenue_forbidden' }, { status: 403 });
-  }
-  if (!HQ_TOKEN || key !== HQ_TOKEN) {
+  const authed = (!!HQ_TOKEN && key === HQ_TOKEN) || (!!MKT_TOKEN && key === MKT_TOKEN);
+  if (!authed) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
