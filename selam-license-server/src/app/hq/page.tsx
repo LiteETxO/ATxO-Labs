@@ -9,7 +9,7 @@ import RevenueView, { Metrics } from './RevenueView';
 import LandingView, { AnalyticsData } from './LandingView';
 import AskUsageView, { AskUsage } from './AskUsageView';
 import BroadcastView, { BroadcastData } from './BroadcastView';
-import AdsView, { AdSpendData, GoogleAdsData } from './AdsView';
+import AdsView, { AdSpendData, LiveAdsData } from './AdsView';
 
 const CSS = `
 :root{
@@ -128,7 +128,8 @@ export default function HQ() {
   const [ask, setAsk] = useState<AskUsage | null>(null);
   const [bcast, setBcast] = useState<BroadcastData | null>(null);
   const [adSpend, setAdSpend] = useState<AdSpendData | null>(null);
-  const [gads, setGads] = useState<GoogleAdsData | null>(null);
+  const [gads, setGads] = useState<LiveAdsData | null>(null);
+  const [metaAds, setMetaAds] = useState<LiveAdsData | null>(null);
   const [days, setDays] = useState(30);
   const [live, setLive] = useState(true);
   const [updated, setUpdated] = useState('');
@@ -196,6 +197,10 @@ export default function HQ() {
     try {
       const rg = await fetch(`/api/google-ads?key=${encodeURIComponent(tok)}&days=${d}`, { cache: 'no-store' });
       if (rg.status !== 401) setGads(await rg.json());
+    } catch { /* live spend is optional; manual stays the fallback */ }
+    try {
+      const rm = await fetch(`/api/meta-ads?key=${encodeURIComponent(tok)}&days=${d}`, { cache: 'no-store' });
+      if (rm.status !== 401) setMetaAds(await rm.json());
     } catch { /* live spend is optional; manual stays the fallback */ }
   }, [adata, loadLanding]);
 
@@ -291,7 +296,7 @@ export default function HQ() {
           : tab === 'landing'
           ? (adata ? <LandingView d={adata} /> : <div className="hqloading">Loading landing analytics…</div>)
           : tab === 'ads'
-          ? <AdsView days={days} analytics={adata} spend={adSpend} live={gads} token={token} onChanged={() => loadAdSpend(token, days)} />
+          ? <AdsView days={days} analytics={adata} spend={adSpend} live={gads} meta={metaAds} token={token} onChanged={() => loadAdSpend(token, days)} />
           : tab === 'ask'
           ? (ask ? <AskUsageView d={ask} /> : <div className="hqloading">Loading Ask-Selam usage…</div>)
           : (bcast ? <BroadcastView d={bcast} /> : <div className="hqloading">Loading broadcast metrics…</div>)}

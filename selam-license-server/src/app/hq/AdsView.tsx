@@ -15,15 +15,19 @@ export type AdSpendData = {
   error?: string;
 };
 
+// One shape for every live ad source (Google Ads, Meta). `customerId` is set
+// by Google, `accountId` by Meta — both just label the source.
 export type GoogleAdsData = {
   configured: boolean;
   error?: string;
   missing?: string[];
   days?: number;
   customerId?: string;
+  accountId?: string;
   totalCost?: number;
   byCampaign?: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }>;
 };
+export type LiveAdsData = GoogleAdsData;
 
 const nf = (n: number) => (n || 0).toLocaleString();
 const money = (n: number) => '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -35,12 +39,13 @@ type Row = {
 };
 
 export default function AdsView({
-  days, analytics, spend, live, token, onChanged,
+  days, analytics, spend, live, meta, token, onChanged,
 }: {
   days: number;
   analytics: AnalyticsData | null;
   spend: AdSpendData | null;
-  live: GoogleAdsData | null;
+  live: LiveAdsData | null;
+  meta: LiveAdsData | null;
   token: string;
   onChanged: () => void;
 }) {
@@ -58,17 +63,31 @@ export default function AdsView({
     return m;
   }, [analytics]);
 
-  // Live Google Ads spend (if the API is wired up) is authoritative; manual
-  // /api/ad-spend fills any campaign the API doesn't cover.
-  const liveOn = !!(live && live.configured && !live.error && live.byCampaign);
+  // Live sources (Google Ads, Meta) are authoritative where present; manual
+  // /api/ad-spend fills any campaign no API covers.
+  const platforms = useMemo(() => ([
+    { name: 'Google Ads', d: live },
+    { name: 'Meta', d: meta },
+  ]), [live, meta]);
+  const activeLive = useMemo(() => platforms.filter((p) => p.d && p.d.configured && !p.d.error && p.d.byCampaign), [platforms]);
+  const liveAny = activeLive.length > 0;
+
   const effSpend = useMemo(() => {
     const manual = spend?.spendByCampaign || {};
     const out: Record<string, number> = { ...manual };
-    if (liveOn) for (const [k, v] of Object.entries(live!.byCampaign!)) out[k] = v.cost;
+    for (const p of activeLive) for (const [k, v] of Object.entries(p.d!.byCampaign!)) out[k] = v.cost;
     return out;
-  }, [spend, live, liveOn]);
-  const liveClicks = liveOn ? Object.values(live!.byCampaign!).reduce((s, v) => s + v.clicks, 0) : 0;
-  const liveImpr = liveOn ? Object.values(live!.byCampaign!).reduce((s, v) => s + v.impressions, 0) : 0;
+  }, [spend, activeLive]);
+  const liveClicks = useMemo(() => activeLive.reduce((s, p) => s + Object.values(p.d!.byCampaign!).reduce((a, v) => a + v.clicks, 0), 0), [activeLive]);
+  const liveImpr = useMemo(() => activeLive.reduce((s, p) => s + Object.values(p.d!.byCampaign!).reduce((a, v) => a + v.impressions, 0), 0), [activeLive]);
+  // Per-platform spend (live sources + manual remainder).
+  const liveNames = useMemo(() => { const s = new Set<string>(); activeLive.forEach((p) => Object.keys(p.d!.byCampaign!).forEach((n) => s.add(n))); return s; }, [activeLive]);
+  const platformSpend = useMemo(() => {
+    const rows = activeLive.map((p) => ({ name: p.name, spend: Object.values(p.d!.byCampaign!).reduce((a, v) => a + v.cost, 0) }));
+    const manualRemainder = Object.entries(spend?.spendByCampaign || {}).filter(([k]) => !liveNames.has(k)).reduce((a, [, v]) => a + v, 0);
+    if (manualRemainder > 0 || rows.length === 0) rows.push({ name: 'Manual', spend: manualRemainder });
+    return rows;
+  }, [activeLive, spend, liveNames]);
 
   const rows: Row[] = useMemo(() => {
     const names = new Set<string>(Object.keys(effSpend));
@@ -132,21 +151,30 @@ export default function AdsView({
   const inp: React.CSSProperties = { background: 'var(--bg2)', border: '1px solid var(--line2)', borderRadius: 8, padding: '8px 10px', color: 'var(--ink)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' };
   const btn: React.CSSProperties = { background: 'linear-gradient(135deg,var(--iris),var(--iris-deep))', color: '#0c1024', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 };
 
-  const sourceLine = liveOn
-    ? `Spend source: Google Ads API (live) · customer ${live!.customerId}`
-    : live && live.error
-    ? `Google Ads API error — showing manual spend · ${live.error}`
-    : live && !live.configured
-    ? `Spend source: manual · connect the Google Ads API to auto-pull${live.missing?.length ? ' (missing env: ' + live.missing.join(', ') + ')' : ''}`
-    : 'Spend source: manual entry';
+  const statusOf = (p: { name: string; d: LiveAdsData | null }) => {
+    const d = p.d;
+    if (d && d.configured && !d.error && d.byCampaign) return { dot: '●', color: 'var(--good)', text: `${p.name} live` };
+    if (d && d.error) return { dot: '⚠', color: 'var(--warn)', text: `${p.name} error` };
+    if (d && !d.configured) return { dot: '○', color: 'var(--ink3)', text: `${p.name} not configured` };
+    return { dot: '○', color: 'var(--ink3)', text: `${p.name} —` };
+  };
+  const errorNotes = platforms.filter((p) => p.d?.error).map((p) => `${p.name}: ${p.d!.error}`);
 
   return (
     <div>
       {spend?.error && <div className="hqerr">Spend store: {spend.error}</div>}
 
-      <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: liveOn ? 'var(--good)' : live?.error ? 'var(--bad)' : 'var(--ink3)', marginBottom: 12 }}>
-        {liveOn ? '● ' : '○ '}{sourceLine}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontFamily: 'var(--mono)', fontSize: 11, marginBottom: 6 }}>
+        <span style={{ color: 'var(--ink3)' }}>Sources:</span>
+        {platforms.map((p) => { const s = statusOf(p); return <span key={p.name} style={{ color: s.color }}>{s.dot} {s.text}</span>; })}
+        {!liveAny && <span style={{ color: 'var(--ink3)' }}>· showing manual entry</span>}
       </div>
+      {errorNotes.map((n) => <div key={n} style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--warn)', marginBottom: 2 }}>⚠ {n}</div>)}
+      {platformSpend.length > 1 && (
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>
+          {platformSpend.map((p) => `${p.name} ${money(p.spend)}`).join('  ·  ')} <span>· last {days}d</span>
+        </div>
+      )}
 
       <div className="grid">
         <div className="kpi hero"><div className="k">Ad spend</div><div className="v">{money(totalSpend)}</div><div className="sub">entered · last {days}d</div></div>
@@ -154,8 +182,8 @@ export default function AdsView({
         <div className="kpi"><div className="k">Ad revenue</div><div className="v">{money(adRevenue)}</div><div className="sub">campaigns with spend</div></div>
         <div className="kpi"><div className="k">Orders</div><div className="v">{nf(adOrders)}</div><div className="sub">paid, from ad campaigns</div></div>
         <div className="kpi"><div className="k">CPA</div><div className="v">{adOrders > 0 ? money(totalSpend / adOrders) : '—'}</div><div className="sub">cost per order</div></div>
-        {liveOn && <div className="kpi"><div className="k">Impressions</div><div className="v">{nf(liveImpr)}</div><div className="sub">Google · last {days}d</div></div>}
-        {liveOn && <div className="kpi"><div className="k">Clicks</div><div className="v">{nf(liveClicks)}</div><div className="sub">Google · CPC {liveClicks > 0 ? money(totalSpend / liveClicks) : '—'}</div></div>}
+        {liveAny && <div className="kpi"><div className="k">Impressions</div><div className="v">{nf(liveImpr)}</div><div className="sub">live · last {days}d</div></div>}
+        {liveAny && <div className="kpi"><div className="k">Clicks</div><div className="v">{nf(liveClicks)}</div><div className="sub">live · CPC {liveClicks > 0 ? money(totalSpend / liveClicks) : '—'}</div></div>}
       </div>
 
       {(spend?.daily || []).length > 0 && (
