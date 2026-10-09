@@ -9,6 +9,7 @@ import RevenueView, { Metrics } from './RevenueView';
 import LandingView, { AnalyticsData } from './LandingView';
 import AskUsageView, { AskUsage } from './AskUsageView';
 import BroadcastView, { BroadcastData } from './BroadcastView';
+import AdsView, { AdSpendData } from './AdsView';
 
 const CSS = `
 :root{
@@ -110,7 +111,7 @@ td.name{font-family:var(--mono);font-size:12px;color:var(--ink2)}
 @media(max-width:520px){.hq{padding:14px}.hqkpi .v{font-size:22px}.kpi .v{font-size:22px}}
 `;
 
-type Tab = 'revenue' | 'landing' | 'ask' | 'broadcast';
+type Tab = 'revenue' | 'landing' | 'ads' | 'ask' | 'broadcast';
 
 export default function HQ() {
   const [token, setToken] = useState('');
@@ -126,6 +127,7 @@ export default function HQ() {
   const [adata, setAdata] = useState<AnalyticsData | null>(null);
   const [ask, setAsk] = useState<AskUsage | null>(null);
   const [bcast, setBcast] = useState<BroadcastData | null>(null);
+  const [adSpend, setAdSpend] = useState<AdSpendData | null>(null);
   const [days, setDays] = useState(30);
   const [live, setLive] = useState(true);
   const [updated, setUpdated] = useState('');
@@ -179,6 +181,18 @@ export default function HQ() {
     } catch { setLive(false); }
   }, []);
 
+  const loadAdSpend = useCallback(async (tok: string, d: number) => {
+    // Ads ROAS needs campaign revenue (from analytics) + spend (from ad-spend).
+    if (!adata) loadLanding(tok, d);
+    try {
+      const r = await fetch(`/api/ad-spend?key=${encodeURIComponent(tok)}&days=${d}`, { cache: 'no-store' });
+      if (r.status === 401) { setErr('Wrong token.'); setEntered(false); try { localStorage.removeItem('selamhq:key'); } catch {} return; }
+      const j = await r.json();
+      if (!r.ok) { setAdSpend({ days: d, totalSpend: 0, spendByCampaign: {}, daily: [], error: j.error || ('Failed (' + r.status + ')') }); return; }
+      setAdSpend(j); setErr('');
+    } catch { setLive(false); }
+  }, [adata, loadLanding]);
+
   const start = useCallback(async (tok: string, initialTab: Tab) => {
     setToken(tok); setEntered(true);
     try { localStorage.setItem('selamhq:key', tok); } catch {}
@@ -189,12 +203,13 @@ export default function HQ() {
     let effTab = initialTab;
     if (rl === 'marketing' && initialTab === 'revenue') { effTab = 'landing'; setTab('landing'); }
     if (effTab === 'landing') loadLanding(tok, days);
+    if (effTab === 'ads') loadAdSpend(tok, days);
     if (effTab === 'ask') loadAsk(tok);
     if (effTab === 'broadcast') loadBcast(tok);
     if (timer.current) clearInterval(timer.current);
     // Only the Revenue tab auto-refreshes; it exists for the full role only.
     timer.current = setInterval(() => { if (roleRef.current === 'full') loadMetrics(tok); }, 60000);
-  }, [loadMetrics, loadLanding, loadAsk, loadBcast, days]);
+  }, [loadMetrics, loadLanding, loadAdSpend, loadAsk, loadBcast, days]);
 
   useEffect(() => {
     const qs = new URLSearchParams(location.search);
@@ -211,11 +226,12 @@ export default function HQ() {
   const switchTab = (t: Tab) => {
     setTab(t);
     if (t === 'landing' && !adata && token) loadLanding(token, days);
+    if (t === 'ads' && token) { if (!adata) loadLanding(token, days); if (!adSpend) loadAdSpend(token, days); }
     if (t === 'ask' && !ask && token) loadAsk(token);
     if (t === 'broadcast' && !bcast && token) loadBcast(token);
   };
-  const changeDays = (d: number) => { setDays(d); loadLanding(token, d); };
-  const refresh = () => { if (tab === 'revenue') loadMetrics(token); else if (tab === 'landing') loadLanding(token, days); else if (tab === 'ask') loadAsk(token); else loadBcast(token); };
+  const changeDays = (d: number) => { setDays(d); if (tab === 'ads') { loadLanding(token, d); loadAdSpend(token, d); } else loadLanding(token, d); };
+  const refresh = () => { if (tab === 'revenue') loadMetrics(token); else if (tab === 'landing') loadLanding(token, days); else if (tab === 'ads') loadAdSpend(token, days); else if (tab === 'ask') loadAsk(token); else loadBcast(token); };
   const signOut = () => { try { localStorage.removeItem('selamhq:key'); } catch {}; if (timer.current) clearInterval(timer.current); setEntered(false); setMetrics(null); setAdata(null); roleRef.current = 'full'; setRole('full'); };
 
   if (!entered) {
@@ -245,13 +261,14 @@ export default function HQ() {
             <div className="tabs">
               {role === 'full' && <button className={tab === 'revenue' ? 'on' : ''} onClick={() => switchTab('revenue')}>Revenue</button>}
               <button className={tab === 'landing' ? 'on' : ''} onClick={() => switchTab('landing')}>Landing</button>
+              <button className={tab === 'ads' ? 'on' : ''} onClick={() => switchTab('ads')}>Ads</button>
               <button className={tab === 'ask' ? 'on' : ''} onClick={() => switchTab('ask')}>Ask Selam</button>
               <button className={tab === 'broadcast' ? 'on' : ''} onClick={() => switchTab('broadcast')}>Broadcast</button>
             </div>
           </div>
           <div className="hqmeta">
             <span><span className="dot" style={{ background: live ? 'var(--good)' : 'var(--bad)' }} /> updated {updated || '—'}</span>
-            {tab === 'landing' && (
+            {(tab === 'landing' || tab === 'ads') && (
               <select value={days} onChange={(e) => changeDays(+e.target.value)}>
                 <option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option>
               </select>
@@ -267,12 +284,14 @@ export default function HQ() {
           ? <RevenueView d={metrics || {}} />
           : tab === 'landing'
           ? (adata ? <LandingView d={adata} /> : <div className="hqloading">Loading landing analytics…</div>)
+          : tab === 'ads'
+          ? <AdsView days={days} analytics={adata} spend={adSpend} token={token} onChanged={() => loadAdSpend(token, days)} />
           : tab === 'ask'
           ? (ask ? <AskUsageView d={ask} /> : <div className="hqloading">Loading Ask-Selam usage…</div>)
           : (bcast ? <BroadcastView d={bcast} /> : <div className="hqloading">Loading broadcast metrics…</div>)}
 
         <div style={{ color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'center', marginTop: 8 }}>
-          {tab === 'landing' && adata ? `generated ${adata.generatedAt} · first-party · cookieless` : tab === 'ask' ? 'Ask-Selam API budget · Upstash · token-gated' : tab === 'broadcast' ? 'Live-show metrics · Neon · token-gated' : 'real Stripe + Neon · token-gated'}
+          {tab === 'landing' && adata ? `generated ${adata.generatedAt} · first-party · cookieless` : tab === 'ads' ? 'Ad spend (manual/CSV) × attributed revenue · Neon · token-gated' : tab === 'ask' ? 'Ask-Selam API budget · Upstash · token-gated' : tab === 'broadcast' ? 'Live-show metrics · Neon · token-gated' : 'real Stripe + Neon · token-gated'}
         </div>
       </div>
     </div>
