@@ -15,6 +15,16 @@ export type AdSpendData = {
   error?: string;
 };
 
+export type GoogleAdsData = {
+  configured: boolean;
+  error?: string;
+  missing?: string[];
+  days?: number;
+  customerId?: string;
+  totalCost?: number;
+  byCampaign?: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }>;
+};
+
 const nf = (n: number) => (n || 0).toLocaleString();
 const money = (n: number) => '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const roasStr = (rev: number, spend: number) => (spend > 0 ? (rev / spend).toFixed(2) + '×' : '—');
@@ -25,11 +35,12 @@ type Row = {
 };
 
 export default function AdsView({
-  days, analytics, spend, token, onChanged,
+  days, analytics, spend, live, token, onChanged,
 }: {
   days: number;
   analytics: AnalyticsData | null;
   spend: AdSpendData | null;
+  live: GoogleAdsData | null;
   token: string;
   onChanged: () => void;
 }) {
@@ -47,18 +58,28 @@ export default function AdsView({
     return m;
   }, [analytics]);
 
+  // Live Google Ads spend (if the API is wired up) is authoritative; manual
+  // /api/ad-spend fills any campaign the API doesn't cover.
+  const liveOn = !!(live && live.configured && !live.error && live.byCampaign);
+  const effSpend = useMemo(() => {
+    const manual = spend?.spendByCampaign || {};
+    const out: Record<string, number> = { ...manual };
+    if (liveOn) for (const [k, v] of Object.entries(live!.byCampaign!)) out[k] = v.cost;
+    return out;
+  }, [spend, live, liveOn]);
+  const liveClicks = liveOn ? Object.values(live!.byCampaign!).reduce((s, v) => s + v.clicks, 0) : 0;
+  const liveImpr = liveOn ? Object.values(live!.byCampaign!).reduce((s, v) => s + v.impressions, 0) : 0;
+
   const rows: Row[] = useMemo(() => {
-    const sb = spend?.spendByCampaign || {};
-    const names = new Set<string>(Object.keys(sb));
-    // include revenue-only ad-looking campaigns too (spend may lag), but keep (none) out
-    for (const n of Object.keys(rev)) if (n !== '(none)' && (sb[n] != null)) names.add(n);
+    const names = new Set<string>(Object.keys(effSpend));
+    for (const n of Object.keys(rev)) if (n !== '(none)' && effSpend[n] != null) names.add(n);
     return Array.from(names).map((name) => {
       const r = rev[name] || { views: 0, buy: 0, orders: 0, revenue: 0 };
-      return { campaign: name, spend: sb[name] || 0, views: r.views, buy: r.buy, orders: r.orders, revenue: r.revenue };
+      return { campaign: name, spend: effSpend[name] || 0, views: r.views, buy: r.buy, orders: r.orders, revenue: r.revenue };
     }).sort((a, b) => b.spend - a.spend || b.revenue - a.revenue);
-  }, [spend, rev]);
+  }, [effSpend, rev]);
 
-  const totalSpend = spend?.totalSpend || 0;
+  const totalSpend = useMemo(() => Object.values(effSpend).reduce((s, v) => s + v, 0), [effSpend]);
   const adRevenue = useMemo(() => rows.reduce((s, r) => s + r.revenue, 0), [rows]);
   const adOrders = useMemo(() => rows.reduce((s, r) => s + r.orders, 0), [rows]);
   const maxDaily = Math.max(1, ...(spend?.daily || []).map((d) => d.spend));
@@ -111,9 +132,21 @@ export default function AdsView({
   const inp: React.CSSProperties = { background: 'var(--bg2)', border: '1px solid var(--line2)', borderRadius: 8, padding: '8px 10px', color: 'var(--ink)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' };
   const btn: React.CSSProperties = { background: 'linear-gradient(135deg,var(--iris),var(--iris-deep))', color: '#0c1024', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 };
 
+  const sourceLine = liveOn
+    ? `Spend source: Google Ads API (live) · customer ${live!.customerId}`
+    : live && live.error
+    ? `Google Ads API error — showing manual spend · ${live.error}`
+    : live && !live.configured
+    ? `Spend source: manual · connect the Google Ads API to auto-pull${live.missing?.length ? ' (missing env: ' + live.missing.join(', ') + ')' : ''}`
+    : 'Spend source: manual entry';
+
   return (
     <div>
       {spend?.error && <div className="hqerr">Spend store: {spend.error}</div>}
+
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: liveOn ? 'var(--good)' : live?.error ? 'var(--bad)' : 'var(--ink3)', marginBottom: 12 }}>
+        {liveOn ? '● ' : '○ '}{sourceLine}
+      </div>
 
       <div className="grid">
         <div className="kpi hero"><div className="k">Ad spend</div><div className="v">{money(totalSpend)}</div><div className="sub">entered · last {days}d</div></div>
@@ -121,6 +154,8 @@ export default function AdsView({
         <div className="kpi"><div className="k">Ad revenue</div><div className="v">{money(adRevenue)}</div><div className="sub">campaigns with spend</div></div>
         <div className="kpi"><div className="k">Orders</div><div className="v">{nf(adOrders)}</div><div className="sub">paid, from ad campaigns</div></div>
         <div className="kpi"><div className="k">CPA</div><div className="v">{adOrders > 0 ? money(totalSpend / adOrders) : '—'}</div><div className="sub">cost per order</div></div>
+        {liveOn && <div className="kpi"><div className="k">Impressions</div><div className="v">{nf(liveImpr)}</div><div className="sub">Google · last {days}d</div></div>}
+        {liveOn && <div className="kpi"><div className="k">Clicks</div><div className="v">{nf(liveClicks)}</div><div className="sub">Google · CPC {liveClicks > 0 ? money(totalSpend / liveClicks) : '—'}</div></div>}
       </div>
 
       {(spend?.daily || []).length > 0 && (

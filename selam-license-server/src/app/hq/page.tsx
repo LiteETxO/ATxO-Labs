@@ -9,7 +9,7 @@ import RevenueView, { Metrics } from './RevenueView';
 import LandingView, { AnalyticsData } from './LandingView';
 import AskUsageView, { AskUsage } from './AskUsageView';
 import BroadcastView, { BroadcastData } from './BroadcastView';
-import AdsView, { AdSpendData } from './AdsView';
+import AdsView, { AdSpendData, GoogleAdsData } from './AdsView';
 
 const CSS = `
 :root{
@@ -128,6 +128,7 @@ export default function HQ() {
   const [ask, setAsk] = useState<AskUsage | null>(null);
   const [bcast, setBcast] = useState<BroadcastData | null>(null);
   const [adSpend, setAdSpend] = useState<AdSpendData | null>(null);
+  const [gads, setGads] = useState<GoogleAdsData | null>(null);
   const [days, setDays] = useState(30);
   const [live, setLive] = useState(true);
   const [updated, setUpdated] = useState('');
@@ -182,15 +183,20 @@ export default function HQ() {
   }, []);
 
   const loadAdSpend = useCallback(async (tok: string, d: number) => {
-    // Ads ROAS needs campaign revenue (from analytics) + spend (from ad-spend).
+    // Ads ROAS needs campaign revenue (analytics) + spend (manual ad-spend
+    // and/or live Google Ads API). Load all three for the window.
     if (!adata) loadLanding(tok, d);
     try {
       const r = await fetch(`/api/ad-spend?key=${encodeURIComponent(tok)}&days=${d}`, { cache: 'no-store' });
       if (r.status === 401) { setErr('Wrong token.'); setEntered(false); try { localStorage.removeItem('selamhq:key'); } catch {} return; }
       const j = await r.json();
-      if (!r.ok) { setAdSpend({ days: d, totalSpend: 0, spendByCampaign: {}, daily: [], error: j.error || ('Failed (' + r.status + ')') }); return; }
-      setAdSpend(j); setErr('');
+      if (!r.ok) { setAdSpend({ days: d, totalSpend: 0, spendByCampaign: {}, daily: [], error: j.error || ('Failed (' + r.status + ')') }); }
+      else { setAdSpend(j); setErr(''); }
     } catch { setLive(false); }
+    try {
+      const rg = await fetch(`/api/google-ads?key=${encodeURIComponent(tok)}&days=${d}`, { cache: 'no-store' });
+      if (rg.status !== 401) setGads(await rg.json());
+    } catch { /* live spend is optional; manual stays the fallback */ }
   }, [adata, loadLanding]);
 
   const start = useCallback(async (tok: string, initialTab: Tab) => {
@@ -285,7 +291,7 @@ export default function HQ() {
           : tab === 'landing'
           ? (adata ? <LandingView d={adata} /> : <div className="hqloading">Loading landing analytics…</div>)
           : tab === 'ads'
-          ? <AdsView days={days} analytics={adata} spend={adSpend} token={token} onChanged={() => loadAdSpend(token, days)} />
+          ? <AdsView days={days} analytics={adata} spend={adSpend} live={gads} token={token} onChanged={() => loadAdSpend(token, days)} />
           : tab === 'ask'
           ? (ask ? <AskUsageView d={ask} /> : <div className="hqloading">Loading Ask-Selam usage…</div>)
           : (bcast ? <BroadcastView d={bcast} /> : <div className="hqloading">Loading broadcast metrics…</div>)}
