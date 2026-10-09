@@ -27,6 +27,7 @@ export type GoogleAdsData = {
   totalCost?: number;
   byCampaign?: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }>;
   byChannel?: Record<string, { cost: number; clicks: number; impressions: number; conversions: number; conversionsValue: number }>;
+  daily?: Array<{ day: string; cost: number }>;
 };
 export type LiveAdsData = GoogleAdsData;
 
@@ -38,6 +39,21 @@ const roasGood = (rev: number, spend: number) => spend > 0 && rev / spend >= 1;
 type Row = {
   campaign: string; spend: number; views: number; buy: number; orders: number; revenue: number;
 };
+
+function HBar({ label, value, max, note }: { label: string; value: number; max: number; note: string }) {
+  const pct = max > 0 && value > 0 ? Math.max(2, (value / max) * 100) : 0;
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, marginBottom: 3 }}>
+        <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink3)', flex: 'none' }}>{note}</span>
+      </div>
+      <div style={{ height: 10, background: 'var(--bg2)', borderRadius: 5, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: pct + '%', background: 'linear-gradient(90deg,var(--iris-deep),var(--iris))', borderRadius: 5 }} />
+      </div>
+    </div>
+  );
+}
 
 export default function AdsView({
   days, analytics, spend, live, meta, token, onChanged,
@@ -111,6 +127,21 @@ export default function AdsView({
     }
     return out.sort((a, b) => b.cost - a.cost);
   }, [activeLive]);
+
+  // Daily spend (manual + every live source) and attributed revenue, merged by day.
+  const trend = useMemo(() => {
+    const sByDay: Record<string, number> = {};
+    for (const d of spend?.daily || []) sByDay[d.day] = (sByDay[d.day] || 0) + d.spend;
+    for (const p of activeLive) for (const d of p.d!.daily || []) sByDay[d.day] = (sByDay[d.day] || 0) + d.cost;
+    const rByDay: Record<string, number> = {};
+    for (const d of analytics?.attributedRevenueDaily || []) rByDay[d.day] = (rByDay[d.day] || 0) + d.revenue;
+    const allDays = Array.from(new Set([...Object.keys(sByDay), ...Object.keys(rByDay)])).sort((a, b) => a.localeCompare(b));
+    const rows = allDays.map((day) => ({ day, spend: sByDay[day] || 0, revenue: rByDay[day] || 0 }));
+    const max = Math.max(1, ...rows.map((r) => Math.max(r.spend, r.revenue)));
+    return { rows, max };
+  }, [spend, activeLive, analytics]);
+  const maxPlatSpend = Math.max(1, ...summary.rows.map((r) => r.spend));
+  const maxChanSpend = Math.max(1, ...channels.map((c) => c.cost));
 
   const rows: Row[] = useMemo(() => {
     const names = new Set<string>(Object.keys(effSpend));
@@ -205,6 +236,36 @@ export default function AdsView({
         {liveAny && <div className="kpi"><div className="k">Clicks</div><div className="v">{nf(liveClicks)}</div><div className="sub">live · CPC {liveClicks > 0 ? money(totalSpend / liveClicks) : '—'}</div></div>}
       </div>
 
+      {liveAny && (
+        <div className="panel">
+          <h2>Spend &amp; revenue over time — last {days}d</h2>
+          {trend.rows.length > 0 ? (
+            <>
+              <div style={{ position: 'relative' }}>
+                <div className="chart">
+                  {trend.rows.map((r) => (
+                    <div className="col" key={r.day} title={`${r.day} · spend ${money(r.spend)} · revenue ${money(r.revenue)}`}>
+                      <div className="bw"><div className="b" style={{ height: (r.spend / trend.max) * 100 + '%' }} /></div>
+                      <div className="dd">{r.day.slice(5)}</div>
+                    </div>
+                  ))}
+                </div>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 'calc(100% - 16px)', pointerEvents: 'none', overflow: 'visible' }}>
+                  <polyline fill="none" stroke="var(--good)" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                    points={trend.rows.map((r, i) => `${trend.rows.length > 1 ? (i / (trend.rows.length - 1)) * 100 : 50},${100 - (r.revenue / trend.max) * 100}`).join(' ')} />
+                </svg>
+              </div>
+              <div style={{ display: 'flex', gap: 18, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)', marginTop: 8 }}>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: 'linear-gradient(180deg,var(--iris),var(--iris-deep))', borderRadius: 2, verticalAlign: 'middle', marginRight: 5 }} />Spend (bars)</span>
+                <span><span style={{ display: 'inline-block', width: 16, borderTop: '2px solid var(--good)', verticalAlign: 'middle', marginRight: 5 }} />Attributed revenue (line)</span>
+              </div>
+            </>
+          ) : (
+            <div className="hqempty">No daily data yet — spend bars and the revenue line plot here once campaigns deliver and sales come in.</div>
+          )}
+        </div>
+      )}
+
       {summary.rows.length > 0 && (
         <div className="panel scroll">
           <h2>All platforms — spend → revenue → ROAS · last {days}d</h2>
@@ -238,6 +299,26 @@ export default function AdsView({
               </tr>
             </tbody>
           </table>
+        </div>
+      )}
+
+      {liveAny && (
+        <div className="panel">
+          <h2>Spend mix — last {days}d</h2>
+          <div className="cols2">
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>By platform</div>
+              {summary.rows.every((r) => r.spend === 0)
+                ? <div className="hqempty">No spend yet.</div>
+                : summary.rows.map((r) => <HBar key={r.name} label={r.name} value={r.spend} max={maxPlatSpend} note={`${money(r.spend)} · ROAS ${roasStr(r.revenue, r.spend)}`} />)}
+            </div>
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>By channel</div>
+              {channels.length === 0
+                ? <div className="hqempty">No channel spend yet.</div>
+                : channels.map((c) => <HBar key={c.label} label={c.label} value={c.cost} max={maxChanSpend} note={money(c.cost)} />)}
+            </div>
+          </div>
         </div>
       )}
 

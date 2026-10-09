@@ -107,6 +107,7 @@ export async function GET(req: NextRequest) {
     // Revenue attribution — real paid $ by campaign, from Stripe charges
     // (refund-aware; charges carry ref/campaign via payment_intent metadata).
     const revByCampaign: Record<string, { paid: number; revenue: number }> = {};
+    const revByDay: Record<string, number> = {};
     let attributedRevenue = 0, currency = 'usd', stripeError: string | undefined;
     try {
       const skey = process.env.STRIPE_SECRET_KEY;
@@ -123,10 +124,13 @@ export async function GET(req: NextRequest) {
           const e = revByCampaign[camp] || { paid: 0, revenue: 0 };
           e.paid += 1; e.revenue += net; revByCampaign[camp] = e;
           attributedRevenue += net;
+          const day = new Date(c.created * 1000).toISOString().slice(0, 10);
+          revByDay[day] = (revByDay[day] || 0) + net;
         }
       }
     } catch (e) { stripeError = String((e as Error)?.message || e).slice(0, 120); }
     const r2 = (n: number) => Math.round(n * 100) / 100;
+    const revenueDaily = Object.entries(revByDay).sort((a, b) => a[0].localeCompare(b[0])).map(([day, v]) => ({ day, revenue: r2(v) }));
     // Merge paid $ onto the campaign rows; append revenue-only campaigns.
     const campaignRows = campaigns.map((c) => ({
       ...c, paid: revByCampaign[c.campaign]?.paid || 0, revenue: r2(revByCampaign[c.campaign]?.revenue || 0),
@@ -157,6 +161,7 @@ export async function GET(req: NextRequest) {
       },
       campaigns: campaignRows,
       attributedRevenue: r2(attributedRevenue),
+      attributedRevenueDaily: revenueDaily,
       currency,
       stripeError,
       content,

@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
     level: 'campaign',
     fields: 'campaign_name,spend,impressions,clicks,actions,action_values',
     breakdowns: 'publisher_platform',   // → Facebook / Instagram / Audience Network / Messenger
+    time_increment: '1',                // one row per day → daily series
     time_range: JSON.stringify({ since, until }),
     limit: '500',
     access_token: TOKEN,
@@ -83,17 +84,21 @@ export async function GET(req: NextRequest) {
 
     const byCampaign: Record<string, Bucket> = {};
     const byChannel: Record<string, Bucket> = {};
+    const byDay: Record<string, number> = {};
     let totalCost = 0;
     for (const row of (body.data || []) as Array<Record<string, unknown>>) {
       const name = String(row.campaign_name || '(unnamed)');
       const cost = parseFloat(String(row.spend ?? '0')) || 0;
       add(byCampaign, name, row, cost);
       add(byChannel, channelOf(String(row.publisher_platform || '')), row, cost);
+      const day = String(row.date_start || '');
+      if (day) byDay[day] = (byDay[day] || 0) + cost;
       totalCost += cost;
     }
+    const daily = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).map(([day, cost]) => ({ day, cost: Math.round(cost * 100) / 100 }));
     return NextResponse.json({
       configured: true, days, generatedAt: new Date().toISOString(),
-      accountId: ACCT, totalCost: Math.round(totalCost * 100) / 100, byCampaign, byChannel,
+      accountId: ACCT, totalCost: Math.round(totalCost * 100) / 100, byCampaign, byChannel, daily,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ configured: true, error: String((e as Error)?.message || e).slice(0, 280) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });

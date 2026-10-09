@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   const end = new Date();
   const start = new Date(Date.now() - (days - 1) * 86400000);
   const query =
-    `SELECT campaign.name, segments.ad_network_type, metrics.cost_micros, metrics.clicks, metrics.impressions, ` +
+    `SELECT campaign.name, segments.ad_network_type, segments.date, metrics.cost_micros, metrics.clicks, metrics.impressions, ` +
     `metrics.conversions, metrics.conversions_value ` +
     `FROM campaign WHERE segments.date BETWEEN '${ymd(start)}' AND '${ymd(end)}'`;
 
@@ -120,18 +120,21 @@ export async function GET(req: NextRequest) {
 
     const byCampaign: Record<string, Bucket> = {};
     const byChannel: Record<string, Bucket> = {};
+    const byDay: Record<string, number> = {};
     let totalCost = 0;
-    for (const row of (j.results || []) as Array<{ campaign?: { name?: string }; segments?: { adNetworkType?: string }; metrics?: Record<string, unknown> }>) {
+    for (const row of (j.results || []) as Array<{ campaign?: { name?: string }; segments?: { adNetworkType?: string; date?: string }; metrics?: Record<string, unknown> }>) {
       const name = row.campaign?.name || '(unnamed)';
       const m = row.metrics || {};
       const cost = (parseInt(String(m.costMicros ?? '0'), 10) || 0) / 1e6;
       add(byCampaign, name, cost, m);
       add(byChannel, channelOf(row.segments?.adNetworkType || ''), cost, m);
+      if (row.segments?.date) byDay[row.segments.date] = (byDay[row.segments.date] || 0) + cost;
       totalCost += cost;
     }
+    const daily = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).map(([day, cost]) => ({ day, cost: Math.round(cost * 100) / 100 }));
     return NextResponse.json({
       configured: true, days, generatedAt: new Date().toISOString(),
-      customerId: CUSTOMER, totalCost: Math.round(totalCost * 100) / 100, byCampaign, byChannel,
+      customerId: CUSTOMER, totalCost: Math.round(totalCost * 100) / 100, byCampaign, byChannel, daily,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ configured: true, error: String((e as Error)?.message || e).slice(0, 240) }, { status: 200, headers: { 'Cache-Control': 'no-store' } });

@@ -10,6 +10,7 @@ export type AnalyticsData = {
   funnel: { views: number; engaged: number; buy: number; crypto: number };
   funnelRates: { viewToEngaged: number; viewToBuy: number; engagedToBuy: number };
   attributedRevenue: number; currency: string; stripeError?: string;
+  attributedRevenueDaily?: Array<{ day: string; revenue: number }>;
   campaigns: Array<{ campaign: string; views: number; clicks: number; buy: number; paid: number; revenue: number }>;
   content: Array<{ content: string; clicks: number }>;
   referrers: Array<{ ref: string; n: number }>;
