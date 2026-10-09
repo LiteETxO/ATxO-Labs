@@ -82,12 +82,21 @@ export default function AdsView({
   const liveImpr = useMemo(() => activeLive.reduce((s, p) => s + Object.values(p.d!.byCampaign!).reduce((a, v) => a + v.impressions, 0), 0), [activeLive]);
   // Per-platform spend (live sources + manual remainder).
   const liveNames = useMemo(() => { const s = new Set<string>(); activeLive.forEach((p) => Object.keys(p.d!.byCampaign!).forEach((n) => s.add(n))); return s; }, [activeLive]);
-  const platformSpend = useMemo(() => {
-    const rows = activeLive.map((p) => ({ name: p.name, spend: Object.values(p.d!.byCampaign!).reduce((a, v) => a + v.cost, 0) }));
-    const manualRemainder = Object.entries(spend?.spendByCampaign || {}).filter(([k]) => !liveNames.has(k)).reduce((a, [, v]) => a + v, 0);
-    if (manualRemainder > 0 || rows.length === 0) rows.push({ name: 'Manual', spend: manualRemainder });
-    return rows;
-  }, [activeLive, spend, liveNames]);
+  // Per-platform spend vs attributed revenue → ROAS summary (+ combined total).
+  // Revenue is attributed to a platform by its campaign names; "Manual"
+  // collects campaigns whose spend only came from manual entry.
+  const summary = useMemo(() => {
+    const agg = (names: string[], spendOf: (n: string) => number) => names.reduce(
+      (a, n) => { a.spend += spendOf(n); a.revenue += rev[n]?.revenue || 0; a.orders += rev[n]?.orders || 0; return a; },
+      { spend: 0, revenue: 0, orders: 0 },
+    );
+    const rows = activeLive.map((p) => ({ name: p.name, ...agg(Object.keys(p.d!.byCampaign!), (n) => p.d!.byCampaign![n].cost || 0) }));
+    const manual = spend?.spendByCampaign || {};
+    const manualNames = Object.keys(manual).filter((n) => !liveNames.has(n));
+    if (manualNames.length) rows.push({ name: 'Manual', ...agg(manualNames, (n) => manual[n] || 0) });
+    const total = rows.reduce((a, r) => ({ spend: a.spend + r.spend, revenue: a.revenue + r.revenue, orders: a.orders + r.orders }), { spend: 0, revenue: 0, orders: 0 });
+    return { rows, total };
+  }, [activeLive, spend, rev, liveNames]);
 
   const rows: Row[] = useMemo(() => {
     const names = new Set<string>(Object.keys(effSpend));
@@ -170,11 +179,7 @@ export default function AdsView({
         {!liveAny && <span style={{ color: 'var(--ink3)' }}>· showing manual entry</span>}
       </div>
       {errorNotes.map((n) => <div key={n} style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--warn)', marginBottom: 2 }}>⚠ {n}</div>)}
-      {platformSpend.length > 1 && (
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>
-          {platformSpend.map((p) => `${p.name} ${money(p.spend)}`).join('  ·  ')} <span>· last {days}d</span>
-        </div>
-      )}
+      <div style={{ marginBottom: 12 }} />
 
       <div className="grid">
         <div className="kpi hero"><div className="k">Ad spend</div><div className="v">{money(totalSpend)}</div><div className="sub">entered · last {days}d</div></div>
@@ -185,6 +190,42 @@ export default function AdsView({
         {liveAny && <div className="kpi"><div className="k">Impressions</div><div className="v">{nf(liveImpr)}</div><div className="sub">live · last {days}d</div></div>}
         {liveAny && <div className="kpi"><div className="k">Clicks</div><div className="v">{nf(liveClicks)}</div><div className="sub">live · CPC {liveClicks > 0 ? money(totalSpend / liveClicks) : '—'}</div></div>}
       </div>
+
+      {summary.rows.length > 0 && (
+        <div className="panel scroll">
+          <h2>All platforms — spend → revenue → ROAS · last {days}d</h2>
+          <table>
+            <thead><tr>
+              <th>Platform</th>
+              <th style={{ textAlign: 'right' }}>Spend</th>
+              <th style={{ textAlign: 'right' }}>Revenue</th>
+              <th style={{ textAlign: 'right' }}>ROAS</th>
+              <th style={{ textAlign: 'right' }}>Orders</th>
+              <th style={{ textAlign: 'right' }}>CPA</th>
+            </tr></thead>
+            <tbody>
+              {summary.rows.map((r) => (
+                <tr key={r.name}>
+                  <td className="name">{r.name}</td>
+                  <td style={{ textAlign: 'right' }}>{money(r.spend)}</td>
+                  <td style={{ textAlign: 'right' }}>{money(r.revenue)}</td>
+                  <td style={{ textAlign: 'right', color: roasGood(r.revenue, r.spend) ? 'var(--good)' : r.spend > 0 ? 'var(--warn)' : 'var(--ink3)' }}>{roasStr(r.revenue, r.spend)}</td>
+                  <td style={{ textAlign: 'right' }}>{nf(r.orders)}</td>
+                  <td style={{ textAlign: 'right' }}>{r.orders > 0 ? money(r.spend / r.orders) : '—'}</td>
+                </tr>
+              ))}
+              <tr style={{ fontWeight: 700, borderTop: '2px solid var(--line2)' }}>
+                <td className="name" style={{ color: 'var(--ink)' }}>All platforms</td>
+                <td style={{ textAlign: 'right' }}>{money(summary.total.spend)}</td>
+                <td style={{ textAlign: 'right' }}>{money(summary.total.revenue)}</td>
+                <td style={{ textAlign: 'right', color: roasGood(summary.total.revenue, summary.total.spend) ? 'var(--good)' : summary.total.spend > 0 ? 'var(--warn)' : 'var(--ink3)' }}>{roasStr(summary.total.revenue, summary.total.spend)}</td>
+                <td style={{ textAlign: 'right' }}>{nf(summary.total.orders)}</td>
+                <td style={{ textAlign: 'right' }}>{summary.total.orders > 0 ? money(summary.total.spend / summary.total.orders) : '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {(spend?.daily || []).length > 0 && (
         <div className="panel"><h2>Daily spend — last {days}d</h2>
