@@ -2,6 +2,26 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/yt",
+      "destination": "https://heyselam.ai/?utm_source=youtube&utm_medium=live&utm_campaign=live-yt",
+      "permanent": false
+    },
+    {
+      "source": "/fb",
+      "destination": "https://heyselam.ai/?utm_source=facebook&utm_medium=live&utm_campaign=live-fb",
+      "permanent": false
+    },
+    {
+      "source": "/ig",
+      "destination": "https://heyselam.ai/?utm_source=instagram&utm_medium=live&utm_campaign=live-ig",
+      "permanent": false
+    },
+    {
+      "source": "/live",
+      "destination": "https://heyselam.ai/?utm_source=live&utm_medium=live&utm_campaign=live",
+      "permanent": false
+    },
+    {
       "source": "/",
       "has": [
         {
