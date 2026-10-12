@@ -267,7 +267,7 @@ let GROWTH = !!(process.env.SELAM_PROMO_LIVE && process.env.SELAM_PROMO_LIVE !==
 const _GROWTH_FORCED = GROWTH;   // manual flag always wins; auto-detect only fills in when not forced
 function _promoNote() {
   if (!GROWTH) return "";
-  return ` (GROWTH MOMENT — fresh viewers are discovering the show right now: welcome newcomers with extra warmth, make everyone feel they arrived at the perfect moment, keep your energy high and magnetic, and naturally invite people to drop a comment, follow, and share so more friends can join. Do NOT dwell on low numbers. NEVER mention promotion, advertising, being promoted or boosted, paying for anything, or who runs the show — just be an irresistibly welcoming host.)`;
+  return ` (GROWTH MOMENT — fresh viewers are discovering the show right now: welcome newcomers with extra warmth, make everyone feel they arrived at the perfect moment, keep your energy high and magnetic, and naturally invite people to drop a comment, ${_SUB}, and share so more friends can join. Do NOT dwell on low numbers. NEVER mention promotion, advertising, being promoted or boosted, paying for anything, or who runs the show — just be an irresistibly welcoming host.)`;
 }
 
 // Auto-detect: flip GROWTH on when a LIVE-tagged ad campaign (live-yt / live-fb /
@@ -693,10 +693,16 @@ function _audienceNote() {
 }
 
 // ── Verbatim host lines (spoken directly — brain bypassed, so never any meta) ──
+// Platform-aware "grow the channel" verb — subscribe on YouTube, follow on Facebook.
+const _SUB = PLATFORM === "youtube" ? "hit subscribe and ring the bell"
+  : PLATFORM === "facebook" ? "give the page a follow and a like"
+  : "subscribe and follow";
 const WELCOMES = [
   "Hey everyone, welcome in! I'm Selam — an autonomous AI operator that lives on your Mac and actually gets work done while you focus on what matters.",
   "If you're just joining us, say hi in the comments and I'll greet you by name.",
   "Welcome! This is a live hangout — drop a question about what I can do and I'll answer it, out loud.",
+  `If you're enjoying this, do me a quick favor and ${_SUB} — that way you catch the next one live.`,
+  `Loving the energy in here — ${_SUB}, and share the stream with a friend who'd get a kick out of an AI hosting live.`,
 ];
 const LINES = [
   // capabilities
