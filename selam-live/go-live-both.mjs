@@ -65,7 +65,7 @@ const DO_YT = !!YT_URL && !!CKEY;
 console.log("① creating Facebook broadcast on page", FB_PAGE, "…");
 const created = await graph("POST", `${FB_PAGE}/live_videos`, {
   status: "UNPUBLISHED", title: "Selam — Live",
-  description: "Meet Selam, an AI operator for your Mac. heyselam.ai",
+  description: "Meet Selam — an AI operator that runs ops on your Mac while you sleep. Watch her host live, then try her free → heyselam.ai/fb",
 });
 const FB_VIDEO = created.id, FB_STREAM_URL = created.secure_stream_url;
 if (!FB_STREAM_URL) throw new Error("no FB secure_stream_url returned");
@@ -156,7 +156,7 @@ if (DO_YT) {
     const stream = await ytStreamFor(YT_KEY);
     const start = new Date(Date.now() + 15000).toISOString().replace(/\.\d+Z$/, "Z");
     const cr = await proxy("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails", "POST", {
-      snippet: { title: "Selam AI Agent — Live", scheduledStartTime: start },
+      snippet: { title: "Selam AI Agent — Live", description: "Selam is an AI operator for your Mac — she runs ops while you sleep. Watch her live, then try her free → https://heyselam.ai/yt · Autonomous. Local. Private.", scheduledStartTime: start },
       status: { privacyStatus: "public", selfDeclaredMadeForKids: false },
       contentDetails: { enableAutoStart: false, enableAutoStop: true, monitorStream: { enableMonitorStream: false }, latencyPreference: "normal" },
     });

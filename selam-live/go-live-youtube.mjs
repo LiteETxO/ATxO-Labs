@@ -119,7 +119,7 @@ async function streamFor(key) {
   if (!stream) throw new Error("no YouTube stream matches the key in SELAM_YT_URL");
   const start = new Date(Date.now() + 15000).toISOString().replace(/\.\d+Z$/, "Z");
   const created = await proxy("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails", "POST", {
-    snippet: { title: "Selam AI Agent — Live", scheduledStartTime: start },
+    snippet: { title: "Selam AI Agent — Live", description: "Selam is an AI operator for your Mac — she runs ops while you sleep. Watch her live, then try her free → https://heyselam.ai/yt · Autonomous. Local. Private.", scheduledStartTime: start },
     status: { privacyStatus: process.env.SELAM_YT_PRIVACY || "public", selfDeclaredMadeForKids: false },
     contentDetails: { enableAutoStart: false, enableAutoStop: true, monitorStream: { enableMonitorStream: false }, latencyPreference: "normal" },
   });

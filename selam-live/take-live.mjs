@@ -34,7 +34,7 @@ console.log("① creating broadcast on page", PAGE, "…");
 const created = await graph("POST", `${PAGE}/live_videos`, {
   status: "UNPUBLISHED",
   title: "Selam — Live",
-  description: "Meet Selam, an AI operator for your Mac. heyselam.ai",
+  description: "Meet Selam — an AI operator that runs ops on your Mac while you sleep. Watch her host live, then try her free → heyselam.ai/fb",
 });
 const VIDEO = created.id, STREAM_URL = created.secure_stream_url;
 if (!STREAM_URL) throw new Error("no secure_stream_url returned");

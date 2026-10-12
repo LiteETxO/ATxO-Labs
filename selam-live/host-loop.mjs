@@ -257,6 +257,47 @@ function _focusScore(n, words, cats) {
   return s;
 }
 function _focusNote() { return LIVE_FOCUS ? ` This broadcast is FOCUSED ON ${LIVE_FOCUS} — keep everything oriented around it.` : ""; }
+
+// GROWTH MODE (SELAM_PROMO_LIVE=1): set when paid ads are driving viewers to the
+// live right now. She becomes INTERNALLY aware fresh people are arriving and
+// hosts to make the most of it — warmer welcomes, higher energy, more invites to
+// engage. She NEVER mentions ads/promotion/spend or who runs the show (the _PRIV
+// + privacy rules still apply); the awareness only shapes how welcoming she is.
+let GROWTH = !!(process.env.SELAM_PROMO_LIVE && process.env.SELAM_PROMO_LIVE !== "0");
+const _GROWTH_FORCED = GROWTH;   // manual flag always wins; auto-detect only fills in when not forced
+function _promoNote() {
+  if (!GROWTH) return "";
+  return ` (GROWTH MOMENT — fresh viewers are discovering the show right now: welcome newcomers with extra warmth, make everyone feel they arrived at the perfect moment, keep your energy high and magnetic, and naturally invite people to drop a comment, follow, and share so more friends can join. Do NOT dwell on low numbers. NEVER mention promotion, advertising, being promoted or boosted, paying for anything, or who runs the show — just be an irresistibly welcoming host.)`;
+}
+
+// Auto-detect: flip GROWTH on when a LIVE-tagged ad campaign (live-yt / live-fb /
+// live-*) is actively spending today, per the HQ ad APIs. Needs SELAM_HQ_TOKEN
+// (the HQ or marketing token) in env/.env; silently no-ops without it.
+async function _detectLivePromo() {
+  const tok = process.env.SELAM_HQ_TOKEN;
+  if (!tok) return false;
+  const base = process.env.SELAM_HQ_BASE || "https://api.heyselam.app";
+  for (const ep of ["google-ads", "meta-ads"]) {
+    try {
+      const ctl = new AbortController();
+      const to = setTimeout(() => ctl.abort(), 6000);
+      const r = await fetch(`${base}/api/${ep}?key=${encodeURIComponent(tok)}&days=1`, { signal: ctl.signal });
+      clearTimeout(to);
+      const j = await r.json();
+      if (!j || j.configured === false || j.error) continue;
+      const bc = j.byCampaign || {};
+      if (Object.entries(bc).some(([name, v]) => /live/i.test(name) && Number(v && v.cost) > 0)) return true;
+    } catch (_) {}
+  }
+  return false;
+}
+if (!_GROWTH_FORCED) {
+  try { GROWTH = await _detectLivePromo(); if (GROWTH) console.log("📣 growth mode AUTO-ON — a live ad campaign is spending"); } catch (_) {}
+  setInterval(async () => {
+    if (_GROWTH_FORCED) return;
+    try { const g = await _detectLivePromo(); if (g !== GROWTH) { GROWTH = g; console.log("📣 growth mode", g ? "AUTO-ON (live campaign spending)" : "auto-off (no live spend)"); } } catch (_) {}
+  }, 180000);
+}
 let _focusCursor = 0;
 function nextNews() {
   if (!newsItems.length) return null;
@@ -644,10 +685,11 @@ async function refreshViewers() {
 }
 // Injected into content prompts so she can naturally reference the crowd size.
 function _audienceNote() {
-  if (liveViewers == null || liveViewers <= 0) return "";
-  if (liveViewers === 1) return ` (Right now it's an intimate audience — just one viewer watching live. Treat it like a warm one-on-one and make them feel special; do NOT dwell on the small number or make it awkward.)`;
-  if (liveViewers <= 4) return ` (It's a small, cozy crowd right now — about ${liveViewers} people watching live. Reference it warmly and personally if it fits.)`;
-  return ` (Right now about ${liveViewers} people are watching live — you may naturally reference the audience size if it fits, but don't force it.)`;
+  let n = "";
+  if (liveViewers === 1) n = ` (Right now it's an intimate audience — just one viewer watching live. Treat it like a warm one-on-one and make them feel special; do NOT dwell on the small number or make it awkward.)`;
+  else if (liveViewers != null && liveViewers > 1 && liveViewers <= 4) n = ` (It's a small, cozy crowd right now — about ${liveViewers} people watching live. Reference it warmly and personally if it fits.)`;
+  else if (liveViewers != null && liveViewers > 4) n = ` (Right now about ${liveViewers} people are watching live — you may naturally reference the audience size if it fits, but don't force it.)`;
+  return n + _promoNote();
 }
 
 // ── Verbatim host lines (spoken directly — brain bypassed, so never any meta) ──
@@ -807,7 +849,8 @@ if (REHEARSE) {
       const ac = document.getElementById("avatar-container"); if (ac) ac.style.transform = "translateX(-22%)";
       try { window.__selamLive && window.__selamLive.startOverlay && window.__selamLive.startOverlay(); } catch (_) {}
     });
-    const r = await pg.evaluate(() => window.__selamRecorder && window.__selamRecorder.start ? window.__selamRecorder.start({ scope: "window" }) : { ok: false, error: "no recorder" });
+    const _recScope = process.env.SELAM_REC_SCOPE === "screen" ? "screen" : "window";
+    const r = await pg.evaluate((sc) => window.__selamRecorder && window.__selamRecorder.start ? window.__selamRecorder.start({ scope: sc }) : { ok: false, error: "no recorder" }, _recScope);
     console.log("🎬 REHEARSAL — overlay on, recording locally (no stream):", JSON.stringify(r));
   } catch (e) { console.log("rehearse setup err:", e.message); }
 }
@@ -922,7 +965,7 @@ function commentPrompt(c) {
   const named = c.name && c.name !== "Viewer" && c.name !== "(name hidden)";
   return `${PRODUCT_FACTS}
 
-You are Selam, hosting a LIVE broadcast and you're GREAT with a crowd — warm, quick-witted, and genuinely funny, like a host who loves bantering with the chat. A viewer${named ? ` named ${c.name}` : ""} commented: "${c.text}"${liveQNote()}
+You are Selam, hosting a LIVE broadcast and you're GREAT with a crowd — warm, quick-witted, and genuinely funny, like a host who loves bantering with the chat. A viewer${named ? ` named ${c.name}` : ""} commented: "${c.text}"${liveQNote()}${_promoNote()}
 
 CRITICAL PRIVACY — this is a PUBLIC broadcast: never reveal ANYTHING about your owner/operator. No names, no personal details, nothing about their files, their screen, their work, their location, their schedule, or their identity. Never say "my owner", "my user", or imply you belong to one specific person, and never repeat anything you happen to know about them. Speak about Selam as a product anyone can buy — use a generic "you" / "your Mac" for the potential customer, never a real individual.
 
@@ -2019,7 +2062,7 @@ async function openLive() {
   const teaser = LIVE_FOCUS
     ? `tease that today's show is all about ${LIVE_FOCUS} — you'll walk them through the latest on it`
     : `tease that you'll walk through the latest in AI, crypto, tech and world news`;
-  const prompt = `You are Selam — an autonomous AI operator that lives on people's Macs — and you are OPENING your LIVE stream right this second. Give a genuinely warm, high-energy on-air WELCOME to your viewers in 2 to 3 spoken sentences: greet everyone with real warmth, introduce yourself by name in a line, and ${teaser} — and invite them to drop a comment anytime because you answer live. ${_PRIV}`;
+  const prompt = `You are Selam — an autonomous AI operator that lives on people's Macs — and you are OPENING your LIVE stream right this second. Give a genuinely warm, high-energy on-air WELCOME to your viewers in 2 to 3 spoken sentences: greet everyone with real warmth, introduce yourself by name in a line, and ${teaser} — and invite them to drop a comment anytime because you answer live.${_promoNote()} ${_PRIV}`;
   await sayAndCapture(prompt);
 }
 try { await openLive(); } catch (_) {}
