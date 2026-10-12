@@ -800,6 +800,22 @@ async function setupPage() {
   try { await pg.evaluate(() => { const m = document.getElementById("mute-btn"); if (m && document.body.classList.contains("mic-listening")) m.click(); }); } catch (_) {}
   try { await pg.evaluate((css) => { if (!document.getElementById("selam-bcast-clean")) { const st = document.createElement("style"); st.id = "selam-bcast-clean"; st.textContent = css; document.head.appendChild(st); } document.body.classList.add("studio-clean"); const ac = document.getElementById("avatar-container"); if (ac && ac.style.transform !== "translateX(-22%)") ac.style.transform = "translateX(-22%)"; }, BCAST_CLEAN_CSS); } catch (_) {}
   try { await pg.evaluate(() => { const a = window.__selamAdapter; if (!a || a.__hostHooked) return; a.__hostHooked = true; window.__hostCap = { sentences: [], n: 0 }; const os = a.onSentenceStart; a.onSentenceStart = function (s) { try { if (typeof s === "string" && s.trim()) { window.__hostCap.sentences.push(s.trim()); window.__hostCap.n++; } } catch (_) {} return os && os.apply(this, arguments); }; }); } catch (_) {}
+  await fixBrandLook();
+}
+
+// Keep the on-air avatar on-brand — the app can load a cold blue/white variant;
+// force warm skin, dark hair, navy top (matches the landing + ad creatives).
+async function fixBrandLook() {
+  try {
+    await pg.evaluate(() => {
+      const av = window.__selamAdapter && window.__selamAdapter.avatar; if (!av) return;
+      try { av.setAmbientEnabled && av.setAmbientEnabled(false); } catch (_) {}
+      try { av.setSkinColor && av.setSkinColor("#e8c3a0"); } catch (_) {}
+      try { av.setHairColor && av.setHairColor("#241a14"); } catch (_) {}
+      try { av.setTopColor && av.setTopColor("#2b3350"); } catch (_) {}
+      try { const sc = av.scene || av._scene; (sc && sc.children || []).forEach((l) => { if (l.type === "DirectionalLight" && l.color && l.color.getHexString && l.color.getHexString() === "9bb6ff") { l.color.set("#dfe6ff"); l.intensity = 0.16; } }); } catch (_) {}
+    });
+  } catch (_) {}
 }
 
 // Reconnect to the app after a lost context / app restart, then re-apply setup and
@@ -823,6 +839,7 @@ async function reconnectApp() {
 // Initial connect — retry while the app is still booting.
 for (let i = 0; i < 40; i++) { try { if (await connectApp()) break; } catch (_) {} await sleep(1500); }
 if (!pg) { console.error("no app window (CDP 9222)"); process.exit(1); }
+setInterval(() => { fixBrandLook().catch(() => {}); }, 15000);   // keep her on-brand all broadcast
 if (!(await pg.evaluate(() => !!(window.__selamSessionActive && window.__selamSessionActive())))) {
   await pg.evaluate(() => { const s = document.getElementById("start-btn"); if (s) s.click(); });
   for (let i = 0; i < 20; i++) { await sleep(800); if (await pg.evaluate(() => !!(window.__selamSessionActive && window.__selamSessionActive()))) break; }
