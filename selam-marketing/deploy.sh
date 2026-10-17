@@ -29,6 +29,15 @@ rsync -a --delete ~/assets/ "$HERE/assets/"
 cat > "$HERE/vercel.json" <<'EOF'
 {
   "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/((?!assets/).*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "CDN-Cache-Control", "value": "no-store" }
+      ]
+    }
+  ],
   "redirects": [
     {
       "source": "/",
