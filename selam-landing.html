@@ -1219,8 +1219,17 @@ window.addEventListener('load',function(){
       frame.classList.remove("session");
     });
 
-    // Desktop: eagerly bring her to life on idle. Mobile: mount on first Start Session.
-    if (window.innerWidth >= 760) {
+    // Desktop: eagerly bring her to life on idle — BUT only on a healthy
+    // connection. The live avatar pulls a ~4.7MB model + ~0.9MB bundle, which
+    // is painful on slow/metered links, so on save-data or 2g/3g (or a low
+    // measured downlink) we keep the instant poster and let Start Session load
+    // her on demand. Mobile already mounts lazily on first Start Session.
+    var _c = navigator.connection || {};
+    var _slowNet = !!_c.saveData
+      || /(^|slow-)2g$/.test(_c.effectiveType || "")
+      || _c.effectiveType === "3g"
+      || (typeof _c.downlink === "number" && _c.downlink > 0 && _c.downlink < 2);
+    if (window.innerWidth >= 760 && !_slowNet) {
       var go = function () { mountHero().catch(function (e) { console.warn("hero avatar load failed", e); }); };
       if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 2500 });
       else setTimeout(go, 900);

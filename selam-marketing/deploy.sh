@@ -34,7 +34,7 @@ cat > "$HERE/vercel.json" <<'EOF'
       "source": "/((?!assets/).*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "CDN-Cache-Control", "value": "no-store" }
+        { "key": "CDN-Cache-Control", "value": "max-age=60, stale-while-revalidate=86400" }
       ]
     }
   ],
