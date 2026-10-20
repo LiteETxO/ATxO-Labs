@@ -11,7 +11,7 @@
 //   GOOGLE_ADS_CUSTOMER_ID       — account to query (digits only, no dashes)
 // Optional:
 //   GOOGLE_ADS_LOGIN_CUSTOMER_ID — manager (MCC) id, if the account sits under one
-//   GOOGLE_ADS_API_VERSION       — API version segment, default v21 (bump if Google has moved on)
+//   GOOGLE_ADS_API_VERSION       — API version segment, default v26 (bump if Google has moved on)
 //
 // Gracefully no-ops (configured:false) when the required vars are absent, so
 // it is safe to ship before the credentials exist.
@@ -37,7 +37,7 @@ const CSECRET = process.env.GOOGLE_ADS_CLIENT_SECRET || '';
 const REFRESH = process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
 const CUSTOMER = (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/\D/g, '');
 const LOGIN_CID = (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '').replace(/\D/g, '');
-const VER = process.env.GOOGLE_ADS_API_VERSION || 'v22';
+const VER = process.env.GOOGLE_ADS_API_VERSION || 'v26';
 const isConfigured = () => !!(DEV && CID && CSECRET && REFRESH && CUSTOMER);
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
