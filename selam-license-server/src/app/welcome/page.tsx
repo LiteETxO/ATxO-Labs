@@ -13,6 +13,7 @@
 
 import type { Metadata } from 'next';
 import Stripe from 'stripe';
+import ConversionPing from './ConversionPing';
 
 export const metadata: Metadata = {
   title: 'Welcome to Selam',
@@ -115,6 +116,11 @@ export default async function WelcomePage(props: {
   // status === 'paid'
   return (
     <main style={styles.main}>
+      <ConversionPing
+        value={verification.amountTotal}
+        currency={verification.currency}
+        transactionId={params.session_id}
+      />
       <div style={styles.card}>
         <div style={styles.brand}>Selam</div>
         <h1 style={styles.h1}>Welcome to Selam.</h1>
