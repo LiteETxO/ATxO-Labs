@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 
 // Site-wide defaults. Per-page metadata exports override these.
 export const metadata: Metadata = {
@@ -41,7 +42,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, background: '#0e0e14' }}>{children}</body>
+      <body style={{ margin: 0, background: '#0e0e14' }}>
+        {/* Google tag (gtag.js) — Google Ads AW-18504105411 + cross-domain linking */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=AW-18504105411" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'AW-18504105411', { 'linker': { 'domains': ['heyselam.ai','heyselam.app','api.heyselam.app'] } });
+        `}</Script>
+        {children}
+      </body>
     </html>
   );
 }

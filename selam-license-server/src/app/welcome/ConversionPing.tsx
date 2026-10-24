@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 // Fires the Google Ads purchase conversion on the /welcome page after a paid
 // checkout. Gated on NEXT_PUBLIC_GADS_CONVERSION_LABEL — set that Vercel env var
-// to the "Purchase" conversion action's label (the part after AW-18490377265/
+// to the "Purchase" conversion action's label (the part after AW-18504105411/
 // in the event snippet) and conversions start reporting with the real order
 // value + a de-dup transaction id.
 declare global {
@@ -34,7 +34,7 @@ export default function ConversionPing({
         : function () { (window.dataLayer = window.dataLayer || []).push(arguments); };
 
     gtag('event', 'conversion', {
-      send_to: `AW-18490377265/${label}`,
+      send_to: `AW-18504105411/${label}`,
       // Stripe amount_total is in the smallest currency unit (cents) → major units
       ...(typeof value === 'number' ? { value: value / 100 } : {}),
       currency: currency || 'USD',
