@@ -1664,6 +1664,19 @@ function AgentActivityCard({ agent, live, relativeTime }) {
   )
 }
 
+function UnrealizedBanner({ positions }) {
+  const total = (positions || []).reduce((s, p) => s + (p.unrealisedPnl || 0), 0)
+  const isPos = total >= 0
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open Positions</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: isPos ? '#10b981' : '#ef4444', background: (isPos ? '#10b981' : '#ef4444') + '18', padding: '2px 8px', borderRadius: 4 }}>
+        {isPos ? '+' : ''}${total.toFixed(2)} unrealized
+      </span>
+    </div>
+  )
+}
+
 function AgentsView({ state, isMobile, tsegaTrading }) {
   const selamLive = state?.operations?.ai_workers?.find(w => w.name === 'Selam')
   // OrgCard shows mission, not operational log
@@ -2572,7 +2585,7 @@ function AssignmentsView({ state, isMobile }) {
         {/* Open positions */}
         {tsegaTrading?.positions?.length > 0 && (
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6 }}>Open Positions</div>
+            <UnrealizedBanner positions={tsegaTrading.positions} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {tsegaTrading.positions.map((pos, i) => (
                 <div key={pos.id || i} style={{ ...S.card, padding: '10px 12px' }}>
@@ -2588,12 +2601,20 @@ function AssignmentsView({ state, isMobile }) {
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 14, fontSize: 11 }}>
-                    <span style={{ color: '#9ca3af' }}>Entry <span style={{ color: '#fff' }}>${parseFloat(pos.entry || 0).toFixed(2)}</span></span>
-                    <span style={{ color: '#9ca3af' }}>Stop <span style={{ color: '#ef4444' }}>${parseFloat(pos.stop || 0).toFixed(2)}</span>
+                  <div style={{ display: 'flex', gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#9ca3af' }}>Entry <span style={{ color: '#fff' }}>${parseFloat(pos.entry || 0).toFixed(4)}</span></span>
+                    {pos.markPrice != null && (
+                      <span style={{ color: '#9ca3af' }}>Mark <span style={{ color: '#e2e8f0' }}>${parseFloat(pos.markPrice).toFixed(4)}</span></span>
+                    )}
+                    {pos.unrealisedPnl != null && (
+                      <span style={{ fontWeight: 700, color: pos.unrealisedPnl >= 0 ? '#10b981' : '#ef4444' }}>
+                        {pos.unrealisedPnl >= 0 ? '+' : ''}${pos.unrealisedPnl.toFixed(2)}
+                      </span>
+                    )}
+                    <span style={{ color: '#9ca3af' }}>Stop <span style={{ color: '#ef4444' }}>${parseFloat(pos.stop || 0).toFixed(4)}</span>
                       {pos.distToStop != null && <span style={{ color: '#ef444488' }}> ({pos.distToStop}%)</span>}
                     </span>
-                    <span style={{ color: '#9ca3af' }}>TP <span style={{ color: '#22c55e' }}>${parseFloat(pos.tp || 0).toFixed(2)}</span>
+                    <span style={{ color: '#9ca3af' }}>TP <span style={{ color: '#22c55e' }}>${parseFloat(pos.tp || 0).toFixed(4)}</span>
                       {pos.distToTp != null && <span style={{ color: '#22c55e88' }}> (+{pos.distToTp}%)</span>}
                     </span>
                   </div>
@@ -2805,9 +2826,11 @@ function PolymarketSection({ poly, isMobile }) {
 
 function CapitalDeskView({ tsegaTrading, isMobile }) {
   const [activeTab, setActiveTab] = useState('perps')
+  const [tradePageSize, setTradePageSize] = useState({})
   const eq        = tsegaTrading?.equity       || {}
   const perf      = tsegaTrading?.performance  || {}
   const pos       = tsegaTrading?.positions    || []
+  const trades    = tsegaTrading?.trades       || []
   const holdings  = tsegaTrading?.holdings     || []
   const milestone = tsegaTrading?.milestone    || {}
   const meta      = tsegaTrading?.meta         || {}
@@ -2861,7 +2884,8 @@ function CapitalDeskView({ tsegaTrading, isMobile }) {
   }
 
   // Holdings allocation
-  const totalHoldings = holdings.reduce((s, h) => s + (h.usdValue || 0), 0)
+  const totalHoldings   = holdings.reduce((s, h) => s + (h.usdValue || 0), 0)
+  const totalUnrealized = pos.reduce((s, p) => s + (p.unrealisedPnl || 0), 0)
 
   // Status color
   const statusColor = agent.status === 'running' ? '#10b981' : agent.status === 'idle' ? '#f59e0b' : '#6b7280'
@@ -2976,7 +3000,14 @@ function CapitalDeskView({ tsegaTrading, isMobile }) {
         <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 10, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid #1e293b', background: '#ffffff03' }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Open Positions</span>
-            <span style={{ fontSize: 10, color: pos.length >= 3 ? '#10b981' : '#4b5563', fontWeight: 600 }}>{pos.length} / {risk.maxPositions || 3} slots used</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {pos.length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: totalUnrealized >= 0 ? '#10b981' : '#ef4444' }}>
+                  {totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)} unrealized
+                </span>
+              )}
+              <span style={{ fontSize: 10, color: pos.length >= 3 ? '#10b981' : '#4b5563', fontWeight: 600 }}>{pos.length} / {risk.maxPositions || 3} slots</span>
+            </div>
           </div>
 
           {pos.length === 0 ? (
@@ -2985,7 +3016,7 @@ function CapitalDeskView({ tsegaTrading, isMobile }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #1e293b' }}>
-                  {['Pair', 'Side', 'Entry', 'Size', 'Stop %', 'TP %', 'Opened'].map(h => (
+                  {['Pair', 'Side', 'Entry', 'Mark', 'P&L', 'Size', 'Stop %', 'TP %', 'Opened'].map(h => (
                     <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#4b5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -3006,6 +3037,14 @@ function CapitalDeskView({ tsegaTrading, isMobile }) {
                         <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: sc + '18', padding: '2px 8px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.side}</span>
                       </td>
                       <td style={{ padding: '13px 12px', color: '#e2e8f0', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtPrice(p.entry)}</td>
+                      <td style={{ padding: '13px 12px', color: '#9ca3af', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{p.markPrice != null ? fmtPrice(p.markPrice) : '—'}</td>
+                      <td style={{ padding: '13px 12px', whiteSpace: 'nowrap' }}>
+                        {p.unrealisedPnl != null ? (
+                          <span style={{ fontWeight: 700, color: p.unrealisedPnl >= 0 ? '#10b981' : '#ef4444' }}>
+                            {p.unrealisedPnl >= 0 ? '+' : ''}${p.unrealisedPnl.toFixed(2)}
+                          </span>
+                        ) : <span style={{ color: '#374151' }}>—</span>}
+                      </td>
                       <td style={{ padding: '13px 12px', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap' }}>${(p.sizeUsd || 0).toLocaleString('en-US', {maximumFractionDigits:0})}</td>
                       <td style={{ padding: '13px 12px', whiteSpace: 'nowrap' }}>
                         {atStop ? (
@@ -3088,6 +3127,133 @@ function CapitalDeskView({ tsegaTrading, isMobile }) {
           </a>
         </div>
       </div>
+
+      {/* ── Trade History (grouped by version, paginated) ──────────────────── */}
+      {trades.length > 0 && (() => {
+        const PAGE = 10
+        const closedByVersion = trades.reduce((acc, t) => {
+          const v = t.paramsVersion != null ? String(t.paramsVersion) : 'unknown'
+          ;(acc[v] = acc[v] || []).push(t)
+          return acc
+        }, {})
+        const sortedVersions = Object.keys(closedByVersion).sort((a, b) => {
+          if (a === 'unknown') return 1
+          if (b === 'unknown') return -1
+          return parseFloat(b) - parseFloat(a)
+        })
+        const versionStats = perf.versionStats || {}
+        const totalWins    = perf.wins || 0
+        const totalLosses  = perf.losses || 0
+        const totalTrades  = perf.totalTrades || trades.length
+        const winRate      = perf.winRate || 0
+        return (
+          <div style={{ background: '#111118', border: '1px solid #1e293b', borderRadius: 10, overflow: 'hidden' }}>
+            {/* header */}
+            <div style={{ padding: '11px 16px', borderBottom: '1px solid #1e293b', background: '#ffffff03', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Trade History</span>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>{winRate}% win rate</span>
+                <span style={{ fontSize: 10, color: '#6b7280' }}>{totalWins}W / {totalLosses}L of {totalTrades} trades</span>
+                <span style={{ fontSize: 10, color: '#4b5563', fontWeight: 600 }}>{sortedVersions.length} version{sortedVersions.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #1e293b' }}>
+                  {['Pair','Side','Entry','Exit','PnL','Reason','Duration'].map(h => (
+                    <th key={h} style={{ padding: '7px 12px', textAlign: 'left', fontSize: 10, color: '#4b5563', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedVersions.map((version, vi) => {
+                  const group     = closedByVersion[version]
+                  const vs        = versionStats[version] || {}
+                  const groupPnl  = vs.pnl  ?? group.reduce((s, t) => s + (t.pnl || 0), 0)
+                  const groupWins = vs.wins  ?? group.filter(t => (t.pnl || 0) > 0).length
+                  const groupLoss = vs.losses ?? (group.length - groupWins)
+                  const wr        = vs.winRate ?? (group.length > 0 ? Math.round(groupWins / group.length * 100) : 0)
+                  const shown     = tradePageSize[version] ?? PAGE
+                  const page      = group.slice(0, shown)
+                  return [
+                    /* version header row */
+                    <tr key={`v-${version}`} style={{ background: '#0d111b', borderTop: vi > 0 ? '2px solid #1e293b' : 'none', borderBottom: '1px solid #1e293b' }}>
+                      <td colSpan={7} style={{ padding: '7px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', background: '#3b82f615', padding: '2px 8px', borderRadius: 4, border: '1px solid #3b82f625', letterSpacing: '0.05em' }}>
+                            v{version}
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{wr}%</span>
+                          <span style={{ fontSize: 10, color: '#4b5563' }}>{groupWins}W / {groupLoss}L of {group.length}</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: groupPnl >= 0 ? '#10b981' : '#ef4444' }}>
+                            {groupPnl >= 0 ? '+' : ''}${groupPnl.toFixed(2)}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>,
+                    /* trade rows */
+                    ...page.map((t, i) => {
+                      const win = (t.pnl || 0) > 0
+                      const sc  = t.side === 'long' ? '#22c55e' : '#ef4444'
+                      const dur = t.durationMin != null
+                        ? t.durationMin >= 1440 ? `${(t.durationMin/1440).toFixed(1)}d`
+                        : t.durationMin >= 60   ? `${(t.durationMin/60).toFixed(1)}h`
+                        : `${Math.round(t.durationMin)}m`
+                        : '—'
+                      return (
+                        <tr key={(t.openedAt || '') + i} style={{ borderBottom: '1px solid #0f172a', opacity: 0.9 }}>
+                          <td style={{ padding: '10px 12px 10px 16px', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: 12 }}>{(t.symbol || '').replace('USDT','')}</span>
+                            <span style={{ color: '#374151', fontSize: 10 }}>/USDT</span>
+                          </td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: sc + '18', padding: '2px 6px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.side}</span>
+                          </td>
+                          <td style={{ padding: '10px 12px', color: '#9ca3af', fontFamily: 'monospace', fontSize: 11 }}>{t.entry != null ? fmtPrice(t.entry) : '—'}</td>
+                          <td style={{ padding: '10px 12px', color: '#9ca3af', fontFamily: 'monospace', fontSize: 11 }}>{t.exit  != null ? fmtPrice(t.exit)  : '—'}</td>
+                          <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontWeight: 700, fontSize: 12, color: win ? '#10b981' : '#ef4444' }}>
+                              {t.pnl != null ? `${win ? '+' : ''}$${t.pnl.toFixed(2)}` : '—'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 12px', fontSize: 10, color: '#6b7280', whiteSpace: 'nowrap' }}>
+                            {t.exitReason === 'stop_loss'   ? <span style={{ color: '#ef444490' }}>stop</span>
+                            : t.exitReason === 'take_profit' ? <span style={{ color: '#10b98190' }}>tp</span>
+                            : t.exitReason || '—'}
+                          </td>
+                          <td style={{ padding: '10px 12px', fontSize: 11, color: '#4b5563' }}>{dur}</td>
+                        </tr>
+                      )
+                    }),
+                    /* show more / collapse row */
+                    group.length > PAGE && (
+                      <tr key={`pg-${version}`} style={{ borderBottom: '1px solid #0f172a', background: '#0a0d16' }}>
+                        <td colSpan={7} style={{ padding: '8px 16px', textAlign: 'center' }}>
+                          {shown < group.length ? (
+                            <button
+                              onClick={() => setTradePageSize(ps => ({ ...ps, [version]: Math.min(shown + PAGE, group.length) }))}
+                              style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 4, color: '#6b7280', fontSize: 11, padding: '4px 12px', cursor: 'pointer' }}
+                            >
+                              Show {Math.min(PAGE, group.length - shown)} more  ({shown}/{group.length})
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setTradePageSize(ps => ({ ...ps, [version]: PAGE }))}
+                              style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 4, color: '#6b7280', fontSize: 11, padding: '4px 12px', cursor: 'pointer' }}
+                            >
+                              Collapse
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  ]
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      })()}
 
       </>}
     </div>

@@ -1895,23 +1895,25 @@ def _build_tsega_response(raw: dict) -> dict:
 
     positions_out = [
         {
-            "id":        p.get("id"),
-            "symbol":    p.get("symbol"),
-            "side":      p.get("side"),
-            "entry":     p.get("entryPrice"),
-            "stop":      p.get("stopPrice"),
-            "tp":        p.get("tpPrice"),
-            "sizeUsd":   p.get("sizeUsd"),
-            "score":     p.get("score"),
-            "venue":     p.get("venue", "bybit"),
-            "openedAt":  p.get("openedAt"),
-            "distToStop": _dist_pct(p.get("entryPrice"), p.get("stopPrice")),
-            "distToTp":   _dist_pct(p.get("entryPrice"), p.get("tpPrice")),
+            "id":           p.get("id"),
+            "symbol":       p.get("symbol"),
+            "side":         p.get("side"),
+            "entry":        p.get("entryPrice"),
+            "stop":         p.get("stopPrice"),
+            "tp":           p.get("tpPrice"),
+            "sizeUsd":      p.get("sizeUsd"),
+            "score":        p.get("score"),
+            "venue":        p.get("venue", "bybit"),
+            "openedAt":     p.get("openedAt"),
+            "markPrice":    p.get("markPrice"),
+            "unrealisedPnl": p.get("unrealisedPnl"),
+            "distToStop":   _dist_pct(p.get("entryPrice"), p.get("stopPrice")),
+            "distToTp":     _dist_pct(p.get("entryPrice"), p.get("tpPrice")),
         }
         for p in open_pos
     ]
 
-    # ── Last 20 closed trades ────────────────────────────────────────────────
+    # ── All closed trades (newest first) ────────────────────────────────────
     def _dur(t):
         try:
             o = datetime.fromisoformat(t["openedAt"].replace("Z", "+00:00"))
@@ -1922,18 +1924,41 @@ def _build_tsega_response(raw: dict) -> dict:
 
     trades_out = [
         {
-            "symbol":     t.get("symbol"),
-            "side":       t.get("side"),
-            "pnl":        t.get("pnl"),
-            "exitReason": t.get("exitReason"),
-            "entry":      t.get("entryPrice"),
-            "exit":       t.get("exitPrice"),
-            "openedAt":   t.get("openedAt"),
-            "closedAt":   t.get("closedAt"),
-            "durationMin": _dur(t),
+            "symbol":        t.get("symbol"),
+            "side":          t.get("side"),
+            "pnl":           t.get("pnl"),
+            "exitReason":    t.get("exitReason"),
+            "entry":         t.get("entryPrice"),
+            "exit":          t.get("exitPrice"),
+            "openedAt":      t.get("openedAt"),
+            "closedAt":      t.get("closedAt"),
+            "durationMin":   _dur(t),
+            "paramsVersion": t.get("paramsVersion"),
         }
-        for t in closed[-20:]
+        for t in reversed(closed)   # newest first
     ]
+
+    # ── Per-version stats ────────────────────────────────────────────────────
+    version_map: dict = {}
+    for t in closed:
+        v = str(t.get("paramsVersion") or "unknown")
+        bucket = version_map.setdefault(v, {"wins": 0, "losses": 0, "pnl": 0.0})
+        pnl_v  = t.get("pnl") or 0
+        bucket["pnl"] += pnl_v
+        if pnl_v > 0:
+            bucket["wins"] += 1
+        else:
+            bucket["losses"] += 1
+    version_stats = {
+        v: {
+            "wins":        d["wins"],
+            "losses":      d["losses"],
+            "totalTrades": d["wins"] + d["losses"],
+            "winRate":     round(d["wins"] / (d["wins"] + d["losses"]) * 100, 1) if (d["wins"] + d["losses"]) > 0 else 0,
+            "pnl":         round(d["pnl"], 2),
+        }
+        for v, d in version_map.items()
+    }
 
     # ── Equity ───────────────────────────────────────────────────────────────
     current_equity = metrics.get("equity", 0)
@@ -1996,12 +2021,13 @@ def _build_tsega_response(raw: dict) -> dict:
             "changePct":    change_pct,
         },
         "performance": {
-            "totalPnl":    total_pnl,
-            "todayPnl":    today_pnl,
-            "winRate":     win_rate,
-            "totalTrades": len(closed),
-            "wins":        len(wins),
-            "losses":      len(losses),
+            "totalPnl":     total_pnl,
+            "todayPnl":     today_pnl,
+            "winRate":      win_rate,
+            "totalTrades":  len(closed),
+            "wins":         len(wins),
+            "losses":       len(losses),
+            "versionStats": version_stats,
         },
         "risk": {
             "stopPct":            params.get("stopPct", 3),
@@ -2060,90 +2086,140 @@ def _downsample(pts: list, max_pts: int = 100) -> list:
 @app.get("/api/tsega")
 def get_tsega() -> dict:
     """
-    Canonical Tsega trading data endpoint.
+    Canonical Tsega trading data endpoint — proxies directly to VPS, no local fallback.
 
     Returns complete agent state: equity, positions, trades, equity curve,
     holdings, performance metrics, risk parameters, and milestone progress.
-
-    Data is read from the locally-synced dashboard-state.json (updated every
-    2 minutes by the LaunchAgent SCP sync from the VPS).
-
-    Response shape:
-      agent        — name, status, phase, venue, current task
-      equity       — current, peak, start-of-day, today change
-      performance  — totalPnl, todayPnl, winRate, totalTrades, wins, losses
-      risk         — stop/TP %, threshold, drawdown usage
-      positions    — all open positions with entry/stop/TP distances
-      trades       — last 20 closed trades
-      equityCurve  — last 24 h, downsampled to ≤100 pts (for charting)
-      holdings     — spot portfolio breakdown
-      milestone    — progress toward mainnet (target: 20 net-positive trades)
-      meta         — lastUpdated, dataAgeMin, live flag
     """
     import urllib.request
-    # Fetch live from VPS direct IP (no tunnel needed — port 3001 is publicly accessible)
     try:
         req = urllib.request.Request(
             f"{TSEGA_DASHBOARD_URL}/state",
             headers={"User-Agent": "mission-control/1.0"}
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             raw = json.loads(resp.read().decode())
         return _build_tsega_response(raw)
-    except Exception:
-        pass
-    # Fallback: local synced file
-    if not TSEGA_STATE_PATH.exists():
-        return {
-            "error": "no_data",
-            "message": "VPS unreachable and local sync file not found.",
-        }
-    try:
-        raw = json.loads(TSEGA_STATE_PATH.read_text())
-        return _build_tsega_response(raw)
     except Exception as e:
-        return {"error": "parse_error", "message": str(e)}
+        raise HTTPException(status_code=503, detail={"error": "vps_unreachable", "message": str(e)})
 
 
 @app.get("/api/trading/summary")
 def get_trading_summary() -> dict:
     """Backwards-compatible summary endpoint — proxies to /api/tsega."""
-    if not TSEGA_STATE_PATH.exists():
-        return {
-            "status": "unavailable", "equity": None, "openPositions": 0,
-            "todayPnl": None, "winRate": None, "totalTrades": 0,
-            "live": False, "error": "state file not found"
-        }
     try:
-        raw  = json.loads(TSEGA_STATE_PATH.read_text())
-        full = _build_tsega_response(raw)
-        # Flatten to the shape the frontend currently expects
-        wins_count = full["performance"]["wins"]
+        full = get_tsega()
         return {
-            "status":          full["agent"]["status"],
-            "equity":          full["equity"]["current"],
-            "totalPnl":        full["performance"]["totalPnl"],
-            "todayPnl":        full["performance"]["todayPnl"],
-            "winRate":         full["performance"]["winRate"],
-            "totalTrades":     full["performance"]["totalTrades"],
-            "openPositions":   len(full["positions"]),
+            "status":           full["agent"]["status"],
+            "equity":           full["equity"]["current"],
+            "totalPnl":         full["performance"]["totalPnl"],
+            "todayPnl":         full["performance"]["todayPnl"],
+            "winRate":          full["performance"]["winRate"],
+            "totalTrades":      full["performance"]["totalTrades"],
+            "openPositions":    len(full["positions"]),
             "openPositionList": full["positions"],
-            "recentTrades":    full["trades"][-5:],
-            "phase":           full["agent"]["phase"],
-            "milestone":       full["milestone"]["label"],
-            "nextMilestone":   full["milestone"]["nextStep"],
-            "dashboardUrl":    TSEGA_DASHBOARD_URL,
-            "live":            full["meta"]["live"],
-            "lastUpdate":      full["meta"]["syncedAt"],
+            "recentTrades":     full["trades"][:5],
+            "phase":            full["agent"]["phase"],
+            "milestone":        full["milestone"]["label"],
+            "nextMilestone":    full["milestone"]["nextStep"],
+            "dashboardUrl":     TSEGA_DASHBOARD_URL,
+            "live":             full["meta"]["live"],
+            "lastUpdate":       full["meta"]["syncedAt"],
         }
     except Exception as e:
-        return {"error": str(e), "live": False}
+        return {"error": str(e), "live": False, "status": "unavailable"}
 
 
 @app.get("/api/trading/live")
 def get_trading_live() -> dict:
     """Backwards-compatible live endpoint — proxies to /api/tsega."""
     return get_tsega()
+
+
+# ── WhatsApp notification relay ───────────────────────────────────────────────
+DELIVERY_QUEUE_DIR = Path("/Users/michaelderibe/.openclaw/delivery-queue")
+WA_TO              = "+16172308368"
+WA_ACCOUNT         = "default"
+WA_SESSION_KEY     = f"agent:main:whatsapp:direct:{WA_TO}"
+
+@app.post("/api/notify")
+def post_notify(payload: dict) -> dict:
+    """
+    Relay a WhatsApp notification to Mikael via the OpenClaw CLI.
+    Body: { "text": "message text" }
+    """
+    import subprocess, uuid
+    text = (payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text required")
+
+    result = subprocess.run(
+        ["openclaw", "message", "send",
+         "--channel", "whatsapp",
+         "--target",  WA_TO,
+         "--message", text],
+        capture_output=True, text=True, timeout=45
+    )
+    if result.returncode != 0:
+        raise HTTPException(status_code=502, detail={
+            "error": "send_failed",
+            "stderr": result.stderr[-300:],
+            "stdout": result.stdout[-300:],
+        })
+    msg_id = str(uuid.uuid4())
+    return {"ok": True, "id": msg_id, "detail": result.stdout.strip()}
+
+
+@app.post("/api/daily-summary")
+def post_daily_summary() -> dict:
+    """
+    Build a daily trading summary and send it to Mikael via WhatsApp.
+    Call this via cron each evening (e.g. 20:00 EAT = 17:00 UTC).
+    """
+    import uuid, time as _time
+    try:
+        data = get_tsega()
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    eq   = data.get("equity", {}) or {}
+    perf = data.get("performance", {}) or {}
+    pos  = data.get("positions", []) or []
+    ag   = data.get("agent", {}) or {}
+
+    equity       = eq.get("current", 0) or 0
+    today_pnl    = perf.get("todayPnl", 0) or 0
+    total_pnl    = perf.get("totalPnl", 0) or 0
+    win_rate     = perf.get("winRate", 0) or 0
+    total_trades = perf.get("totalTrades", 0) or 0
+    wins         = perf.get("wins", 0) or 0
+    losses       = perf.get("losses", 0) or 0
+    open_count   = len(pos)
+
+    unrealized   = sum(p.get("unrealisedPnl", 0) or 0 for p in pos)
+    agent_status = ag.get("status", "unknown")
+
+    today_sign = "+" if today_pnl >= 0 else ""
+    total_sign = "+" if total_pnl >= 0 else ""
+    unr_sign   = "+" if unrealized >= 0 else ""
+    day_emoji  = "📈" if today_pnl >= 0 else "📉"
+
+    lines = [
+        f"{day_emoji} *Daily Trading Summary*",
+        f"",
+        f"💰 Equity: ${equity:,.2f}",
+        f"Today P&L: {today_sign}${today_pnl:.2f}",
+        f"Total P&L: {total_sign}${total_pnl:.2f}",
+        f"",
+        f"📊 {open_count} open | Unrealized: {unr_sign}${unrealized:.2f}",
+        f"🏆 Win rate: {win_rate:.0f}% ({wins}W / {losses}L of {total_trades} trades)",
+        f"",
+        f"Agent: {agent_status}",
+    ]
+    text = "\n".join(lines)
+
+    result = post_notify({"text": text})
+    return {"ok": True, "id": result["id"], "summary": text}
 
 
 if __name__ == "__main__":

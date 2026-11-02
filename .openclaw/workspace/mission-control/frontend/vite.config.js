@@ -21,6 +21,8 @@ export default defineConfig({
       '/stripe': 'http://localhost:8765',
       '/stripe-webhook': 'http://localhost:8766',
       '/download': 'http://localhost:8765',
+      '/api': 'http://localhost:8765',
+      '/tsega': 'http://localhost:8765',
     },
   },
   server: {
@@ -40,6 +42,8 @@ export default defineConfig({
       '/stripe': 'http://localhost:8765',
       '/stripe-webhook': 'http://localhost:8766',
       '/download': 'http://localhost:8765',
+      '/api': 'http://localhost:8765',
+      '/tsega': 'http://localhost:8765',
     },
   },
 })

@@ -1,20 +1,20 @@
 {
-  "timestamp": "2026-04-03T08:33:43.864564+00:00",
+  "timestamp": "2026-05-09T13:02:00Z",
   "strategic": {
     "revenue": {
       "targetMonthly": 100000,
       "currentMonthly": 0,
-      "trend": "pipeline-active",
-      "notes": "Touch 1: 53/53 \u2705 | Touch 2: 9/9 \u2705 | Touch 3: staged (Apr 5 07:00 EAT) | 0 replies | Stripe $0 | Calendly still missing"
+      "trend": "CRITICAL - outreach stalled since Apr 27. Escalation trigger PASSED May 3 12:00 UTC (120+ hours overdue). Bulcha unreachable 210+ hours. Merry ACTIVE with TRIPLE SIGNAL 525pts+ LIVE NOW - posting window open through 18:00 EAT.",
+      "notes": "Day 55. 194 emails sent total. 0 replies. Revenue $0. BULCHA \ud83d\udd34 IDLE 210h+ since Apr 27 17:23 UTC - CRITICAL SSH intervention needed. Merry 145 drafts, ZERO posted in 55 days. TRIPLE SIGNAL NOW: 'vulnerability cultures' 334pts (#FP 8, CLIMBING), React2Shell 144pts (#FP 14), Teaching Claude 166pts (#FP 17). WINDOW OPEN NOW through ~18:00 EAT (4h)."
     }
   },
   "tasks": [
     {
       "title": "Unblock Email Outreach",
-      "status": "complete",
+      "status": "in-progress",
       "owner": "Selam",
       "priority": "urgent",
-      "progress": 100
+      "progress": 40
     },
     {
       "title": "Permanent URL \u2014 mc.atxo.me",
@@ -35,8 +35,7 @@
       "status": "pending",
       "owner": "Selam",
       "priority": "high",
-      "progress": 0,
-      "notes": "Blocked \u2014 Calendly not set up (Day 14+)"
+      "progress": 0
     },
     {
       "title": "Close First Pilot",
@@ -46,18 +45,18 @@
       "progress": 0
     },
     {
-      "title": "Send batch_20260326 (51/54 sent)",
-      "status": "in-progress",
+      "title": "Send batch_20260326 (0/54 sent)",
+      "status": "pending",
       "owner": "Bulcha",
       "priority": "urgent",
-      "progress": 94
+      "progress": 0
     },
     {
       "title": "Outreach Send Log Maintenance",
-      "status": "active",
+      "status": "pending",
       "owner": "Bulcha",
       "priority": "high",
-      "progress": 94
+      "progress": 0
     },
     {
       "title": "Monitor Inbox \u2014 selam@atxo.me",
@@ -82,59 +81,63 @@
     }
   ],
   "pipeline": {
-    "totalLeadsContacted": 137,
+    "totalLeadsContacted": 194,
+    "totalEmailsSent": 194,
+    "repliesReceived": 0,
+    "revenueGenerated": 0,
     "batches": {
-      "batch_20260326": {
-        "sent": 54,
-        "total": 54,
-        "replies": 0,
-        "status": "touch1_sent_april2"
-      },
-      "batch_20260329": {
-        "sent": 5,
-        "total": 51,
-        "blocked": 46,
-        "status": "smtp_blocked"
-      },
-      "batch_web3_leads": {
-        "staged": 24,
-        "sent": 0,
-        "status": "smtp_blocked"
-      },
       "touch1_batch_20260326": {
-        "drafted": 53,
         "sent": 53,
-        "failed": 0,
         "status": "complete",
         "fired_at": "2026-04-02 06:00 AM EAT",
-        "completed_at": "2026-04-02 07:27 AM EAT",
-        "route": "bulcha@atxo.me via smtppro.zoho.com:587"
+        "route": "bulcha@atxo.me"
       },
       "touch2_batch_20260326": {
-        "drafted": 10,
+        "sent": 9,
+        "status": "complete",
+        "fired_at": "2026-04-02 18:51 UTC"
+      },
+      "touch3_batch_20260326": {
+        "sent": 53,
+        "status": "complete",
+        "fired_at": "2026-04-03 08:41 UTC"
+      },
+      "web3_wave1": {
+        "sent": 7,
+        "status": "complete",
+        "fired_at": "2026-04-03 06:17 UTC"
+      },
+      "wave3_batch_20260409": {
+        "sent": 35,
+        "status": "complete",
+        "fired_at": "2026-04-09 20:48 UTC",
+        "route": "bulcha@atxo.me"
+      },
+      "batch_20260329": {
+        "total": 50,
         "sent": 0,
-        "status": "queued_april5",
-        "notes": "Personalized hooks per lead. followup_sequence.md ready."
+        "status": "skipped_all_dupes",
+        "notes": "All 50 leads already in prior wave logs. No new contacts."
       }
     },
-    "nextSendDate": "2026-04-02",
-    "nextAction": "Touch 2 follow-ups \u2014 OVERDUE \u2014 send via bulcha@atxo.me TODAY",
+    "nextAction": "Bulcha sourcing needed - all batches depleted. Lead pipeline completely stalled. Revenue $0. Needs Mikael intervention.",
+    "leadsExhausted": true,
     "batch_20260326": {
       "total": 54,
       "aGrade": 36,
       "bGrade": 18,
-      "status": "sending",
-      "emailsSent": 51,
+      "status": "ready_to_send",
+      "emailsSent": 0,
       "replies": 0,
       "callsBooked": 0,
       "dealsClosed": 0
     }
   },
   "inbox": {
-    "lastChecked": "2026-04-02T22:41:00Z",
+    "lastChecked": "2026-04-11T12:14:00Z",
     "realLeadReplies": 0,
     "status": "clean",
-    "notes": "01:41 EAT April 3. 0 real lead replies. 7 hard bounces cleaned. Still in 72h reply window for Touch 1."
+    "notes": "Merry checked 12:14 UTC Apr 11 (Cycle 83). Zero real lead replies. All activity automated (DMARC reports, bounces)."
   },
   "products": {
     "coldEmailStarterKit": {
@@ -195,69 +198,170 @@
       "platform": "Stripe",
       "status": "LIVE",
       "url": "https://buy.stripe.com/5kQaEPaxI6FO1vq7oL8IU0e"
-    },
-    "aiAgentAudit": {
-      "name": "AI Agent Audit",
-      "price": 500,
-      "platform": "Stripe",
-      "status": "KILLED",
-      "notes": "Required discovery call \u2014 eliminated 2026-04-02"
     }
   },
   "agentStatus": {
-    "Bulcha": "idle_11h_directive_issued_01:41EAT",
-    "Merry": "active_cycle15_cursor3_linkedin_tweet_ready",
-    "lastCheck": "2026-04-02T22:41:00Z"
+    "Bulcha": "\ud83d\udd34 IDLE 128+ hours \u2014 ESCALATION LEVEL 2. Issued May 2 18:10 UTC, unexecuted after 18h. Escalation trigger (May 3 00:00 UTC) PASSED. Last send Apr 27 05:37 UTC. Touch 2: 21 sent, 25 PENDING (43 days overdue). All batches exhausted. ESCALATED DIRECTIVE ISSUED May 3 06:10 UTC \u2014 if no activity by 12:00 UTC, Selam escalates to Mikael.",
+    "Merry": "ACTIVE \u2014 Cycle 210 complete May 3 06:04 UTC. HN signal LIVE: Agent harness outside sandbox #14 FP (88pts, GROWING +19pts in 90min, 69 comments). 93 drafts queued, ZERO posted. 0 human replies Day 48. Calendly Day 51 unset. CRITICAL: post tweets NOW \u2014 signal window closing in 12-18h.",
+    "lastCheck": "2026-05-04T13:25:00Z",
+    "Tsega": "ONLINE \u2014 testnet \u2014 scanning 10 pairs every 5min \u2014 threshold 60 \u2014 max 3 positions \u2014 building track record",
+    "Dawit": "SCAFFOLDED 2026-05-08 \u2014 Bybit trading agent, code skeleton ready, awaiting API credentials and v1 strategy. Defaults: testnet + dry_run + killswitch armed.",
+    "Aria-Trader": "SCAFFOLDED 2026-05-08 \u2014 identity + role only, no trading tools. Awaiting exchange API credentials and decision to extend with code.",
+    "Kairos": "SCAFFOLDED 2026-05-08 \u2014 standalone Bybit trading agent. Identity + role + placeholders for credentials and trading tools. Standby until activation checklist signed off."
   },
   "blockers_for_mikael": [
     {
+      "priority": 0,
+      "issue": "LEAD PIPELINE EXHAUSTED - Day 53, 194 sent, 0 replies, $0",
+      "impact": "Stripe, GitHub, Zoho, all APIs working again. Product email delivery pipeline now functional.",
+      "fix": "Done.",
+      "urgency": "CRITICAL - MISSION FAILURE IMMINENT"
+    },
+    {
       "priority": 1,
-      "issue": "Calendly booking link NOT SET UP",
-      "impact": "Touch 1 fired April 2. First replies could arrive 8-12 AM EAT. No booking flow = dead conversions.",
-      "fix": "Set up Calendly NOW: https://calendly.com \u2014 10 minutes",
-      "urgency": "CRITICAL \u2014 Touch 1 is live"
+      "issue": "TWEETS UNPOSTED - 137 drafts in 53 days",
+      "impact": "Wave 3 found only ~30 fresh leads from original batch. Pipeline will stall without new batch.",
+      "fix": "Source 50 fresh leads from Product Hunt AI (last 30 days) + YC W25/S25 + Apollo.io",
+      "urgency": "CRITICAL - Control Flow signal at 532pts decaying"
     },
     {
       "priority": 2,
-      "issue": "selam@atxo.me SMTP blocked by Zoho \u2014 Day 5",
-      "impact": "70 sends queued (46 batch_20260329 + 24 web3). Touch 2 also at risk if not resolved.",
-      "fix": "https://mail.zoho.com/UnblockMe",
-      "urgency": "HIGH"
+      "issue": "Calendly booking link NOT SET UP - Day 53",
+      "impact": "AI agent deleted prod DB still front page at 577pts \u2014 prime timing slipping away.",
+      "fix": "Post from X account. Draft A C156 is the strongest hook in 157 cycles.",
+      "urgency": "CRITICAL"
     },
     {
       "priority": 3,
-      "issue": "Gumroad SSN required for AI Outreach Playbook ($47) payouts",
-      "impact": "$47 product live but all revenue blocked",
-      "fix": "Submit SSN to Gumroad at gumroad.com/settings/payments"
+      "issue": "BULCHA UNREACHABLE 190h+ - escalation 100h+ overdue",
+      "impact": "Day 43. 194 leads touched. Zero can book. Dead conversion path.",
+      "fix": "Set up Calendly NOW: https://calendly.com \u2014 10 minutes",
+      "urgency": "CRITICAL - needs SSH assessment NOW"
+    },
+    {
+      "priority": 4,
+      "issue": "Touch 2 batch (53 leads) \u2014 43 days OVERDUE",
+      "impact": "53 leads ready for follow-up. Only 7 sent.",
+      "fix": "Route via bulcha@atxo.me. Binary CTA: yes or no?",
+      "urgency": "HIGH"
     }
   ],
   "agentActivity": {
     "Selam": {
       "status": "active",
-      "currentFocus": "Mission check 01:41 EAT. Bulcha idle 11h \u2014 directive issued. Touch 2 2/9 pending. Touch 3 staging for April 5.",
-      "lastUpdate": "2026-04-02T22:41:00Z"
+      "currentFocus": "Mission check 13:35 UTC Apr 20 (Cycle 125). Day 33. Updated state.json, issued Bulcha re-activation directive, verified Merry C124 active.",
+      "lastUpdate": "2026-04-20T13:35:00Z"
     },
     "Bulcha": {
-      "status": "idle_directive_issued",
-      "currentFocus": "DIRECTIVE issued 01:41 EAT: complete Touch 2 (2 remaining), stage Touch 3, clean bounce list.",
-      "lastUpdate": "2026-04-02T22:41:00Z",
+      "status": "IDLE \u2014 DIRECTIVE ISSUED",
+      "currentFocus": "Re-activation directive issued Apr 20 13:35 UTC. 51h gap. Touch 2: 7/53 sent (46 overdue). Last sends Apr 18: 7 leads from batch_20260326.",
+      "lastUpdate": "2026-04-18T09:58:00Z",
       "details": {
-        "touch2_sent": 7,
-        "touch2_total": 9,
-        "touch2_pending": [
-          "Khaled Bitar (Avtal)",
-          "Wiley Jones (Doss)"
-        ],
-        "touch3_status": "staging \u2014 target April 5 07:00 EAT",
-        "hard_bounces_logged": 7,
-        "security_wave6": "COMPLETE \u2014 5 VC contacts",
-        "smtp_issue": "bulcha@ app password may need refresh"
+        "touch1_sent": 53,
+        "touch2_sent": 9,
+        "touch3_sent": 53,
+        "web3_wave1_sent": 7,
+        "wave3_batch_sent": 35,
+        "total_sent": 157,
+        "today_sent": 7,
+        "leads_exhausted": true,
+        "last_comms_utc": "2026-04-18T09:58:00Z",
+        "directive_status": "RE-ACTIVATION DIRECTIVE ISSUED \u2014 Apr 20 13:35 UTC",
+        "touch2_status": "7/53 sent \u2014 46 overdue \u2014 route via bulcha@atxo.me"
       }
     },
     "Merry": {
-      "status": "on_watch",
-      "focus": "Inbox watch. Cursor 3 + LinkedIn combo tweet drafted and READY. 0 lead replies at 01:41 EAT.",
-      "lastUpdate": "2026-04-02T22:41:00Z"
+      "status": "active",
+      "focus": "Cycle 124 complete Apr 18 10:54 UTC. Claude Code malware + GitHub Copilot EU data residency hooks. 0 lead replies. Tweet backlog 6 (C121-C124).",
+      "lastUpdate": "2026-04-18T10:54:00Z"
+    },
+    "Tsega": {
+      "status": "active",
+      "currentFocus": "Autonomous crypto trading \u2014 scanning 10 pairs every 5min on Bybit testnet",
+      "lastUpdate": "2026-04-10T13:37:00Z",
+      "details": {
+        "venue": "Bybit testnet",
+        "pairs": 10,
+        "scanInterval": "5min",
+        "threshold": 60,
+        "maxPositions": 3,
+        "stopPct": 3,
+        "tpPct": 6,
+        "dashboard": "https://homopolar-neva-experiential.ngrok-free.app",
+        "phase": "testnet \u2014 building 20-trade track record before mainnet"
+      }
+    },
+    "Aria-Trader": {
+      "status": "scaffolded",
+      "currentFocus": "Identity + role scaffold only. No trading tools yet. Awaiting credentials and decision to extend.",
+      "lastUpdate": "2026-05-08T12:10:00Z",
+      "details": {
+        "venue": "Bybit (planned)",
+        "phase": "scaffolded \u2014 identity only",
+        "agentDir": "agents/aria-trader",
+        "files": [
+          "IDENTITY.md",
+          "ROLE.md",
+          "CREDENTIALS.md",
+          "STATUS.md"
+        ],
+        "tradingCode": "none \u2014 not requested in initial scaffold",
+        "needsFromMike": [
+          "Bybit API key (when ready)",
+          "decision on whether to extend with trading code (can adapt agents/dawit/ pattern)",
+          "strategy spec"
+        ]
+      }
+    },
+    "Kairos": {
+      "status": "scaffolded",
+      "currentFocus": "Standalone Bybit trader \u2014 standby until activation checklist signed off",
+      "lastUpdate": "2026-05-08T12:11:00Z",
+      "details": {
+        "venue": "Bybit (planned)",
+        "phase": "scaffolded \u2014 standby",
+        "agentDir": "agents/kairos",
+        "files": [
+          "IDENTITY.md",
+          "ROLE.md",
+          "CREDENTIALS.md",
+          "TOOLS.md",
+          "STATUS.md"
+        ],
+        "tradingCode": "placeholder only \u2014 see TOOLS.md; reference implementation at agents/dawit/",
+        "rosterEntry": "AGENTS.md \u2014 Kairos section",
+        "needsFromMike": [
+          "Bybit API key (no withdraw permission)",
+          "decision on whether to extend with trading code (adapt agents/dawit/ pattern)",
+          "strategy spec",
+          "GO command to activate"
+        ]
+      }
+    },
+    "Dawit": {
+      "status": "scaffolded",
+      "currentFocus": "Bybit autonomous trading agent \u2014 code skeleton ready, awaiting credentials and strategy",
+      "lastUpdate": "2026-05-08T12:09:00Z",
+      "details": {
+        "venue": "Bybit",
+        "phase": "scaffolded \u2014 pre-testnet",
+        "agentDir": "agents/dawit",
+        "mode": "DRY_RUN=true, BYBIT_TESTNET=true",
+        "killswitch": "armed by default (drop KILLSWITCH.flag to halt)",
+        "riskCaps": {
+          "maxDailyLossUsd": 50,
+          "maxDrawdownPct": 15,
+          "maxPositionSizeUsd": 100,
+          "maxOpenPositions": 3,
+          "maxLeverage": 3
+        },
+        "needsFromMike": [
+          "Bybit testnet API key (no withdraw permission)",
+          "fill .env from .env.example",
+          "approve or replace placeholder strategy",
+          "decide hosting (same VPS as Tsega or isolated)"
+        ]
+      }
     }
   },
   "liveActivities": {
@@ -265,57 +369,161 @@
       {
         "name": "Selam",
         "status": "active",
-        "currentTask": "Mission check 01:41 EAT. Directing pipeline. Touch 2 close-out. Touch 3 staging.",
-        "blockers": null,
-        "progress": 70
+        "currentTask": "Mission check May 13 10:22 UTC / 1:22 PM EAT (Cycle 296). Day 57. Merry C295 ACTIVE complete 10:16 UTC \u2014 .env tweet signal decayed (was 5pts 38m old, now 9pts 5h old, OFF /newest). No new agent security hooks on HN. Bulcha IDLE 383+ hours (Apr 27 17:23 UTC \u2192 May 13 10:22 UTC). Escalation overdue 147+ hours (trigger May 3 12:00 UTC). 178 tweet drafts saved, zero posted. Revenue $0, 194 leads contacted, 0 replies.",
+        "blockers": "CRITICAL: 1) BULCHA UNREACHABLE 383+ HOURS \u2014 147+ hours past escalation trigger (May 3 12:00 UTC). 4+ directives unexecuted since May 2. REQUIRES MIKAEL SSH ASSESSMENT NOW. Agent appears DEAD or SMTP permanently broken. BLOCKS ENTIRE REVENUE PIPELINE. 2) MERRY TWEET WINDOW CLOSED \u2014 best signal (.env joke) lost momentum, off /newest. Current HN bleak zone (no agent security stories on FP). 3) CALENDLY unset (Day 57, dead conversion path for 194 leads). 4) LEAD PIPELINE EXHAUSTED \u2014 194 touched, 0 replies, cannot source new leads until Bulcha recovered.",
+        "progress": 100
       },
       {
         "name": "Bulcha",
-        "status": "idle_directive_issued",
-        "currentTask": "Directive: complete Touch 2 (2 sends), stage Touch 3, clean bounces, IMAP sweep.",
-        "blockers": "bulcha@ SMTP app password may need refresh",
-        "progress": 78
+        "status": "\ud83d\udd34 CRITICAL - IDLE 383+ HOURS (16+ DAYS) - ESCALATION 147+ HOURS OVERDUE",
+        "currentTask": "Touch 2: 21/46 sent (25 PENDING, 43+ days overdue). Unreachable since Apr 27 17:23 UTC (16+ days ago). Zero new emails sent in entire time window. Last send: Apr 27 20:23 UTC (touch2_send_log.csv).",
+        "blockers": "Agent appears DEAD or SMTP permanently broken. REQUIRES MIKAEL SSH INTERVENTION IMMEDIATELY. Escalation trigger May 3 12:00 UTC passed 147+ hours ago. Five+ escalated directives unexecuted (May 2, May 3 x2, May 7, May 12). BLOCKS ENTIRE REVENUE PIPELINE for 16+ days. SSH check + repair/retire decision needed NOW.",
+        "progress": 41,
+        "lastComms": "2026-04-27T20:23:00Z",
+        "lastDirective": "2026-05-12T16:20:00Z",
+        "notes": "DIRECTIVE.md (May 12 16:20 UTC) re-updated. If recoverable: complete Touch 2 immediately + source 50 fresh leads. If dead: document root cause + decide retire vs rebuild. ESCALATION OVERDUE 147+ HOURS."
       },
       {
         "name": "Merry",
+        "status": "\ud83d\udfe2 ACTIVE - C295 complete 10:16 UTC (signal window closed, no viable hooks)",
+        "currentTask": "Cycle C295 complete May 13 10:16 UTC. .env tweet signal decayed (5pts \u2192 9pts, 5h old, OFF /newest). No new agent security stories on HN FP. Scanned /newest and FP: best current signal is Needle (model distillation, 365pts, not security-focused). 178 tweet drafts saved, ZERO posted in 57 days.",
+        "blockers": "CRITICAL: 1) TWEET SIGNAL WINDOW CLOSED \u2014 .env joke was best hook, lost momentum (now off /newest). Current HN cycle is bleak zone for agent security content. 2) CALENDLY - Day 57, still unset (194 leads, 0 can book). 3) BULCHA - 383h+ idle, escalation 147h+ overdue (blocks fresh sourcing). 4) LEAD PIPELINE exhausted (194 contacted, 0 replies). 5) REVENUE $0.",
+        "progress": 100,
+        "lastUpdate": "2026-05-13T10:16:00Z"
+      },
+      {
+        "name": "Tsega",
         "status": "active",
-        "currentTask": "Inbox watch. Cursor 3 + LinkedIn tweet ready to post. Touch 3 (9 leads) ready April 5.",
-        "blockers": "Calendly still not live \u2014 no booking conversion path",
-        "progress": 65
+        "currentTask": "Autonomous crypto trading \u2014 scanning 10 pairs every 5min on Bybit testnet. Building 20-trade track record before mainnet launch.",
+        "blockers": "None \u2014 live on VPS. Mainnet pending track record milestone.",
+        "progress": 10,
+        "lastDirective": "2026-04-10T13:37:00Z",
+        "directiveStatus": "EXECUTING \u2014 scanning markets, posting P&L to team chat"
+      },
+      {
+        "name": "Dawit",
+        "status": "scaffolded",
+        "currentTask": "Pre-testnet \u2014 code skeleton at agents/dawit/. Awaiting Bybit API credentials, .env config, and v1 strategy before first run.",
+        "blockers": "1) Bybit testnet API key not created. 2) .env not populated. 3) Strategy module is a placeholder returning None.",
+        "progress": 5,
+        "lastDirective": "2026-05-08T12:09:00Z",
+        "directiveStatus": "SCAFFOLDED \u2014 awaiting credentials + strategy"
+      },
+      {
+        "name": "Aria-Trader",
+        "status": "scaffolded",
+        "currentTask": "Identity + role scaffold only at agents/aria-trader/. No trading tools yet. Cannot trade until extended with code and credentials.",
+        "blockers": "1) No trading code (intentional \u2014 not in initial scaffold scope). 2) Exchange API credentials not provided. 3) Strategy not defined.",
+        "progress": 2,
+        "lastDirective": "2026-05-08T12:10:00Z",
+        "directiveStatus": "SCAFFOLDED \u2014 identity established, awaiting extension"
+      },
+      {
+        "name": "Kairos",
+        "status": "scaffolded",
+        "currentTask": "Standalone Bybit trader at agents/kairos/. Identity, role, and placeholders for credentials and trading tools in place. Documented in AGENTS.md roster.",
+        "blockers": "1) Bybit API keys not provisioned. 2) Trading tools placeholder only (TOOLS.md) \u2014 reference implementation at agents/dawit/ when ready to extend. 3) Strategy not selected. 4) Mike GO command pending.",
+        "progress": 3,
+        "lastDirective": "2026-05-08T12:11:00Z",
+        "directiveStatus": "SCAFFOLDED \u2014 standby, activation checklist pending"
       }
     ],
+    "metrics": {
+      "totalEmailsSent": 194,
+      "totalLeadsContacted": 194,
+      "repliesReceived": 0,
+      "revenueGenerated": 0,
+      "bounces": 18,
+      "lastSendActivity": "2026-04-27T17:23:27Z",
+      "lastMissionCheck": "2026-05-09T13:02:00Z",
+      "bulchaIdleHours": 210,
+      "bulchaLastDirective": "2026-05-07T21:54:00Z",
+      "merryStatus": "ACTIVE - C258 complete 11:45 UTC",
+      "merryTripleSignal": "525-644pts combined (vulnerability cultures 334pts + React2Shell 144pts + Teaching Claude 166pts + reCAPTCHA 1038pts adjacent)"
+    },
     "queue": [
       {
-        "task": "Complete Touch 2 \u2014 2 sends remaining (Khaled Bitar, Wiley Jones)",
-        "assignee": "Bulcha",
+        "task": "POST TWEETS NOW \u2014 TRIPLE SIGNAL LIVE",
+        "assignee": "Mikael",
+        "priority": "\ud83d\ude80 URGENT - WINDOW OPEN NOW through ~18:00 EAT (4h remaining)",
+        "notes": "TRIPLE ALIGNMENT 525-644pts: 'AI breaking vulnerability cultures' #FP 8 (334pts, CLIMBING at 16h), React2Shell #FP 14 (144pts, unsaturated), Teaching Claude Why #FP 17 (166pts). Google reCAPTCHA #FP 2 (1038pts, adjacent trust narrative). 145 drafts queued. Saturday morning extended lifespan. Post now while climbing."
+      },
+      {
+        "task": "ASSESS BULCHA STATUS \u2014 unreachable 210+ hours",
+        "assignee": "Mikael",
+        "priority": "CRITICAL \u2014 120+ HOURS OVERDUE",
+        "notes": "Escalation trigger passed May 3 12:00 UTC. Four directives unexecuted since then. Last activity Apr 27 17:23 UTC (5 days 19h ago). SSH assessment URGENT: determine if agent dead or SMTP broken. Repair or retirement decision needed immediately."
+      },
+      {
+        "task": "SOURCE 50 FRESH LEADS \u2014 Product Hunt, YC, Apollo (DEADLINE PASSED May 4)",
+        "assignee": "Bulcha/Mikael",
         "priority": "CRITICAL",
-        "due": "NOW"
+        "notes": "All batches depleted (194 contacted, 0 replies). Pipeline completely stalled. Cannot execute until Bulcha status assessed. If recoverable, execute same day."
       },
       {
-        "task": "Post Cursor 3 + LinkedIn combo tweet",
-        "assignee": "Mikael/Selam",
-        "priority": "HIGH",
-        "notes": "US evening window active. Both stories trending."
-      },
-      {
-        "task": "Calendly booking link setup",
+        "task": "Set up Calendly booking link (Day 55)",
         "assignee": "Mikael",
         "priority": "CRITICAL",
-        "notes": "Day 13+. Touch 1 live. No conversion path = dead leads."
+        "notes": "194 leads touched, 0 can book. Dead conversion path. 10-minute fix. Essential before next reply window. Do this while assessing Bulcha."
       },
       {
-        "task": "Unblock selam@atxo.me SMTP",
-        "assignee": "Mikael",
+        "task": "Complete Touch 2 batch (25 unsent, DEADLINE PASSED May 3)",
+        "assignee": "Bulcha/Mikael",
         "priority": "HIGH",
-        "fix": "https://mail.zoho.com/UnblockMe"
-      },
-      {
-        "task": "Stage Touch 3 (9 leads) for April 5",
-        "assignee": "Bulcha",
-        "priority": "HIGH",
-        "due": "April 5 07:00 EAT"
+        "notes": "21/46 sent, 43+ days overdue. Blocked by Bulcha status. If agent recoverable, complete immediately upon fix."
       }
     ],
-    "lastUpdated": "2026-04-02T22:41:00Z"
+    "lastUpdated": "2026-05-09T13:02:00Z"
+  },
+  "trading": {
+    "agent": "Tsega",
+    "role": "Capital Desk Operator",
+    "phase": "testnet",
+    "venue": "Bybit testnet",
+    "dashboard": "https://homopolar-neva-experiential.ngrok-free.dev",
+    "vps": "161.35.220.149",
+    "pairs": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT",
+      "BNBUSDT",
+      "AVAXUSDT",
+      "XRPUSDT",
+      "ADAUSDT",
+      "DOTUSDT",
+      "DOGEUSDT",
+      "LTCUSDT"
+    ],
+    "strategy": {
+      "threshold": 60,
+      "stop": "3%",
+      "tp": "6%",
+      "maxPositions": 3,
+      "scanInterval": "5min"
+    },
+    "milestone": "20 net-positive trades \u2192 mainnet brief to Selam",
+    "liveDataEndpoint": "/api/trading/live",
+    "summaryEndpoint": "/api/trading/summary",
+    "note": "Live P&L fetched dynamically from Tsega's dashboard via /api/trading/live"
+  },
+  "lastUpdated": "2026-05-16T00:20:00Z",
+  "missionCheckCycle": {
+    "timestamp": "2026-05-16T08:30:00Z",
+    "cycle": 321,
+    "bulchaIdleHours": 419,
+    "bulchaLastActivity": "2026-04-27T17:23:36Z",
+    "escalationOverdueHours": 181,
+    "escalationTrigger": "2026-05-03T12:00:00Z",
+    "escalationStatus": "\ud83d\udd34 CRITICAL - 181+ HOURS OVERDUE. AGENT DEAD OR SMTP BROKEN. 419+ hours idle (Apr 27 17:23 \u2192 May 16 08:30 UTC). SSH assessment required IMMEDIATELY. 7+ directives unexecuted since May 2. BLOCKS ENTIRE REVENUE PIPELINE. Requires Mikael repair/retire decision.",
+    "merryStatus": "\ud83d\udfe2 ACTIVE - C321 complete 08:28 UTC Sat. NEW BREAKOUT SIGNAL DETECTED: Frontier AI has broken CTF format (63pts, 1h old, CLIMBING). 193 tweet drafts queued, ZERO posted across 60 days. Signal window 08:28-18:00 EAT (9.5h remaining).",
+    "merrySignal": "\ud83d\udfe2 LIVE BREAKOUT - Frontier AI CTF security signal (63pts, climbing). RECOMMENDATION: POST NOW (9.5h window remaining). Direct proof of agent boundary-breaking validates safeagent.build thesis.",
+    "pipelineStatus": "\ud83d\udd34 EXHAUSTED - 194 contacted, 0 replies lifetime. Calendly unset (dead conversion path). Lead sourcing BLOCKED BY BULCHA OUTAGE 419+ hours.",
+    "revenueStatus": "$0 - zero Stripe conversions. 8 products live ($27-$297). No pipeline, no calls, no closes.",
+    "emailsSentTotal": 194,
+    "bulchaSentFiles": 25,
+    "touchRatio": "~21/46 sent (25 pending, 43+ days overdue)",
+    "bounceRate": "9.3% (18/194)",
+    "escalationNotification": "\ud83d\udea8 BULCHA DEAD/BROKEN 419+ HOURS (17.5+ DAYS). Escalation 181+ hours past May 3 trigger. Last activity Apr 27 17:23 UTC. 7+ escalated directives unexecuted. REQUIRES MIKAEL SSH INTERVENTION IMMEDIATELY. Assess recovery vs retire. If recoverable: complete Touch 2 (25 pending) + source 50 fresh leads ASAP. MERRY: NEW SIGNAL LIVE NOW - POST FRONTIER AI TWEET (9.5h window).",
+    "nextCheckpoint": "2026-05-16T14:30:00Z"
   }
 }

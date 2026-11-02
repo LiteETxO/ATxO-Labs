@@ -1,107 +1,48 @@
 {
   "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/((?!assets/).*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "CDN-Cache-Control", "value": "max-age=60, stale-while-revalidate=86400" }
+      ]
+    }
+  ],
   "redirects": [
     {
-      "source": "/yt",
-      "destination": "https://heyselam.ai/?utm_source=youtube&utm_medium=live&utm_campaign=live-yt",
-      "permanent": false
-    },
-    {
-      "source": "/fb",
-      "destination": "https://heyselam.ai/?utm_source=facebook&utm_medium=live&utm_campaign=live-fb",
-      "permanent": false
-    },
-    {
-      "source": "/ig",
-      "destination": "https://heyselam.ai/?utm_source=instagram&utm_medium=live&utm_campaign=live-ig",
-      "permanent": false
-    },
-    {
-      "source": "/live",
-      "destination": "https://heyselam.ai/?utm_source=live&utm_medium=live&utm_campaign=live",
-      "permanent": false
-    },
-    {
       "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "heyselam.app"
-        }
-      ],
+      "has": [{ "type": "host", "value": "heyselam.app" }],
       "destination": "https://heyselam.ai/",
       "permanent": true
     },
     {
       "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.heyselam.ai"
-        }
-      ],
+      "has": [{ "type": "host", "value": "www.heyselam.ai" }],
       "destination": "https://heyselam.ai/",
       "permanent": true
     },
     {
       "source": "/:path+",
-      "has": [
-        {
-          "type": "host",
-          "value": "heyselam.app"
-        }
-      ],
+      "has": [{ "type": "host", "value": "heyselam.app" }],
       "destination": "https://heyselam.ai/:path+",
       "permanent": true
     },
     {
       "source": "/:path+",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.heyselam.ai"
-        }
-      ],
+      "has": [{ "type": "host", "value": "www.heyselam.ai" }],
       "destination": "https://heyselam.ai/:path+",
       "permanent": true
     }
   ],
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/selam-landing"
-    },
-    {
-      "source": "/security",
-      "destination": "/selam-security"
-    },
-    {
-      "source": "/vs/chatgpt-desktop",
-      "destination": "/selam-vs-chatgpt"
-    },
-    {
-      "source": "/local-ai-assistant",
-      "destination": "/selam-local-ai"
-    },
-    {
-      "source": "/vs/openworker",
-      "destination": "/selam-vs-openworker"
-    },
-    {
-      "source": "/ai-phone-assistant",
-      "destination": "/selam-phone-assistant"
-    },
-    {
-      "source": "/ai-meeting-notes",
-      "destination": "/selam-meeting-notes"
-    },
-    {
-      "source": "/ops",
-      "destination": "/selam-ops"
-    },
-    {
-      "source": "/join",
-      "destination": "/selam-guest"
-    }
+    { "source": "/", "destination": "/selam-landing" },
+    { "source": "/security", "destination": "/selam-security" },
+    { "source": "/vs/chatgpt-desktop", "destination": "/selam-vs-chatgpt" },
+    { "source": "/local-ai-assistant", "destination": "/selam-local-ai" },
+    { "source": "/vs/openworker", "destination": "/selam-vs-openworker" },
+    { "source": "/ai-phone-assistant", "destination": "/selam-phone-assistant" },
+    { "source": "/ai-meeting-notes", "destination": "/selam-meeting-notes" },
+    { "source": "/ops", "destination": "/selam-ops" }
   ]
 }

@@ -24,12 +24,14 @@ done &
 BACKEND_PID=$!
 sleep 3
 
-# Frontend preview with API base
-echo "→ Starting frontend (port 3000)..."
+# Frontend — build then serve production preview
+echo "→ Building frontend..."
 cd "$DIR/frontend"
-VITE_API_BASE=http://localhost:8765 node_modules/.bin/vite preview --port 3000 --host 0.0.0.0 &
+node_modules/.bin/vite build
+echo "→ Starting frontend (port 3000)..."
+node_modules/.bin/vite preview --port 3000 --host 0.0.0.0 &
 FRONTEND_PID=$!
-sleep 2
+sleep 3
 
 # Cloudflare named tunnel (permanent)
 echo "→ Starting Cloudflare tunnel..."

@@ -71,6 +71,29 @@ export async function rateLimited(bucket, ip, max, windowSec) {
   }
 }
 
+// Count events in a rolling per-IP window and return the NEW count (not a
+// boolean). Used to cap non-product "social" chatter per visitor without ever
+// blocking product/support questions. Fail-open to the in-memory counter.
+function memCount(key, windowMs) {
+  const now = Date.now();
+  const arr = (_mem.get(key) || []).filter((t) => now - t < windowMs);
+  arr.push(now);
+  _mem.set(key, arr);
+  if (_mem.size > 5000) _mem.clear();
+  return arr.length;
+}
+export async function bumpCount(bucket, ip, windowSec) {
+  const key = `cnt:${bucket}:${ip}`;
+  if (!HAS_UPSTASH) return memCount(key, windowSec * 1000);
+  try {
+    const [count] = await redis([["INCR", key]]);
+    if (count === 1) await redis([["EXPIRE", key, String(windowSec)]]);
+    return Number(count) || 1;
+  } catch (_) {
+    return memCount(key, windowSec * 1000);   // fail-open to in-memory
+  }
+}
+
 // { over, spent } — over = this month's budget is exhausted.
 export async function budgetStatus() {
   if (!HAS_UPSTASH) return { over: false, spent: 0 };
